@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import io.github.mastin95.pliegue.AppViewModel
+import io.github.mastin95.pliegue.model.OpenMode
 import io.github.mastin95.pliegue.model.SampleData
 import io.github.mastin95.pliegue.ui.XIcons
 import io.github.mastin95.pliegue.ui.theme.X
@@ -141,14 +142,17 @@ private fun Segment(label: String, active: Boolean, icon: ImageVector? = null, o
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        if (icon != null) Icon(icon, contentDescription = null, tint = X.Text, modifier = Modifier.size(16.dp))
-        Text(label, style = XType.button.copy(fontSize = 14.sp), color = if (active) Color.White else X.Text, maxLines = 1)
+        if (icon != null) Icon(icon, contentDescription = if (label.isEmpty()) "Intercambiar" else null, tint = X.Text, modifier = Modifier.size(16.dp))
+        if (label.isNotEmpty()) Text(label, style = XType.button.copy(fontSize = 14.sp), color = if (active) Color.White else X.Text, maxLines = 1)
     }
 }
 
-/** Barra flotante sobre la bisagra: doble feed, un solo feed e intercambiar mitades. */
+/**
+ * Barra flotante sobre la bisagra: doble feed, un solo feed, columnas e intercambiar mitades.
+ * `compact` acorta los textos en pantallas interiores estrechas.
+ */
 @Composable
-fun DualToolbar(vm: AppViewModel, modifier: Modifier = Modifier) {
+fun OpenToolbar(vm: AppViewModel, compact: Boolean, modifier: Modifier = Modifier) {
     val shape = RoundedCornerShape(26.dp)
     Row(
         modifier
@@ -159,9 +163,12 @@ fun DualToolbar(vm: AppViewModel, modifier: Modifier = Modifier) {
             .padding(5.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Segment("Doble feed", active = vm.dual) { vm.updateDual(true) }
-        Segment("Un solo feed", active = !vm.dual) { vm.updateDual(false) }
-        Segment("Intercambiar", active = false, icon = XIcons.Swap) { vm.swap() }
+        Segment(if (compact) "Doble" else "Doble feed", active = vm.mode == OpenMode.Doble) { vm.updateMode(OpenMode.Doble) }
+        Segment(if (compact) "Uno" else "Un solo feed", active = vm.mode == OpenMode.Uno) { vm.updateMode(OpenMode.Uno) }
+        Segment("Columnas", active = vm.mode == OpenMode.Columnas) { vm.updateMode(OpenMode.Columnas) }
+        if (vm.mode != OpenMode.Columnas) {
+            Segment(if (compact) "" else "Intercambiar", active = false, icon = XIcons.Swap) { vm.swap() }
+        }
     }
 }
 

@@ -39,6 +39,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.mastin95.pliegue.AppViewModel
 import io.github.mastin95.pliegue.Posture
 import io.github.mastin95.pliegue.ScreenInfo
+import io.github.mastin95.pliegue.model.OpenMode
 import io.github.mastin95.pliegue.model.OpenPost
 import io.github.mastin95.pliegue.model.SampleData
 import io.github.mastin95.pliegue.ui.components.Actions
@@ -46,15 +47,16 @@ import io.github.mastin95.pliegue.ui.components.AuthorRow
 import io.github.mastin95.pliegue.ui.components.Avatar
 import io.github.mastin95.pliegue.ui.components.BottomNav
 import io.github.mastin95.pliegue.ui.components.ComposerDialog
+import io.github.mastin95.pliegue.ui.components.ColumnsBoard
 import io.github.mastin95.pliegue.ui.components.ComposerTools
 import io.github.mastin95.pliegue.ui.components.DetailHeader
-import io.github.mastin95.pliegue.ui.components.DualToolbar
 import io.github.mastin95.pliegue.ui.components.EmptyDetail
 import io.github.mastin95.pliegue.ui.components.Fab
 import io.github.mastin95.pliegue.ui.components.FeedColumn
 import io.github.mastin95.pliegue.ui.components.FoldedTopBar
 import io.github.mastin95.pliegue.ui.components.MediaArt
 import io.github.mastin95.pliegue.ui.components.NavRail
+import io.github.mastin95.pliegue.ui.components.OpenToolbar
 import io.github.mastin95.pliegue.ui.components.PillButton
 import io.github.mastin95.pliegue.ui.components.PlainField
 import io.github.mastin95.pliegue.ui.components.PostCard
@@ -124,12 +126,16 @@ fun FoldedScreen(vm: AppViewModel) {
 /**
  * Abierto: dos mitades separadas por la bisagra. Cada panel acaba antes del pliegue
  * (24 dp en pantallas grandes, 12 dp en las pequeñas). Tocar un post lo abre en la otra mitad.
+ * En modo Columnas, el tablero reparte columnas a cada lado de la bisagra.
  */
 @Composable
 fun OpenScreen(vm: AppViewModel, screen: ScreenInfo) {
     val density = LocalDensity.current
     var originX by remember { mutableFloatStateOf(0f) }
-    BackHandler(enabled = vm.focusedPanel() != null) { vm.focusedPanel()?.let(vm::closePost) }
+    val columns = vm.mode == OpenMode.Columnas
+    BackHandler(enabled = if (columns) vm.columnPost != null else vm.focusedPanel() != null) {
+        if (columns) vm.closeColumnPost() else vm.focusedPanel()?.let(vm::closePost)
+    }
     BoxWithConstraints(
         Modifier
             .fillMaxSize()
@@ -150,15 +156,20 @@ fun OpenScreen(vm: AppViewModel, screen: ScreenInfo) {
                     .fillMaxWidth(),
             ) {
                 if (rail) NavRail(vm)
-                Pane(vm, 0, Modifier.width(leftWidth).fillMaxHeight().endBorder())
-                Spacer(Modifier.width(gap))
-                Pane(vm, 1, Modifier.weight(1f).fillMaxHeight().startBorder())
+                if (columns) {
+                    ColumnsBoard(vm, leftWidth, gap, Modifier.weight(1f))
+                } else {
+                    Pane(vm, 0, Modifier.width(leftWidth).fillMaxHeight().endBorder())
+                    Spacer(Modifier.width(gap))
+                    Pane(vm, 1, Modifier.weight(1f).fillMaxHeight().startBorder())
+                }
             }
             if (!rail) BottomNav(vm)
         }
-        DualToolbar(
+        OpenToolbar(
             vm,
-            Modifier
+            compact = maxWidth < 760.dp,
+            modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(bottom = if (rail) 24.dp else BottomNavHeight + 16.dp),
         )
@@ -185,10 +196,10 @@ private fun Pane(vm: AppViewModel, index: Int, modifier: Modifier) {
                 open,
                 onBack = { vm.closePost(index) },
                 // En doble feed el post tapa el feed de esta mitad; el botón vuelve a él.
-                returnTo = if (vm.dual) panel.feedId else null,
+                returnTo = if (vm.mode == OpenMode.Doble) panel.feedId.label else null,
                 showFrom = true,
             )
-            index == 1 && !vm.dual -> EmptyDetail()
+            index == 1 && vm.mode == OpenMode.Uno -> EmptyDetail()
             else -> FeedColumn(vm, index, selectedPostId = other.post?.id, onOpen = { vm.openPost(index, it) })
         }
     }

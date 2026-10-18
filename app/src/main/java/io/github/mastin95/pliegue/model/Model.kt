@@ -35,8 +35,37 @@ data class Post(
     val replyTo: String? = null,
 )
 
-/** Post abierto en una mitad de la pantalla, y el feed desde el que se abrió. */
-data class OpenPost(val id: String, val from: FeedId)
+/** Post abierto en una mitad de la pantalla, y el feed o columna desde el que se abrió. */
+data class OpenPost(val id: String, val fromLabel: String)
 
 /** Lo que muestra cada mitad con el móvil abierto: su feed y, encima, quizá un post. */
 data class PanelState(val feedId: FeedId, val post: OpenPost? = null)
+
+/** Cómo se reparte la pantalla interior con el móvil abierto. */
+enum class OpenMode { Doble, Uno, Columnas }
+
+/** Columnas al estilo de X Pro. */
+enum class ColumnKind(val title: String) {
+    Notificaciones("Notificaciones"),
+    Diseno("Lista: Diseño"),
+    Tendencias("Tendencias"),
+    Busqueda("Búsqueda: modo sobremesa"),
+    ParaTi("Para ti"),
+    Siguiendo("Siguiendo"),
+    Plegables("Lista: Plegables"),
+}
+
+data class Mention(val userId: String, val text: String, val time: String)
+
+data class Trend(val category: String, val tag: String, val posts: Int)
+
+/** Mueve la columna `index` `delta` posiciones, sin salirse de la lista. */
+fun List<ColumnKind>.moved(index: Int, delta: Int): List<ColumnKind> {
+    if (index !in indices) return this
+    val to = (index + delta).coerceIn(0, lastIndex)
+    if (to == index) return this
+    return toMutableList().apply { add(to, removeAt(index)) }
+}
+
+/** Cuántas columnas caben en cada mitad: dos si cada una tiene al menos 240 dp. */
+fun columnsPerHalf(halfWidthDp: Float): Int = if (halfWidthDp >= 480f) 2 else 1
