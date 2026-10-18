@@ -51,6 +51,16 @@ class XWebTest {
     }
 
     @Test
+    fun `el agente de usuario deja de parecer una WebView`() {
+        val wv = "Mozilla/5.0 (Linux; Android 15; SM-F956B Build/AP3A; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/130.0.6723.86 Mobile Safari/537.36"
+        assertEquals(
+            "Mozilla/5.0 (Linux; Android 15; SM-F956B Build/AP3A) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.6723.86 Mobile Safari/537.36",
+            XWeb.chromeUa(wv),
+        )
+        assertEquals(XWeb.DESKTOP_UA, XWeb.chromeUa(XWeb.DESKTOP_UA))
+    }
+
+    @Test
     fun `redactar con una fuente lleva el enlace`() {
         assertEquals("https://x.com/compose/post", XWeb.composeUrl())
         assertEquals("https://x.com/intent/post?url=https%3A%2F%2Fx.com%2Fa%2Fstatus%2F1", XWeb.composeUrl(url = "https://x.com/a/status/1"))
