@@ -15,12 +15,27 @@ object XWeb {
     /** Chrome de escritorio, por si la web de X se niega a cargar con el navegador del móvil. */
     const val DESKTOP_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
 
+    /** Versión completa del Chrome que lleva dentro la WebView ("141.0.7390.122"), o null si no se ve. */
+    fun chromeVersion(ua: String): String? = Regex("Chrome/(\\d+(?:\\.\\d+)*)").find(ua)?.groupValues?.get(1)
+
     /**
-     * El agente de usuario de WebView lleva la marca "wv" y un "Version/4.0" que no tiene Chrome;
-     * X los usa para tratar la app como navegador incrustado y deja el inicio de sesión en blanco.
-     * Quitándolos se presenta como Chrome para Android, que es lo que es por dentro.
+     * El agente de usuario de WebView lleva la marca "wv", un "Version/4.0" que no tiene Chrome y el
+     * modelo con su "Build/…", que Chrome dejó de mandar hace años. X y Google los usan para tratar la
+     * app como navegador incrustado (X dejaba el inicio de sesión en negro; Google corta el suyo).
+     * Se presenta exactamente como Chrome para Android, que es lo que es por dentro: el agente
+     * reducido que manda Chrome, con la misma versión mayor que el motor.
      */
-    fun chromeUa(ua: String): String = ua.replace("; wv", "").replace(Regex("Version/\\d+(\\.\\d+)* "), "")
+    fun chromeUa(ua: String): String {
+        val major = chromeVersion(ua)?.substringBefore('.') ?: return ua.replace("; wv", "").replace(Regex("Version/\\d+(\\.\\d+)* "), "")
+        val mobile = if (ua.contains("Mobile")) "Mobile " else ""
+        return "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/$major.0.0.0 ${mobile}Safari/537.36"
+    }
+
+    /** Chrome de escritorio con la misma versión mayor que el motor. */
+    fun desktopUa(ua: String): String {
+        val major = chromeVersion(ua)?.substringBefore('.') ?: return DESKTOP_UA
+        return "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/$major.0.0.0 Safari/537.36"
+    }
 
     /** Dominios que se abren dentro de la app; el resto va al navegador. */
     private val ownHosts = setOf("x.com", "www.x.com", "mobile.x.com", "twitter.com", "www.twitter.com", "mobile.twitter.com", "t.co", "pbs.twimg.com", "video.twimg.com", "abs.twimg.com")

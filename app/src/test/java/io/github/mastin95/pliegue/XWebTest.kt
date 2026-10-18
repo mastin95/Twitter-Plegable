@@ -101,10 +101,17 @@ class XWebTest {
     fun `el agente de usuario deja de parecer una WebView`() {
         val wv = "Mozilla/5.0 (Linux; Android 15; SM-F956B Build/AP3A; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/130.0.6723.86 Mobile Safari/537.36"
         assertEquals(
-            "Mozilla/5.0 (Linux; Android 15; SM-F956B Build/AP3A) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.6723.86 Mobile Safari/537.36",
+            "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36",
             XWeb.chromeUa(wv),
         )
-        assertEquals(XWeb.DESKTOP_UA, XWeb.chromeUa(XWeb.DESKTOP_UA))
+        assertEquals("130.0.6723.86", XWeb.chromeVersion(wv))
+        assertEquals(
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36",
+            XWeb.desktopUa(wv),
+        )
+        // Sin versión de Chrome a la vista, al menos se quitan las marcas de WebView.
+        assertEquals("Mozilla/5.0 (Linux; Android 15) AppleWebKit/537.36 Mobile Safari/537.36", XWeb.chromeUa("Mozilla/5.0 (Linux; Android 15; wv) AppleWebKit/537.36 Version/4.0 Mobile Safari/537.36"))
+        assertEquals(XWeb.DESKTOP_UA, XWeb.desktopUa("Mozilla/5.0 (Linux; Android 15; wv) AppleWebKit/537.36"))
     }
 
     @Test
