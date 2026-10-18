@@ -36,6 +36,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -198,7 +200,7 @@ fun LoginScreen(vm: AppViewModel) {
             }
         }
         if (showLog) WebLog(Modifier.fillMaxWidth().height(180.dp).bottomBorder())
-        WebPane("login", XWeb.LOGIN, Modifier.weight(1f), PaneOptions(interceptPosts = false, hideChrome = false, keepInside = true))
+        WebPane("login", XWeb.LOGIN, Modifier.weight(1f), PaneOptions(interceptPosts = false, hideChrome = false, keepInside = true, debugLogin = true))
     }
 }
 
@@ -206,9 +208,17 @@ fun LoginScreen(vm: AppViewModel) {
 @Composable
 fun WebLog(modifier: Modifier = Modifier) {
     val web = LocalWebPanes.current
-    LazyColumn(modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
-        if (web.log.isEmpty()) item { Text("Sin avisos todavía.", style = XType.small) }
-        items(web.log) { line -> Text(line, style = XType.small.copy(fontSize = 12.sp, lineHeight = 15.sp)) }
+    val clipboard = LocalClipboardManager.current
+    Column(modifier) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text("Registro de la web", style = XType.small, modifier = Modifier.weight(1f))
+            // Para pegarlo en un mensaje en vez de mandar capturas.
+            PillButton("Copiar", onClick = { clipboard.setText(AnnotatedString(web.log.asReversed().joinToString("\n"))) }, background = X.Bg, content = X.Text, border = X.OutlineButton, height = 28.dp)
+        }
+        LazyColumn(Modifier.weight(1f).padding(horizontal = 16.dp)) {
+            if (web.log.isEmpty()) item { Text("Sin avisos todavía.", style = XType.small) }
+            items(web.log) { line -> Text(line, style = XType.small.copy(fontSize = 12.sp, lineHeight = 15.sp)) }
+        }
     }
 }
 

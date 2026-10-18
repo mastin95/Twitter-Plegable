@@ -157,6 +157,62 @@ object XWeb {
     fun js(s: String): String = s.replace("\\", "\\\\").replace("'", "\\'").replace("\n", "\\n")
 
     /**
+     * Gancho de diagnóstico para la pantalla de entrada: apunta en la consola (y de ahí al registro)
+     * cómo arranca "Iniciar sesión con Google" (la configuración que X le da a Google, la ventana que
+     * abre, lo que Google devuelve y los errores con su pila). Nunca apunta credenciales: cualquier
+     * cadena larga se tapa. Es idempotente: se puede volver a inyectar.
+     */
+    fun loginHookScript(): String = """
+        (function(){
+          if (window.__pliegueHook) return; window.__pliegueHook = true;
+          function red(s){ return String(s).replace(/[A-Za-z0-9_\-\.]{40,}/g, '…'); }
+          function say(m){ try { console.log('[pliegue] ' + red(m)); } catch(e){} }
+          function wrapId(id){
+            if (!id || id.__pl || typeof id.initialize !== 'function') return id;
+            id.__pl = true;
+            var init = id.initialize;
+            id.initialize = function(cfg){
+              try {
+                var c = {}; for (var k in cfg) { c[k] = typeof cfg[k] === 'function' ? 'fn' : cfg[k]; }
+                say('gsi.initialize ' + JSON.stringify(c));
+                var cb = cfg && cfg.callback;
+                if (typeof cb === 'function') cfg.callback = function(r){
+                  try { say('gsi.callback ' + JSON.stringify({select_by: r && r.select_by, state: r && r.state, credential: r && r.credential ? 'sí, ' + r.credential.length + ' caracteres' : 'no', claves: Object.keys(r || {})})); } catch(e){}
+                  try { return cb.apply(this, arguments); } catch(e){ say('gsi.callback lanza ' + (e && e.stack || e)); throw e; }
+                };
+              } catch(e){}
+              return init.apply(this, arguments);
+            };
+            ['prompt','renderButton'].forEach(function(n){ var f = id[n]; if (typeof f === 'function') id[n] = function(){ say('gsi.' + n); return f.apply(this, arguments); }; });
+            return id;
+          }
+          function watchAccounts(g){
+            if (!g || g.__plw) return; g.__plw = true;
+            var acc = g.accounts;
+            function watchId(a){ if (!a || a.__plw) return; a.__plw = true; var idv = a.id; if (idv) wrapId(idv);
+              Object.defineProperty(a, 'id', {configurable: true, get: function(){ return idv; }, set: function(x){ idv = wrapId(x); }}); }
+            if (acc) watchId(acc);
+            Object.defineProperty(g, 'accounts', {configurable: true, get: function(){ return acc; }, set: function(v){ acc = v; watchId(v); }});
+          }
+          var gv = window.google;
+          try { Object.defineProperty(window, 'google', {configurable: true, get: function(){ return gv; }, set: function(v){ gv = v; watchAccounts(v); }}); } catch(e){}
+          if (gv) watchAccounts(gv);
+          var wo = window.open;
+          window.open = function(u, n, f){ say('window.open ' + (u || '(vacío)') + ' nombre=' + n); return wo.apply(window, arguments); };
+          window.addEventListener('message', function(e){
+            if (!/google|apple/.test(e.origin)) return;
+            var d = e.data; try { d = typeof d === 'string' ? d : JSON.stringify(d); } catch(x){ d = String(d); }
+            say('mensaje de ' + e.origin + ': ' + String(d).slice(0, 300));
+          }, true);
+          window.addEventListener('error', function(e){ say('error ' + e.message + ' @ ' + String(e.filename).split('/').pop() + ':' + e.lineno); }, true);
+          window.addEventListener('unhandledrejection', function(e){ var r = e.reason; say('promesa rechazada ' + (r && r.stack || r && r.message || r)); });
+          var ce = console.error;
+          console.error = function(){ try { var a = arguments[0]; if (a && a.stack) say('pila: ' + String(a.stack).slice(0, 500)); } catch(e){} return ce.apply(console, arguments); };
+          say('gancho de login puesto');
+        })();
+    """.trimIndent()
+
+    /**
      * Script que ponemos en cada página de X:
      * - un toque sobre un post avisa a la app (`Pliegue.openPost`) en vez de navegar, para abrirlo en la otra mitad;
      * - mantener pulsado un avatar o un nombre avisa con su usuario (`Pliegue.dragUser`) para arrastrarlo a Mi feed;
