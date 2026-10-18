@@ -51,6 +51,29 @@ class XWebTest {
     }
 
     @Test
+    fun `el inicio de sesión con Google o Apple no sale al navegador`() {
+        assertTrue(XWeb.isOwn("https://accounts.google.com/gsi/select?client_id=1"))
+        assertTrue(XWeb.isOwn("https://accounts.google.es/accounts/SetSID"))
+        assertTrue(XWeb.isOwn("https://accounts.youtube.com/accounts/SetSID"))
+        assertTrue(XWeb.isOwn("https://myaccount.google.com/signinoptions"))
+        assertTrue(XWeb.isOwn("https://appleid.apple.com/auth/authorize"))
+        assertTrue(XWeb.isOwn("https://idmsa.apple.com/appleauth"))
+        assertFalse(XWeb.isOwn("https://www.google.com/search?q=x"))
+        assertFalse(XWeb.isOwn("https://www.youtube.com/watch?v=1"))
+    }
+
+    @Test
+    fun `las ventanas aparte se quedan dentro salvo los enlaces a otras webs`() {
+        assertFalse(XWeb.opensOutside("https://accounts.google.com/gsi/select"))
+        assertFalse(XWeb.opensOutside("https://x.com/i/flow/login"))
+        assertTrue(XWeb.opensOutside("https://t.co/abc"))
+        assertTrue(XWeb.opensOutside("https://example.com/"))
+        assertTrue(XWeb.opensOutside("intent://x#Intent;end"))
+        assertTrue(XWeb.isWeb("http://x.com"))
+        assertFalse(XWeb.isWeb("mailto:a@b.c"))
+    }
+
+    @Test
     fun `salir del formulario de inicio de sesión se reconoce`() {
         assertTrue(XWeb.isLoginFlow("https://x.com/i/flow/login?redirect_after_login=%2Fhome"))
         assertTrue(XWeb.isLoginDeadEnd("https://x.com/i/jf/onboarding/web?mode=login"))

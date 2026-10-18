@@ -23,12 +23,31 @@ object XWeb {
     fun chromeUa(ua: String): String = ua.replace("; wv", "").replace(Regex("Version/\\d+(\\.\\d+)* "), "")
 
     /** Dominios que se abren dentro de la app; el resto va al navegador. */
-    private val ownHosts = setOf("x.com", "www.x.com", "mobile.x.com", "twitter.com", "www.twitter.com", "mobile.twitter.com", "t.co", "pbs.twimg.com", "video.twimg.com", "abs.twimg.com", "accounts.google.com", "appleid.apple.com")
+    private val ownHosts = setOf("x.com", "www.x.com", "mobile.x.com", "twitter.com", "www.twitter.com", "mobile.twitter.com", "t.co", "pbs.twimg.com", "video.twimg.com", "abs.twimg.com")
 
     fun isOwn(url: String): Boolean {
         val host = host(url) ?: return false
-        return host in ownHosts || host.endsWith(".x.com") || host.endsWith(".twitter.com") || host.endsWith(".twimg.com")
+        return host in ownHosts || host.endsWith(".x.com") || host.endsWith(".twitter.com") || host.endsWith(".twimg.com") || isAuthHost(host)
     }
+
+    /**
+     * Páginas por las que pasa "Iniciar sesión con Google" o "con Apple": la cuenta de Google salta
+     * por accounts.google.com, accounts.youtube.com y myaccount.google.com; Apple por appleid e idmsa.
+     * Si una de estas saliera al navegador, la vuelta a X se perdería (es lo que daba el "400" de Google).
+     */
+    fun isAuthHost(host: String): Boolean =
+        host == "accounts.youtube.com" ||
+            host == "myaccount.google.com" ||
+            host == "gds.google.com" ||
+            host == "recaptcha.net" || host == "www.recaptcha.net" ||
+            Regex("^accounts\\.google\\.[a-z.]+$").matches(host) ||
+            host == "apple.com" || host.endsWith(".apple.com") || host.endsWith(".cdn-apple.com")
+
+    /** Enlaces web (http/https), frente a `mailto:`, `intent:` o `tel:`, que siempre van fuera. */
+    fun isWeb(url: String) = url.startsWith("https://") || url.startsWith("http://")
+
+    /** Las ventanas que la web abre aparte (el inicio de sesión con Google) se enseñan dentro; los enlaces de posts a otras webs van al navegador. */
+    fun opensOutside(url: String): Boolean = !isWeb(url) || !isOwn(url) || host(url) == "t.co"
 
     fun host(url: String): String? {
         val m = Regex("^https?://([^/?#]+)").find(url) ?: return null

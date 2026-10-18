@@ -40,8 +40,11 @@ class PaneWebView(context: Context) : WebView(context) {
     override fun onDragEvent(event: DragEvent?): Boolean = false
 }
 
-/** Qué quiere cada panel de su web: avisar de los toques en posts y esconder la barra inferior de la web. */
-data class PaneOptions(val interceptPosts: Boolean = true, val hideChrome: Boolean = true)
+/**
+ * Qué quiere cada panel de su web: avisar de los toques en posts, esconder la barra inferior de la
+ * web y, en el inicio de sesión, no mandar nunca una página al navegador de fuera (`keepInside`).
+ */
+data class PaneOptions(val interceptPosts: Boolean = true, val hideChrome: Boolean = true, val keepInside: Boolean = false)
 
 /**
  * Guarda una WebView por "ranura" (pane0, pane1, col:…, mesa0…) para que sobrevivan a plegar y
@@ -87,6 +90,17 @@ class WebPanes(
 
     /** Un vídeo a pantalla completa está tapando la app. */
     val inFullscreen: Boolean get() = custom != null
+
+    /**
+     * Ventana que una web abrió aparte (`window.open`): así entra "Iniciar sesión con Google", que
+     * elige la cuenta en una ventana propia y avisa a la de X al cerrarse. La app la enseña encima.
+     */
+    var popup by mutableStateOf<PaneWebView?>(null)
+        private set
+    var popupUrl by mutableStateOf("")
+        private set
+    var popupProgress by mutableStateOf(100)
+        private set
 
     init {
         checkLogin()
@@ -183,7 +197,17 @@ class WebPanes(
 
     fun destroyAll() {
         exitFullscreen()
+        closePopup()
         slots.keys.toList().forEach(::drop)
+    }
+
+    fun closePopup() {
+        val p = popup ?: return
+        popup = null
+        popupUrl = ""
+        popupProgress = 100
+        (p.parent as? ViewGroup)?.removeView(p)
+        p.destroy()
     }
 
     /** Borra la sesión de X (cookies y almacenamiento) y cierra todas las webs. */
@@ -206,7 +230,7 @@ class WebPanes(
     }
 
     @SuppressLint("SetJavaScriptEnabled")
-    private fun setUp(v: PaneWebView, slot: String) {
+    private fun applySettings(v: WebView, popupWindow: Boolean) {
         v.setBackgroundColor(Color.BLACK)
         v.settings.apply {
             javaScriptEnabled = true
@@ -215,8 +239,10 @@ class WebPanes(
             mediaPlaybackRequiresUserGesture = true
             useWideViewPort = true
             loadWithOverviewMode = true
-            setSupportMultipleWindows(false)
-            javaScriptCanOpenWindowsAutomatically = false
+            // Las webs pueden abrir ventanas aparte (Google elige la cuenta en una); la ventana
+            // que abre una ventana ya no abre más.
+            setSupportMultipleWindows(!popupWindow)
+            javaScriptCanOpenWindowsAutomatically = !popupWindow
             mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
             setSupportZoom(false)
             builtInZoomControls = false
@@ -229,15 +255,89 @@ class WebPanes(
             // El tema "Noche" de X, para que la web vaya a juego con el negro de la app.
             if (cookies()?.contains("night_mode=") != true) setCookie("https://x.com", "night_mode=2; Domain=.x.com; Path=/; Secure")
         }
+    }
+
+    private fun openOutside(from: String, url: Uri) {
+        log("[$from] fuera de la app: ${short(url.toString())}")
+        runCatching { activity.startActivity(Intent(Intent.ACTION_VIEW, url)) }
+    }
+
+    /**
+     * La ventana aparte que pidió una web. Si fue un enlace de un post a otra web (se sabe por el
+     * punto tocado), va directamente al navegador y no hay ventana; si no, se crea y se enseña encima.
+     */
+    private fun createWindow(opener: WebView, slot: String, resultMsg: android.os.Message): Boolean {
+        val hit = runCatching { opener.hitTestResult }.getOrNull()
+        val tapped = hit?.extra?.takeIf { hit.type == WebView.HitTestResult.SRC_ANCHOR_TYPE || hit.type == WebView.HitTestResult.SRC_IMAGE_ANCHOR_TYPE }
+        if (tapped != null && XWeb.opensOutside(tapped)) {
+            openOutside(slot, Uri.parse(tapped))
+            return false
+        }
+        closePopup()
+        val p = PaneWebView(activity)
+        applySettings(p, popupWindow = true)
+        p.webViewClient = object : WebViewClient() {
+            override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
+                if (!request.isForMainFrame) return false
+                val url = request.url.toString()
+                if (XWeb.isWeb(url) && XWeb.isOwn(url)) return false
+                openOutside("ventana", request.url)
+                main.post { if (popup === view) closePopup() }
+                return true
+            }
+
+            override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) {
+                popupUrl = url
+                popupProgress = 5
+                log("[ventana] carga ${short(url)}")
+            }
+
+            override fun onPageFinished(view: WebView, url: String) {
+                popupUrl = url
+                popupProgress = 100
+                checkLogin()
+            }
+
+            override fun onReceivedHttpError(view: WebView, request: WebResourceRequest, errorResponse: WebResourceResponse) {
+                if (request.isForMainFrame) log("[ventana] HTTP ${errorResponse.statusCode} en ${short(request.url.toString())}")
+            }
+        }
+        p.webChromeClient = object : WebChromeClient() {
+            override fun onProgressChanged(view: WebView, newProgress: Int) {
+                popupProgress = newProgress
+            }
+
+            override fun onCloseWindow(window: WebView) {
+                // La ventana se cierra sola al acabar (Google ya avisó a la web de X).
+                log("[ventana] cerrada por la web")
+                checkLogin()
+                if (popup === window) closePopup()
+            }
+
+            override fun onConsoleMessage(message: ConsoleMessage): Boolean {
+                if (message.messageLevel() == ConsoleMessage.MessageLevel.ERROR) log("[ventana] js: ${message.message().take(160)}")
+                return true
+            }
+        }
+        popup = p
+        popupUrl = ""
+        popupProgress = 5
+        log("[$slot] abre una ventana aparte")
+        (resultMsg.obj as WebView.WebViewTransport).webView = p
+        resultMsg.sendToTarget()
+        return true
+    }
+
+    private fun setUp(v: PaneWebView, slot: String) {
+        applySettings(v, popupWindow = false)
         v.addJavascriptInterface(Bridge(slot), "Pliegue")
         v.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
                 // Los marcos internos (captchas, inicio de sesión con Google) se quedan donde están.
                 if (!request.isForMainFrame) return false
                 val url = request.url.toString()
-                if (XWeb.isOwn(url)) return false
-                log("[$slot] fuera de la app: ${short(url)}")
-                runCatching { activity.startActivity(Intent(Intent.ACTION_VIEW, request.url)) }
+                if (XWeb.isWeb(url) && (XWeb.isOwn(url) || options[slot]?.keepInside == true)) return false
+                openOutside(slot, request.url)
                 return true
             }
 
@@ -299,6 +399,9 @@ class WebPanes(
 
             override fun onShowFileChooser(webView: WebView, filePathCallback: ValueCallback<Array<Uri>>, fileChooserParams: FileChooserParams): Boolean =
                 chooseFile(fileChooserParams, filePathCallback)
+
+            override fun onCreateWindow(view: WebView, isDialog: Boolean, isUserGesture: Boolean, resultMsg: android.os.Message): Boolean =
+                createWindow(view, slot, resultMsg)
         }
     }
 
