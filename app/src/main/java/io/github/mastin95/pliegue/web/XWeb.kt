@@ -167,11 +167,8 @@ object XWeb {
           if (window.__pliegueHook) return; window.__pliegueHook = true;
           function red(s){ return String(s).replace(/[A-Za-z0-9_\-\.]{40,}/g, '…'); }
           function say(m){ try { console.log('[pliegue] ' + red(m)); } catch(e){} }
-          function wrapId(id){
-            if (!id || id.__pl || typeof id.initialize !== 'function') return id;
-            id.__pl = true;
-            var init = id.initialize;
-            id.initialize = function(cfg){
+          function wrapInit(init){
+            return function(cfg){
               try {
                 var c = {}; for (var k in cfg) { c[k] = typeof cfg[k] === 'function' ? 'fn' : cfg[k]; }
                 say('gsi.initialize ' + JSON.stringify(c));
@@ -183,7 +180,18 @@ object XWeb {
               } catch(e){}
               return init.apply(this, arguments);
             };
-            ['prompt','renderButton'].forEach(function(n){ var f = id[n]; if (typeof f === 'function') id[n] = function(){ say('gsi.' + n); return f.apply(this, arguments); }; });
+          }
+          function wrapCall(n, f){ return function(){ say('gsi.' + n + (n === 'renderButton' && arguments[1] ? ' ' + JSON.stringify(arguments[1]) : '')); return f.apply(this, arguments); }; }
+          function wrapId(id){
+            if (!id || typeof id !== 'object' || id.__pl) return id;
+            id.__pl = true;
+            // Google rellena google.accounts.id método a método: se envuelve cada uno cuando llega.
+            ['initialize','prompt','renderButton'].forEach(function(n){
+              var cur = id[n];
+              function wrap(f){ if (typeof f !== 'function' || f.__pl) return f; var w = n === 'initialize' ? wrapInit(f) : wrapCall(n, f); w.__pl = true; return w; }
+              cur = wrap(cur);
+              try { Object.defineProperty(id, n, {configurable: true, enumerable: true, get: function(){ return cur; }, set: function(f){ cur = wrap(f); }}); } catch(e){}
+            });
             return id;
           }
           function watchAccounts(g){
@@ -208,7 +216,8 @@ object XWeb {
           window.addEventListener('unhandledrejection', function(e){ var r = e.reason; say('promesa rechazada ' + (r && r.stack || r && r.message || r)); });
           var ce = console.error;
           console.error = function(){ try { var a = arguments[0]; if (a && a.stack) say('pila: ' + String(a.stack).slice(0, 500)); } catch(e){} return ce.apply(console, arguments); };
-          say('gancho de login puesto');
+          var brands = ''; try { brands = (navigator.userAgentData && navigator.userAgentData.brands || []).map(function(b){ return b.brand + ' ' + b.version; }).join(', '); } catch(e){}
+          say('gancho de login puesto · FedCM ' + ('IdentityCredential' in window ? 'sí' : 'no') + ' · marcas: ' + (brands || 'ninguna'));
         })();
     """.trimIndent()
 

@@ -103,7 +103,20 @@ class WebPanes(
         private set
 
     init {
+        // Si la última vez la app se cerró por un error, que se vea en el registro.
+        runCatching {
+            val crash = java.io.File(activity.filesDir, CRASH_FILE)
+            if (crash.exists()) {
+                log("La app se cerró por un error la última vez · ${crash.readText().take(1500)}")
+                crash.delete()
+            }
+        }
         checkLogin()
+    }
+
+    companion object {
+        /** Archivo donde MainActivity apunta el último cierre inesperado. */
+        const val CRASH_FILE = "ultimo-cierre.txt"
     }
 
     private fun cookies(): String? = runCatching { CookieManager.getInstance().getCookie("https://x.com") }.getOrNull()
