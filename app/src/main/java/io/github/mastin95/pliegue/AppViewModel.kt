@@ -8,13 +8,19 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import io.github.mastin95.pliegue.model.ColumnKind
+import io.github.mastin95.pliegue.model.Creator
+import io.github.mastin95.pliegue.model.Drag
 import io.github.mastin95.pliegue.model.FeedId
 import io.github.mastin95.pliegue.model.OpenMode
 import io.github.mastin95.pliegue.model.OpenPost
 import io.github.mastin95.pliegue.model.PanelState
 import io.github.mastin95.pliegue.model.Post
+import io.github.mastin95.pliegue.model.PostMark
 import io.github.mastin95.pliegue.model.SampleData
+import io.github.mastin95.pliegue.model.markFor
 import io.github.mastin95.pliegue.model.moved
+import io.github.mastin95.pliegue.model.myFeedPosts
+import io.github.mastin95.pliegue.model.suggestions
 import io.github.mastin95.pliegue.ui.nowLabel
 
 data class Toast(val text: String, val id: Long)
@@ -22,7 +28,7 @@ data class Toast(val text: String, val id: Long)
 class AppViewModel : ViewModel() {
 
     /** Mitad izquierda [0] y derecha [1] con el móvil abierto. Plegado usa la [0]. */
-    var panels by mutableStateOf(listOf(PanelState(FeedId.ParaTi), PanelState(FeedId.Diseno)))
+    var panels by mutableStateOf(listOf(PanelState(FeedId.ParaTi), PanelState(FeedId.MiFeed)))
         private set
 
     /** Abierto: doble feed, un feed con el post al lado, o columnas. */
@@ -45,6 +51,21 @@ class AppViewModel : ViewModel() {
     val myPosts = mutableStateListOf<Post>()
     val myReplies = mutableStateMapOf<String, List<Post>>()
 
+    /** Creadores de Mi feed. */
+    val myFeed = mutableStateMapOf<String, Creator>().apply {
+        SampleData.initialMyFeed.forEach { put(it, Creator()) }
+    }
+
+    /** Creadores cuyo resalte de "nuevo" ya viste: abriste uno de sus posts. */
+    val seenCreators = mutableStateMapOf<String, Boolean>()
+
+    /** Post que se está arrastrando hacia Mi feed, si hay alguno. */
+    var dragging by mutableStateOf<Drag?>(null)
+
+    /** Se oculta la pista de arrastrar en cuanto añades a alguien así. */
+    var dropHintSeen by mutableStateOf(false)
+        private set
+
     var composing by mutableStateOf(false)
     var toast by mutableStateOf<Toast?>(null)
         private set
@@ -63,8 +84,31 @@ class AppViewModel : ViewModel() {
     fun post(id: String): Post? = myPosts.firstOrNull { it.id == id } ?: SampleData.posts[id]
 
     fun feedPosts(feed: FeedId): List<Post> {
+        if (feed == FeedId.MiFeed) return myFeedPosts(SampleData.posts.values, myFeed, suggestions(), System.currentTimeMillis())
         val mine = if (feed == FeedId.ParaTi || feed == FeedId.Siguiendo) myPosts.toList() else emptyList()
         return mine + SampleData.feeds.getValue(feed).mapNotNull { SampleData.posts[it] }
+    }
+
+    fun suggestions(): Map<String, String> = suggestions(SampleData.users, myFeed, SampleData.me.id)
+
+    fun mark(post: Post, feed: FeedId): PostMark? =
+        markFor(post, feed, myFeed, suggestions(), SampleData.users, seenCreators.keys, System.currentTimeMillis())
+
+    /** Añade al autor de un post a Mi feed; desde ahí salen sugerencias de creadores parecidos. */
+    fun addCreator(userId: String, fromLabel: String) {
+        if (userId == SampleData.me.id || userId in myFeed) return
+        myFeed[userId] = Creator(System.currentTimeMillis(), fromLabel)
+        dropHintSeen = true
+        showToast("Añadiste a ${SampleData.users.getValue(userId).handle} a Mi feed.")
+    }
+
+    fun dropPost(postId: String, fromLabel: String) {
+        post(postId)?.let { addCreator(it.userId, fromLabel) }
+        dragging = null
+    }
+
+    fun removeCreator(userId: String) {
+        myFeed.remove(userId)
     }
 
     fun columnPosts(kind: ColumnKind): List<Post> = when (kind) {
@@ -72,6 +116,7 @@ class AppViewModel : ViewModel() {
         ColumnKind.ParaTi -> feedPosts(FeedId.ParaTi)
         ColumnKind.Siguiendo -> feedPosts(FeedId.Siguiendo)
         ColumnKind.Plegables -> feedPosts(FeedId.Plegables)
+        ColumnKind.MiFeed -> feedPosts(FeedId.MiFeed)
         ColumnKind.Busqueda -> SampleData.search("sobremesa")
         ColumnKind.Notificaciones, ColumnKind.Tendencias -> emptyList()
     }
@@ -88,6 +133,7 @@ class AppViewModel : ViewModel() {
     fun openPost(fromPanel: Int, postId: String) {
         val to = 1 - fromPanel
         val from = panels[fromPanel].feedId
+        post(postId)?.let { seenCreators[it.userId] = true }
         panels = panels.toMutableList().also { it[to] = it[to].copy(post = OpenPost(postId, from.label)) }
     }
 

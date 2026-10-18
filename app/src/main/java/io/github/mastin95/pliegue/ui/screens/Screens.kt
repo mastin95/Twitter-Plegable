@@ -200,7 +200,7 @@ private fun Pane(vm: AppViewModel, index: Int, modifier: Modifier) {
                 showFrom = true,
             )
             index == 1 && vm.mode == OpenMode.Uno -> EmptyDetail()
-            else -> FeedColumn(vm, index, selectedPostId = other.post?.id, onOpen = { vm.openPost(index, it) })
+            else -> FeedColumn(vm, index, selectedPostId = other.post?.id, onOpen = { vm.openPost(index, it) }, crossFeed = true)
         }
     }
 }

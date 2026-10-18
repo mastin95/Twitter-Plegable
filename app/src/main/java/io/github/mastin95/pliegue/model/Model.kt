@@ -5,6 +5,7 @@ enum class FeedId(val label: String) {
     Siguiendo("Siguiendo"),
     Diseno("Diseño"),
     Plegables("Plegables"),
+    MiFeed("Mi feed"),
 }
 
 data class User(
@@ -15,6 +16,8 @@ data class User(
     val color: Long,
     val verified: Boolean = false,
     val bio: String = "",
+    /** Temas de los que habla; sirven para sugerir creadores parecidos en Mi feed. */
+    val topics: Set<String> = emptySet(),
 )
 
 enum class MediaKind { Amanecer, Boceto, Plegable, Paleta, Ciudad, Comida }
@@ -50,6 +53,7 @@ enum class ColumnKind(val title: String) {
     Diseno("Lista: Diseño"),
     Tendencias("Tendencias"),
     Busqueda("Búsqueda: modo sobremesa"),
+    MiFeed("Mi feed"),
     ParaTi("Para ti"),
     Siguiendo("Siguiendo"),
     Plegables("Lista: Plegables"),

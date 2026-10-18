@@ -25,6 +25,9 @@ object X {
     val OutlineButton = Color(0xFF536471)
     val Hinge = Color(0xFF3A3D42)
     val Hover = Color(0xFF080808)
+    /** Fondo azul muy oscuro de los posts de creadores nuevos y de la zona de soltar. */
+    val NewBg = Color(0xFF031018)
+    val NewBgHover = Color(0xFF07243A)
 }
 
 object XType {
