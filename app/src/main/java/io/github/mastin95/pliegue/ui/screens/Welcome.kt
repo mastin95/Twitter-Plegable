@@ -116,12 +116,23 @@ fun LoginScreen(vm: AppViewModel) {
         web.drop("login")
         if (expired) vm.loggedOut() else vm.cancelLogin()
     }
-    BackHandler(onBack = leave)
+    // Atrás primero deshace dentro de la web (un paso del formulario); si no hay nada, sale.
+    BackHandler { if (web.canGoBack("login")) web.goBack("login") else leave() }
     DisposableEffect(Unit) { onDispose { web.drop("login") } }
     var menu by remember { mutableStateOf(false) }
     var showLog by rememberSaveable { mutableStateOf(false) }
     val url = web.urls["login"] ?: XWeb.LOGIN
     val progress = web.progress["login"] ?: 0
+    val inFlow = XWeb.isLoginFlow(url)
+    // La flecha de X saca del formulario a una página que aquí se queda en negro: volvemos solos
+    // al formulario, un par de veces como mucho para no dar vueltas si X insiste.
+    var recoveries by remember { mutableStateOf(0) }
+    LaunchedEffect(url, progress) {
+        if (progress == 100 && !web.loggedIn && XWeb.isLoginDeadEnd(url) && recoveries < 2) {
+            recoveries++
+            web.load("login", XWeb.LOGIN)
+        }
+    }
     Column(Modifier.fillMaxSize()) {
         Row(
             Modifier
@@ -148,6 +159,10 @@ fun LoginScreen(vm: AppViewModel) {
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
+            }
+            if (!inFlow && progress == 100) {
+                PillButton("Al formulario", onClick = { web.load("login", XWeb.LOGIN) }, background = X.Blue, content = Color.White, height = 32.dp)
+                Spacer(Modifier.width(4.dp))
             }
             IconButton(onClick = { web.reload("login") }) {
                 Icon(XIcons.Reload, contentDescription = "Recargar", tint = X.Text, modifier = Modifier.size(20.dp))
