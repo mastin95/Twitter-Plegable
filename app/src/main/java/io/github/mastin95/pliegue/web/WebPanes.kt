@@ -108,10 +108,18 @@ class WebPanes(
 
     private fun cookies(): String? = runCatching { CookieManager.getInstance().getCookie("https://x.com") }.getOrNull()
 
+    private var cookieNames = ""
+
     fun checkLogin(): Boolean {
         val c = cookies()
         loggedIn = XWeb.loggedIn(c)
         userId = XWeb.userId(c)
+        // Qué cookies hay (solo los nombres), para saber si la sesión llegó a ponerse.
+        val names = c.orEmpty().split(';').map { it.substringBefore('=').trim() }.filter { it.isNotEmpty() }.sorted().joinToString(", ")
+        if (names != cookieNames) {
+            cookieNames = names
+            log("cookies de x.com: " + names.ifEmpty { "ninguna" })
+        }
         return loggedIn
     }
 
@@ -208,6 +216,8 @@ class WebPanes(
         popupProgress = 100
         (p.parent as? ViewGroup)?.removeView(p)
         p.destroy()
+        // La ventana pudo dejar puesta la sesión (Google, Apple) sin que la web de X cambie de página.
+        checkLogin()
     }
 
     /** Borra la sesión de X (cookies y almacenamiento) y cierra todas las webs. */
@@ -276,11 +286,19 @@ class WebPanes(
         closePopup()
         val p = PaneWebView(activity)
         applySettings(p, popupWindow = true)
+        // Una vez la ventana está en X, Google o Apple, todo lo que pase dentro se queda dentro: el
+        // inicio de sesión salta por páginas que no conocemos y abrirlas fuera lo rompe.
+        var settled = false
         p.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
                 if (!request.isForMainFrame) return false
                 val url = request.url.toString()
-                if (XWeb.isWeb(url) && XWeb.isOwn(url)) return false
+                if (!XWeb.isWeb(url)) {
+                    // Esquemas internos de Google (storagerelay:…) se ignoran sin cerrar la ventana.
+                    if (XWeb.isExternalScheme(url)) openOutside("ventana", request.url) else log("[ventana] ignora ${short(url)}")
+                    return true
+                }
+                if (XWeb.isOwn(url) || settled) return false
                 openOutside("ventana", request.url)
                 main.post { if (popup === view) closePopup() }
                 return true
@@ -295,6 +313,8 @@ class WebPanes(
             override fun onPageFinished(view: WebView, url: String) {
                 popupUrl = url
                 popupProgress = 100
+                if (XWeb.isOwn(url) && XWeb.host(url) != "t.co") settled = true
+                log("[ventana] cargada ${short(url)}")
                 checkLogin()
             }
 
@@ -308,10 +328,10 @@ class WebPanes(
             }
 
             override fun onCloseWindow(window: WebView) {
-                // La ventana se cierra sola al acabar (Google ya avisó a la web de X).
+                // La ventana se cierra sola al acabar (Google ya avisó a la web de X). Se quita en
+                // el siguiente paso del hilo: destruirla desde su propio aviso no es seguro.
                 log("[ventana] cerrada por la web")
-                checkLogin()
-                if (popup === window) closePopup()
+                main.post { if (popup === window) closePopup() }
             }
 
             override fun onConsoleMessage(message: ConsoleMessage): Boolean {

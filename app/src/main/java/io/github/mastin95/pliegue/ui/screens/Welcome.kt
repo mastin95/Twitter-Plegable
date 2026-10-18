@@ -31,6 +31,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -123,7 +124,14 @@ fun LoginScreen(vm: AppViewModel) {
     var showLog by rememberSaveable { mutableStateOf(false) }
     val url = web.urls["login"] ?: XWeb.LOGIN
     val progress = web.progress["login"] ?: 0
-    val inFlow = XWeb.isLoginFlow(url)
+    val inFlow = XWeb.isLoginPage(url)
+    // La sesión puede llegar sin que la página cambie (la ventana de Google la pone y se cierra): la cookie se mira cada poco.
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(700)
+            web.checkLogin()
+        }
+    }
     // La flecha de X saca del formulario a una página que aquí se queda en negro: volvemos solos
     // al formulario, un par de veces como mucho para no dar vueltas si X insiste.
     var recoveries by remember { mutableStateOf(0) }
