@@ -44,8 +44,14 @@ data class OpenPost(val id: String, val fromLabel: String)
 /** Lo que muestra cada mitad con el móvil abierto: su feed y, encima, quizá un post. */
 data class PanelState(val feedId: FeedId, val post: OpenPost? = null)
 
-/** Cómo se reparte la pantalla interior con el móvil abierto. */
-enum class OpenMode { Doble, Uno, Columnas }
+/** Cómo se reparte la pantalla interior con el móvil abierto. Mesa y Libro solo existen con X real. */
+enum class OpenMode(val label: String, val short: String) {
+    Doble("Doble feed", "Doble"),
+    Uno("Un solo feed", "Uno"),
+    Columnas("Columnas", "Columnas"),
+    Mesa("La mesa", "Mesa"),
+    Libro("Libro", "Libro"),
+}
 
 /** Columnas al estilo de X Pro. */
 enum class ColumnKind(val title: String) {

@@ -3,6 +3,8 @@ package io.github.mastin95.pliegue.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -44,6 +46,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import io.github.mastin95.pliegue.AppViewModel
+import io.github.mastin95.pliegue.model.AppMode
 import io.github.mastin95.pliegue.model.OpenMode
 import io.github.mastin95.pliegue.model.SampleData
 import io.github.mastin95.pliegue.ui.XIcons
@@ -51,9 +54,9 @@ import io.github.mastin95.pliegue.ui.theme.X
 import io.github.mastin95.pliegue.ui.theme.XType
 import kotlinx.coroutines.delay
 
-/** Barra superior de X en el móvil: tu avatar, el logotipo en el centro. */
+/** Barra superior de X en el móvil: tu avatar (abre los ajustes), el logotipo en el centro. */
 @Composable
-fun FoldedTopBar() {
+fun FoldedTopBar(onAvatar: () -> Unit = {}) {
     Row(
         Modifier
             .fillMaxWidth()
@@ -61,7 +64,9 @@ fun FoldedTopBar() {
             .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Avatar(SampleData.me.id, 32.dp)
+        Box(Modifier.clip(CircleShape).clickable(onClickLabel = "Ajustes", role = Role.Button, onClick = onAvatar)) {
+            Avatar(SampleData.me.id, 32.dp)
+        }
         Box(Modifier.weight(1f), contentAlignment = Alignment.Center) { Logo() }
         Spacer(Modifier.size(32.dp))
     }
@@ -131,28 +136,30 @@ fun Fab(onClick: () -> Unit, modifier: Modifier = Modifier, size: Int = 56) {
 }
 
 @Composable
-private fun Segment(label: String, active: Boolean, icon: ImageVector? = null, onClick: () -> Unit) {
+private fun Segment(label: String, active: Boolean, icon: ImageVector? = null, description: String = label, onClick: () -> Unit) {
     Row(
         Modifier
             .height(40.dp)
             .clip(RoundedCornerShape(20.dp))
             .background(if (active) X.Blue else X.Bg)
-            .clickable(role = Role.Button, onClick = onClick)
+            .clickable(onClickLabel = description, role = Role.Button, onClick = onClick)
             .padding(horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        if (icon != null) Icon(icon, contentDescription = if (label.isEmpty()) "Intercambiar" else null, tint = X.Text, modifier = Modifier.size(16.dp))
+        if (icon != null) Icon(icon, contentDescription = if (label.isEmpty()) description else null, tint = if (active) Color.White else X.Text, modifier = Modifier.size(16.dp))
         if (label.isNotEmpty()) Text(label, style = XType.button.copy(fontSize = 14.sp), color = if (active) Color.White else X.Text, maxLines = 1)
     }
 }
 
 /**
- * Barra flotante sobre la bisagra: doble feed, un solo feed, columnas e intercambiar mitades.
- * `compact` acorta los textos en pantallas interiores estrechas.
+ * Barra sobre la bisagra: doble feed, un solo feed, columnas y, con X real, la mesa y el libro;
+ * más intercambiar mitades y los ajustes. `compact` acorta los textos en pantallas estrechas.
  */
 @Composable
 fun OpenToolbar(vm: AppViewModel, compact: Boolean, modifier: Modifier = Modifier) {
+    val real = vm.appMode == AppMode.Real
+    val modes = if (real) OpenMode.entries else listOf(OpenMode.Doble, OpenMode.Uno, OpenMode.Columnas)
     val shape = RoundedCornerShape(26.dp)
     Row(
         modifier
@@ -160,15 +167,17 @@ fun OpenToolbar(vm: AppViewModel, compact: Boolean, modifier: Modifier = Modifie
             .clip(shape)
             .background(X.Bg)
             .border(1.dp, X.Border, shape)
-            .padding(5.dp),
+            .padding(5.dp)
+            .horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Segment(if (compact) "Doble" else "Doble feed", active = vm.mode == OpenMode.Doble) { vm.updateMode(OpenMode.Doble) }
-        Segment(if (compact) "Uno" else "Un solo feed", active = vm.mode == OpenMode.Uno) { vm.updateMode(OpenMode.Uno) }
-        Segment("Columnas", active = vm.mode == OpenMode.Columnas) { vm.updateMode(OpenMode.Columnas) }
-        if (vm.mode != OpenMode.Columnas) {
-            Segment(if (compact) "" else "Intercambiar", active = false, icon = XIcons.Swap) { vm.swap() }
+        modes.forEach { m ->
+            Segment(if (compact) m.short else m.label, active = vm.mode == m, description = m.label) { vm.updateMode(m) }
         }
+        if (vm.mode != OpenMode.Columnas && vm.mode != OpenMode.Mesa) {
+            Segment(if (compact) "" else "Intercambiar", active = false, icon = XIcons.Swap, description = "Intercambiar") { if (real) vm.swapWeb() else vm.swap() }
+        }
+        Segment("", active = false, icon = XIcons.More, description = "Ajustes") { vm.settingsOpen = true }
     }
 }
 
