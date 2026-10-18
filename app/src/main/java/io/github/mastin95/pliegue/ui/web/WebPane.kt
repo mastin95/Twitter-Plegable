@@ -1,6 +1,7 @@
 package io.github.mastin95.pliegue.ui.web
 
 import android.content.ClipDescription
+import androidx.activity.compose.BackHandler
 import android.view.ViewGroup
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -19,6 +20,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -37,17 +39,21 @@ import androidx.compose.ui.draganddrop.toAndroidDragEvent
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import io.github.mastin95.pliegue.AppViewModel
 import io.github.mastin95.pliegue.ui.XIcons
+import io.github.mastin95.pliegue.ui.components.bottomBorder
 import io.github.mastin95.pliegue.ui.theme.X
 import io.github.mastin95.pliegue.ui.theme.XType
 import io.github.mastin95.pliegue.web.PaneOptions
 import io.github.mastin95.pliegue.web.WebPanes
+import io.github.mastin95.pliegue.web.XWeb
 
 /** Las WebViews de la actividad, una por ranura. Las crea MainActivity. */
 val LocalWebPanes = staticCompositionLocalOf<WebPanes> { error("Sin WebPanes") }
@@ -85,6 +91,52 @@ fun WebPane(
                     .background(X.Blue)
                     .align(Alignment.TopStart),
             )
+        }
+    }
+}
+
+/**
+ * La ventana aparte que abrió una web (el inicio de sesión con Google elige la cuenta en una),
+ * encima de todo y con su propio cierre. Se quita sola cuando la web la cierra.
+ */
+@Composable
+fun PopupSheet() {
+    val web = LocalWebPanes.current
+    val popup = web.popup ?: return
+    BackHandler { if (popup.canGoBack()) popup.goBack() else web.closePopup() }
+    Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.55f))) {
+        Column(
+            Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .fillMaxHeight(0.94f)
+                .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
+                .background(X.Bg),
+        ) {
+            Row(
+                Modifier.fillMaxWidth().height(48.dp).bottomBorder().padding(start = 16.dp, end = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(XWeb.host(web.popupUrl) ?: "Ventana", style = XType.name, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    if (web.popupProgress < 100) Text("cargando ${web.popupProgress} %", style = XType.small, maxLines = 1)
+                }
+                IconButton(onClick = { web.closePopup() }) {
+                    Icon(XIcons.Close, contentDescription = "Cerrar la ventana", tint = X.Text, modifier = Modifier.size(20.dp))
+                }
+            }
+            Box(Modifier.weight(1f).fillMaxWidth()) {
+                key(popup) {
+                    AndroidView(
+                        factory = { popup.also { v -> (v.parent as? ViewGroup)?.removeView(v) } },
+                        modifier = Modifier.fillMaxSize(),
+                        onRelease = { v -> (v.parent as? ViewGroup)?.removeView(v) },
+                    )
+                }
+                if (web.popupProgress < 100) {
+                    Box(Modifier.fillMaxWidth(web.popupProgress / 100f).height(3.dp).background(X.Blue).align(Alignment.TopStart))
+                }
+            }
         }
     }
 }

@@ -190,7 +190,7 @@ fun LoginScreen(vm: AppViewModel) {
             }
         }
         if (showLog) WebLog(Modifier.fillMaxWidth().height(180.dp).bottomBorder())
-        WebPane("login", XWeb.LOGIN, Modifier.weight(1f), PaneOptions(interceptPosts = false, hideChrome = false))
+        WebPane("login", XWeb.LOGIN, Modifier.weight(1f), PaneOptions(interceptPosts = false, hideChrome = false, keepInside = true))
     }
 }
 

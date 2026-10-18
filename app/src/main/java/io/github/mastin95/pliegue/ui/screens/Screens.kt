@@ -71,6 +71,7 @@ import io.github.mastin95.pliegue.ui.components.topBorder
 import io.github.mastin95.pliegue.ui.theme.X
 import io.github.mastin95.pliegue.ui.theme.XType
 import io.github.mastin95.pliegue.ui.web.LocalWebPanes
+import io.github.mastin95.pliegue.ui.web.PopupSheet
 import androidx.compose.ui.graphics.Color
 
 private val BottomNavHeight = 53.dp
@@ -107,6 +108,7 @@ fun PliegueApp(screen: ScreenInfo, vm: AppViewModel = viewModel()) {
         ToastHost(vm, Modifier.align(Alignment.BottomCenter).padding(bottom = BottomNavHeight + 56.dp))
         if (vm.composing && !real) ComposerDialog(vm, fullScreen = screen.posture == Posture.Plegado)
         if (vm.settingsOpen) SettingsDialog(vm)
+        PopupSheet()
     }
 }
 
