@@ -51,6 +51,17 @@ class XWebTest {
     }
 
     @Test
+    fun `salir del formulario de inicio de sesión se reconoce`() {
+        assertTrue(XWeb.isLoginFlow("https://x.com/i/flow/login?redirect_after_login=%2Fhome"))
+        assertTrue(XWeb.isLoginDeadEnd("https://x.com/i/jf/onboarding/web?mode=login"))
+        assertTrue(XWeb.isLoginDeadEnd("https://x.com/"))
+        assertTrue(XWeb.isLoginDeadEnd("https://x.com/home"))
+        assertFalse(XWeb.isLoginDeadEnd("https://x.com/i/flow/login"))
+        assertFalse(XWeb.isLoginDeadEnd("https://x.com/i/flow/password_reset"))
+        assertFalse(XWeb.isLoginDeadEnd("https://accounts.google.com/o/oauth2/auth"))
+    }
+
+    @Test
     fun `el agente de usuario deja de parecer una WebView`() {
         val wv = "Mozilla/5.0 (Linux; Android 15; SM-F956B Build/AP3A; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/130.0.6723.86 Mobile Safari/537.36"
         assertEquals(

@@ -46,6 +46,18 @@ object XWeb {
 
     fun profileUrl(userId: String) = "https://x.com/i/user/$userId"
 
+    fun isLoginFlow(url: String) = url.contains("/i/flow/login")
+
+    /**
+     * Páginas a las que X manda al salir del formulario de inicio de sesión y que en la app se
+     * quedan vacías (la portada sin sesión, el "jetfuel" /i/jf/…): de ahí volvemos al formulario.
+     */
+    fun isLoginDeadEnd(url: String): Boolean {
+        if (!isOwn(url)) return false
+        val path = Regex("^https?://[^/]+(/[^?#]*)?").find(url)?.groupValues?.get(1)?.trimEnd('/') ?: ""
+        return path.isEmpty() || path == "/home" || path == "/login" || path.startsWith("/i/jf/") || path == "/i/flow"
+    }
+
     /** Id del post en una dirección `.../usuario/status/123...`. */
     fun statusId(url: String): String? = Regex("/status(?:es)?/(\\d+)").find(url)?.groupValues?.get(1)
 
