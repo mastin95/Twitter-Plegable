@@ -1,37 +1,285 @@
 package io.github.mastin95.pliegue
 
+import android.app.Application
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
+import io.github.mastin95.pliegue.model.AppMode
 import io.github.mastin95.pliegue.model.ColumnKind
 import io.github.mastin95.pliegue.model.Creator
 import io.github.mastin95.pliegue.model.Drag
 import io.github.mastin95.pliegue.model.FeedId
+import io.github.mastin95.pliegue.model.Note
 import io.github.mastin95.pliegue.model.OpenMode
 import io.github.mastin95.pliegue.model.OpenPost
 import io.github.mastin95.pliegue.model.PanelState
 import io.github.mastin95.pliegue.model.Post
 import io.github.mastin95.pliegue.model.PostMark
 import io.github.mastin95.pliegue.model.SampleData
+import io.github.mastin95.pliegue.model.Source
+import io.github.mastin95.pliegue.model.WebPanel
 import io.github.mastin95.pliegue.model.markFor
 import io.github.mastin95.pliegue.model.moved
 import io.github.mastin95.pliegue.model.myFeedPosts
 import io.github.mastin95.pliegue.model.suggestions
 import io.github.mastin95.pliegue.ui.nowLabel
+import io.github.mastin95.pliegue.web.Prefs
+import io.github.mastin95.pliegue.web.XWeb
 
 data class Toast(val text: String, val id: Long)
 
-class AppViewModel : ViewModel() {
+class AppViewModel(app: Application) : AndroidViewModel(app) {
+
+    private val prefs = Prefs(app)
+
+    // ---- Arranque: demo o X real ----
+
+    var appMode by mutableStateOf(prefs.mode?.let { m -> AppMode.entries.firstOrNull { it.name == m } } ?: AppMode.Elegir)
+        private set
+
+    /** La pantalla de iniciar sesión está abierta. */
+    var loggingIn by mutableStateOf(false)
+        private set
+
+    var settingsOpen by mutableStateOf(false)
+
+    fun chooseDemo() {
+        appMode = AppMode.Demo
+        prefs.mode = AppMode.Demo.name
+        loggingIn = false
+        settingsOpen = false
+    }
+
+    fun startLogin() {
+        loggingIn = true
+        settingsOpen = false
+    }
+
+    fun cancelLogin() {
+        loggingIn = false
+    }
+
+    /** La web de X ya tiene la cookie de sesión: pasamos a X real. */
+    fun loggedIn() {
+        appMode = AppMode.Real
+        prefs.mode = AppMode.Real.name
+        loggingIn = false
+        showToast("Sesión iniciada en X.")
+    }
+
+    fun loggedOut() {
+        appMode = AppMode.Elegir
+        prefs.mode = AppMode.Elegir.name
+        settingsOpen = false
+        webPanels = listOf(WebPanel(Source.Inicio), WebPanel(Source.MiFeed))
+        webColumnPost = null
+        expanded = null
+    }
+
+    // ---- X real: paneles web ----
+
+    /** Mitad izquierda [0] y derecha [1] con X real. Plegado enseña la que tenga algo abierto, o la [0]. */
+    var webPanels by mutableStateOf(listOf(WebPanel(Source.Inicio), WebPanel(Source.MiFeed)))
+        private set
+
+    var webColumns by mutableStateOf(sources(prefs.webColumns).ifEmpty { listOf(Source.Notificaciones, Source.MiFeed, Source.Explorar, Source.Guardados) })
+        private set
+
+    /** Post abierto desde una columna web: mitad donde se enseña y su dirección. */
+    var webColumnPost by mutableStateOf<Pair<Int, String>?>(null)
+        private set
+
+    /** Los cuatro recuadros de la mesa, de izquierda a derecha y de arriba abajo. */
+    var mesa by mutableStateOf(sources(prefs.mesa).take(4).let { if (it.size == 4) it else listOf(Source.Inicio, Source.Notificaciones, Source.MiFeed, Source.Guardados) })
+        private set
+
+    /** Post ampliado a las dos mitades, con tus notas al lado. */
+    var expanded by mutableStateOf<String?>(null)
+        private set
+
+    /** Creadores de Mi feed real, por @usuario. */
+    var handles by mutableStateOf(prefs.handles)
+        private set
+
+    var notes by mutableStateOf(prefs.notes)
+        private set
+
+    /** Posts fijados en la mesa. */
+    var pinned by mutableStateOf(prefs.pinned)
+        private set
+
+    /** Hilos que sigues (post ampliado). */
+    var threads by mutableStateOf(prefs.threads)
+        private set
+
+    /** Usuario que se está arrastrando desde una web, si lo sabemos. */
+    var dragHandle by mutableStateOf<String?>(null)
+
+    private fun sources(names: List<String>): List<Source> = names.mapNotNull { n -> Source.entries.firstOrNull { it.name == n } }
+
+    /** Dirección de una fuente; nula si Mi feed aún no tiene creadores. */
+    fun sourceUrl(source: Source, userId: String?): String? = when (source) {
+        Source.MiFeed -> XWeb.myFeedUrl(handles)
+        Source.Perfil -> userId?.let(XWeb::profileUrl) ?: XWeb.HOME
+        else -> source.url
+    }
+
+    /** Lo que enseña una mitad: el post abierto encima o su fuente. */
+    fun paneUrl(panel: Int, userId: String?): String? = webPanels[panel].openUrl ?: sourceUrl(webPanels[panel].source, userId)
+
+    fun selectSource(panel: Int, source: Source) {
+        webPanels = webPanels.toMutableList().also { it[panel] = WebPanel(source) }
+    }
+
+    fun swapWeb() {
+        webPanels = listOf(webPanels[1], webPanels[0])
+    }
+
+    /**
+     * Un post tocado en una web. Desde un feed se abre en la otra mitad; dentro de un post abierto
+     * (una respuesta) se sigue en la misma mitad, como en X.
+     */
+    fun onWebPost(slot: String, url: String) {
+        when {
+            slot == "pane0" || slot == "pane1" -> {
+                val from = if (slot == "pane0") 0 else 1
+                if (webPanels[from].openUrl != null) {
+                    webPanels = webPanels.toMutableList().also { it[from] = it[from].copy(openUrl = url) }
+                } else {
+                    openWebPost(from, url)
+                }
+            }
+            slot.startsWith("col:") -> {
+                val side = slot.removePrefix("col:").substringBefore(':').toIntOrNull() ?: 0
+                webColumnPost = (1 - side) to url
+            }
+            slot == "colpost" -> webColumnPost = webColumnPost?.copy(second = url)
+            slot == "focus" -> expanded = url
+        }
+    }
+
+    fun openWebPost(fromPanel: Int, url: String) {
+        val to = 1 - fromPanel
+        webPanels = webPanels.toMutableList().also { it[to] = it[to].copy(openUrl = url, fromLabel = it[fromPanel].source.label) }
+    }
+
+    fun closeWebPost(panel: Int) {
+        webPanels = webPanels.toMutableList().also { it[panel] = it[panel].copy(openUrl = null) }
+    }
+
+    /** Mitad con algo abierto encima: la que se ve plegado, y la que cierra el botón atrás. */
+    fun webFocused(): Int? = when {
+        webPanels[1].openUrl != null -> 1
+        webPanels[0].openUrl != null -> 0
+        else -> null
+    }
+
+    /** El redactor de X en una mitad; con `quoting`, el enlace del post fuente ya va en el texto. */
+    fun composeWeb(panel: Int = 0, quoting: String? = null) {
+        webPanels = webPanels.toMutableList().also { it[panel] = it[panel].copy(openUrl = XWeb.composeUrl(url = quoting), fromLabel = "Redactar") }
+    }
+
+    fun closeWebColumnPost() {
+        webColumnPost = null
+    }
+
+    fun addWebColumn(s: Source) {
+        if (s !in webColumns) saveWebColumns(webColumns + s)
+    }
+
+    fun removeWebColumn(s: Source) {
+        if (webColumns.size > 1) saveWebColumns(webColumns - s)
+    }
+
+    fun moveWebColumn(index: Int, delta: Int) {
+        if (index !in webColumns.indices) return
+        val to = (index + delta).coerceIn(0, webColumns.lastIndex)
+        if (to != index) saveWebColumns(webColumns.toMutableList().apply { add(to, removeAt(index)) })
+    }
+
+    private fun saveWebColumns(list: List<Source>) {
+        webColumns = list
+        prefs.webColumns = list.map { it.name }
+    }
+
+    fun setMesa(index: Int, source: Source) {
+        mesa = mesa.toMutableList().also { it[index] = source }
+        prefs.mesa = mesa.map { it.name }
+    }
+
+    fun expand(url: String) {
+        expanded = url
+    }
+
+    fun collapse() {
+        expanded = null
+    }
+
+    fun addHandle(handle: String, fromLabel: String = "") {
+        val h = handle.removePrefix("@").trim()
+        if (h.isEmpty()) return
+        if (handles.any { it.equals(h, ignoreCase = true) }) {
+            showToast("@$h ya está en Mi feed.")
+            return
+        }
+        handles = handles + h
+        prefs.handles = handles
+        dropHintSeen = true
+        prefs.dropHintSeen = true
+        showToast("Añadiste a @$h a Mi feed" + if (fromLabel.isNotEmpty()) " desde $fromLabel." else ".")
+    }
+
+    /** Lo que llega a la zona de soltar: un @usuario nuestro o el enlace de perfil que arrastra la web. */
+    fun dropText(text: String?, fromLabel: String) {
+        val t = text?.trim().orEmpty()
+        val handle = when {
+            t.isEmpty() -> dragHandle
+            t.startsWith("http") -> XWeb.handleOf(t) ?: dragHandle
+            else -> t
+        }
+        dragHandle = null
+        if (handle == null) {
+            showToast("Arrastra el avatar o el nombre de alguien.")
+            return
+        }
+        addHandle(handle, fromLabel)
+    }
+
+    fun removeHandle(handle: String) {
+        handles = handles.filterNot { it.equals(handle, ignoreCase = true) }
+        prefs.handles = handles
+    }
+
+    fun note(url: String): Note = notes[url] ?: Note()
+
+    fun saveNote(url: String, note: Note) {
+        notes = if (note.isEmpty) notes - url else notes + (url to note)
+        prefs.notes = notes
+    }
+
+    fun togglePinned(url: String) {
+        pinned = if (url in pinned) pinned - url else listOf(url) + pinned
+        prefs.pinned = pinned
+        showToast(if (url in pinned) "Fijado en la mesa." else "Quitado de la mesa.")
+    }
+
+    fun toggleThread(url: String) {
+        threads = if (url in threads) threads - url else listOf(url) + threads
+        prefs.threads = threads
+        showToast(if (url in threads) "Sigues este hilo." else "Ya no sigues este hilo.")
+    }
+
+    // ---- Demo: posts de ejemplo ----
 
     /** Mitad izquierda [0] y derecha [1] con el móvil abierto. Plegado usa la [0]. */
     var panels by mutableStateOf(listOf(PanelState(FeedId.ParaTi), PanelState(FeedId.MiFeed)))
         private set
 
-    /** Abierto: doble feed, un feed con el post al lado, o columnas. */
+    /** Abierto: doble feed, un feed con el post al lado, columnas, la mesa o el libro. */
     var mode by mutableStateOf(OpenMode.Doble)
         private set
 
@@ -63,7 +311,7 @@ class AppViewModel : ViewModel() {
     var dragging by mutableStateOf<Drag?>(null)
 
     /** Se oculta la pista de arrastrar en cuanto añades a alguien así. */
-    var dropHintSeen by mutableStateOf(false)
+    var dropHintSeen by mutableStateOf(prefs.dropHintSeen)
         private set
 
     var composing by mutableStateOf(false)

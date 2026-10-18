@@ -22,6 +22,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -39,6 +40,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.mastin95.pliegue.AppViewModel
 import io.github.mastin95.pliegue.Posture
 import io.github.mastin95.pliegue.ScreenInfo
+import io.github.mastin95.pliegue.model.AppMode
 import io.github.mastin95.pliegue.model.OpenMode
 import io.github.mastin95.pliegue.model.OpenPost
 import io.github.mastin95.pliegue.model.SampleData
@@ -68,25 +70,43 @@ import io.github.mastin95.pliegue.ui.components.startBorder
 import io.github.mastin95.pliegue.ui.components.topBorder
 import io.github.mastin95.pliegue.ui.theme.X
 import io.github.mastin95.pliegue.ui.theme.XType
+import io.github.mastin95.pliegue.ui.web.LocalWebPanes
 import androidx.compose.ui.graphics.Color
 
 private val BottomNavHeight = 53.dp
 
+/**
+ * Raíz de la app. Primero se elige entre X real (con tu sesión) y la demo con posts de ejemplo;
+ * después, cada postura del móvil tiene su pantalla.
+ */
 @Composable
 fun PliegueApp(screen: ScreenInfo, vm: AppViewModel = viewModel()) {
+    val web = LocalWebPanes.current
+    LaunchedEffect(web) {
+        web.onOpenPost = vm::onWebPost
+        web.onDragUser = { _, handle -> vm.dragHandle = handle }
+    }
+    val real = vm.appMode == AppMode.Real
     Box(
         Modifier
             .fillMaxSize()
             .background(X.Bg)
             .safeDrawingPadding(),
     ) {
-        when (screen.posture) {
-            Posture.Plegado -> FoldedScreen(vm)
-            Posture.Abierto -> OpenScreen(vm, screen)
-            Posture.Sobremesa -> TabletopScreen(vm, screen)
+        when {
+            vm.loggingIn -> LoginScreen(vm)
+            vm.appMode == AppMode.Elegir -> WelcomeScreen(vm)
+            real && !web.loggedIn -> LoginScreen(vm)
+            real -> RealApp(screen, vm)
+            else -> when (screen.posture) {
+                Posture.Plegado -> FoldedScreen(vm)
+                Posture.Abierto -> OpenScreen(vm, screen)
+                Posture.Sobremesa -> TabletopScreen(vm, screen)
+            }
         }
         ToastHost(vm, Modifier.align(Alignment.BottomCenter).padding(bottom = BottomNavHeight + 56.dp))
-        if (vm.composing) ComposerDialog(vm, fullScreen = screen.posture == Posture.Plegado)
+        if (vm.composing && !real) ComposerDialog(vm, fullScreen = screen.posture == Posture.Plegado)
+        if (vm.settingsOpen) SettingsDialog(vm)
     }
 }
 
@@ -107,7 +127,7 @@ fun FoldedScreen(vm: AppViewModel) {
                     selectedPostId = null,
                     onOpen = { vm.openPost(0, it) },
                     modifier = Modifier.weight(1f),
-                    header = { FoldedTopBar() },
+                    header = { FoldedTopBar { vm.settingsOpen = true } },
                 )
             }
             BottomNav(vm)

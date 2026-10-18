@@ -176,17 +176,20 @@ fun PostDetail(
     }
 }
 
-/** Panel derecho en modo "un solo feed" cuando aún no hay post abierto. */
+/** Panel derecho en modo "un solo feed" (o libro) cuando aún no hay post abierto. */
 @Composable
-fun EmptyDetail() {
+fun EmptyDetail(libro: Boolean = false) {
     Column(
         Modifier
             .fillMaxSize()
             .padding(32.dp),
         verticalArrangement = Arrangement.Center,
     ) {
-        Text("Elige un post", style = XType.title.copy(fontSize = XType.title.fontSize * 1.5f))
+        Text(if (libro) "Elige qué leer" else "Elige un post", style = XType.title.copy(fontSize = XType.title.fontSize * 1.5f))
         Spacer(Modifier.height(8.dp))
-        Text("Toca un post del feed y su conversación se abrirá aquí, sin perder tu sitio.", style = XType.secondary)
+        Text(
+            if (libro) "Toca un post guardado de la izquierda y se abrirá aquí con letra más grande, como la página de un libro." else "Toca un post del feed y su conversación se abrirá aquí, sin perder tu sitio.",
+            style = XType.secondary,
+        )
     }
 }

@@ -44,6 +44,13 @@ object XIcons {
     val Stack = stroke("stack", "M4 9h16v11H4zM7 6h10M9 3h6")
     val Verified = fill("verified", "M12 1.6l2.5 1.9 3.1-.3.9 3 2.6 1.7-1 3 1 3-2.6 1.7-.9 3-3.1-.3L12 22.4l-2.5-1.9-3.1.3-.9-3-2.6-1.7 1-3-1-3 2.6-1.7.9-3 3.1.3z")
     val Check = stroke("check", "M7.8 12.3l2.8 2.8 5.6-6", width = 2.2f)
+    val Expand = stroke("expand", "M4 14v6h6M20 10V4h-6M4 20l6-6M20 4l-6 6")
+    val Collapse = stroke("collapse", "M10 20v-6H4M14 4v6h6M4 20l6-6M20 4l-6 6")
+    val Reload = stroke("reload", "M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5")
+    val Note = stroke("note", "M5 4h14v16H5zM8.5 9h7M8.5 13h7M8.5 17h4")
+    val Logout = stroke("logout", "M10 4H5v16h5M14 8l4 4-4 4M18 12H9")
+    val Grid = stroke("grid", "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z")
+    val Book = stroke("book", "M12 6c-2-1.5-5-1.5-8-1v14c3-.5 6-.5 8 1 2-1.5 5-1.5 8-1V5c-3-.5-6-.5-8 1zM12 6v14")
 }
 
 private const val HEART = "M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"
