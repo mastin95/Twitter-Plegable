@@ -67,15 +67,37 @@ object XWeb {
 
     fun isLoginFlow(url: String) = url.contains("/i/flow/login")
 
+    /** Solo la web de X (no Google, Apple ni las imágenes). */
+    fun isX(url: String): Boolean {
+        val host = host(url) ?: return false
+        return host == "x.com" || host == "twitter.com" || host.endsWith(".x.com") || host.endsWith(".twitter.com")
+    }
+
+    private fun path(url: String): String = Regex("^https?://[^/]+(/[^?#]*)?").find(url)?.groupValues?.get(1)?.trimEnd('/') ?: ""
+
     /**
-     * Páginas a las que X manda al salir del formulario de inicio de sesión y que en la app se
-     * quedan vacías (la portada sin sesión, el "jetfuel" /i/jf/…): de ahí volvemos al formulario.
+     * Una página de entrada de X: el formulario (/i/flow/login) o la portada sin sesión, que en el
+     * móvil lleva el formulario dentro (teléfono, Google, Apple, correo). Ahí no hay que tocar nada.
+     */
+    fun isLoginPage(url: String): Boolean {
+        if (!isX(url)) return false
+        val p = path(url)
+        return p.isEmpty() || p == "/login" || p.startsWith("/i/flow/login")
+    }
+
+    /**
+     * Páginas a las que X manda al salir del formulario y que en la app se quedan vacías (el
+     * "jetfuel" /i/jf/…): de ahí volvemos al formulario. La portada y /home no lo son: X las
+     * resuelve solo (sin sesión enseña el formulario; con sesión, el inicio).
      */
     fun isLoginDeadEnd(url: String): Boolean {
-        if (!isOwn(url)) return false
-        val path = Regex("^https?://[^/]+(/[^?#]*)?").find(url)?.groupValues?.get(1)?.trimEnd('/') ?: ""
-        return path.isEmpty() || path == "/home" || path == "/login" || path.startsWith("/i/jf/") || path == "/i/flow"
+        if (!isX(url)) return false
+        val p = path(url)
+        return p.startsWith("/i/jf/") || p == "/i/flow"
     }
+
+    /** Esquemas que tienen una app propia en el móvil; cualquier otro esquema raro se ignora. */
+    fun isExternalScheme(url: String) = listOf("mailto:", "tel:", "sms:", "intent:", "market:", "geo:").any { url.startsWith(it) }
 
     /** Id del post en una dirección `.../usuario/status/123...`. */
     fun statusId(url: String): String? = Regex("/status(?:es)?/(\\d+)").find(url)?.groupValues?.get(1)
