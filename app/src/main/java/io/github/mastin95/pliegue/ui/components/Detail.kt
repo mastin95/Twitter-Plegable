@@ -31,7 +31,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import io.github.mastin95.pliegue.AppViewModel
-import io.github.mastin95.pliegue.model.FeedId
 import io.github.mastin95.pliegue.model.OpenPost
 import io.github.mastin95.pliegue.model.Post
 import io.github.mastin95.pliegue.model.SampleData
@@ -40,9 +39,9 @@ import io.github.mastin95.pliegue.ui.count
 import io.github.mastin95.pliegue.ui.theme.X
 import io.github.mastin95.pliegue.ui.theme.XType
 
-/** Cabecera "← Post" de X. Con `returnTo`, un botón para volver al feed que quedó debajo. */
+/** Cabecera "← Post" de X. Con `returnTo`, un botón con el nombre de lo que quedó debajo para volver. */
 @Composable
-fun DetailHeader(onBack: () -> Unit, returnTo: FeedId? = null) {
+fun DetailHeader(onBack: () -> Unit, returnTo: String? = null) {
     Row(
         Modifier
             .fillMaxWidth()
@@ -57,7 +56,7 @@ fun DetailHeader(onBack: () -> Unit, returnTo: FeedId? = null) {
         Text("Post", style = XType.title, modifier = Modifier.weight(1f))
         if (returnTo != null) {
             PillButton(
-                returnTo.label,
+                returnTo,
                 onClick = onBack,
                 background = X.Bg,
                 content = X.Text,
@@ -117,7 +116,7 @@ fun PostDetail(
     open: OpenPost,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
-    returnTo: FeedId? = null,
+    returnTo: String? = null,
     showFrom: Boolean = false,
 ) {
     val post = vm.post(open.id) ?: return
@@ -136,7 +135,7 @@ fun PostDetail(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Icon(XIcons.Back, contentDescription = null, tint = X.Secondary, modifier = Modifier.size(16.dp))
-                        Text("Abierto desde ${open.from.label}", style = XType.small.copy(fontWeight = FontWeight.Bold))
+                        Text("Abierto desde ${open.fromLabel}", style = XType.small.copy(fontWeight = FontWeight.Bold))
                     }
                 }
             }

@@ -5,7 +5,7 @@ Cliente con la interfaz de X (Twitter) pensado para móviles plegables. La app c
 | Postura | Qué ves |
 | --- | --- |
 | **Plegado** (pantalla exterior) | Un feed con las pestañas Para ti, Siguiendo y tus listas, la barra inferior y el botón de postear. Al tocar un post se abre a pantalla completa. |
-| **Abierto** (pantalla interior) | Dos mitades. Por defecto, **doble feed**: un feed a cada lado. Al tocar un post se abre en la otra mitad y tapa ese feed; con la flecha o el botón con el nombre del feed vuelves a él. Con **Un solo feed**, la derecha queda para el post abierto. **Intercambiar** cambia las mitades. |
+| **Abierto** (pantalla interior) | Dos mitades. Por defecto, **doble feed**: un feed a cada lado. Al tocar un post se abre en la otra mitad y tapa ese feed; con la flecha o el botón con el nombre del feed vuelves a él. Con **Un solo feed**, la derecha queda para el post abierto. **Intercambiar** cambia las mitades. **Columnas** convierte la pantalla en un tablero al estilo de X Pro: notificaciones, listas, tendencias y búsquedas, una o dos columnas por mitad y la bisagra siempre entre columnas. Se añaden, se mueven y se quitan desde su menú, y al deslizar se pasa de página entera. |
 | **Sobremesa** (doblado en L) | Arriba el post (o el feed), abajo las respuestas (o el teclado para postear). |
 
 Al plegar y desplegar no se pierde el scroll ni el post abierto: lo que abriste plegado aparece en la mitad derecha al abrir el móvil.
@@ -40,6 +40,6 @@ app/src/main/java/io/github/mastin95/pliegue/
   AppViewModel.kt      estado: paneles, post abierto, me gusta, posts propios
   model/               modelos y contenido de ejemplo
   ui/theme/            colores y tipografía de X
-  ui/components/       post, acciones, feed, cabeceras, redactor
+  ui/components/       post, acciones, feed, columnas, cabeceras, redactor
   ui/screens/          una pantalla por postura
 ```

@@ -46,6 +46,8 @@ object SampleData {
         Post("p16", "cocinafacil", "Arroz al horno en 40 minutos. La receta completa, en el hilo.", "2h", TODAY, 44, 150, 2100, 41000, 262, MediaKind.Comida),
         Post("p18", "nerea_a", "Lo mejor de trabajar desde casa: el gato. Lo peor: el gato.", "9h", TODAY, 12, 40, 980, 15000, 122),
         Post("p19", "lucia", "Para quien preguntaba: sí, compartiré los archivos del hilo. Dadme unos días.", "20h", TODAY, 9, 3, 120, 4000, 15),
+        Post("p21", "nerea_a", "El modo sobremesa para ver directos es una pasada: el vídeo arriba y el chat abajo.", "10m", TODAY, 5, 9, 140, 2600, 12),
+        Post("p22", "dgarcia", "Probando el modo sobremesa con un Space. Las manos libres para el café.", "1h", TODAY, 3, 4, 60, 1100, 5),
         Post("p20", "anam", "Recordatorio amable: el texto gris claro sobre blanco no es minimalismo, es ilegible.", "9h", TODAY, 30, 210, 1800, 26000, 225),
     ).associateBy { it.id }
 
@@ -55,6 +57,25 @@ object SampleData {
         FeedId.Diseno to listOf("p1", "p7", "p8", "p9", "p10", "p11", "p20", "p5", "p19"),
         FeedId.Plegables to listOf("p13", "p12", "p1", "p11", "p19"),
     )
+
+    val mentions: List<Mention> = listOf(
+        Mention("anam", "@martin ¿te apuntas al Space de esta tarde?", "3m"),
+        Mention("javit", "@martin mira esto, es justo lo que comentabas.", "20m"),
+        Mention("saracm", "Gracias @martin por la recomendación.", "1h"),
+        Mention("rubenb", "@martin pásame el enlace cuando puedas.", "2h"),
+        Mention("lucia", "@martin te he mencionado en el hilo de plegables.", "3h"),
+    )
+
+    val trends: List<Trend> = listOf(
+        Trend("Tecnología · Tendencia", "#Plegables", 12_400),
+        Trend("Música · Tendencia", "#IndieValencia", 3_210),
+        Trend("Viajes · Tendencia", "#CaboDeGata", 1_840),
+        Trend("Diseño · Tendencia", "Tipografía variable", 2_050),
+        Trend("Comida · Tendencia", "Arroz al horno", 5_600),
+    )
+
+    fun search(query: String): List<Post> =
+        posts.values.filter { it.text.contains(query, ignoreCase = true) }.sortedByDescending { it.likes }
 
     val initialFollowing = setOf("pablom", "dgarcia", "nerea_a", "saracm", "rubenb", "carlaf", "hugol", "lucia")
 
