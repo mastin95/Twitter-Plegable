@@ -160,7 +160,7 @@ fun LoginScreen(vm: AppViewModel) {
                     DropdownMenuItem(
                         text = { Text(if (web.desktop) "Volver al modo móvil" else "Probar en modo escritorio", style = XType.body) },
                         onClick = {
-                            web.setDesktop(!web.desktop)
+                            web.useDesktop(!web.desktop)
                             menu = false
                         },
                     )
@@ -268,7 +268,7 @@ fun SettingsDialog(vm: AppViewModel) {
                     Spacer(Modifier.height(10.dp))
                     PillButton(
                         if (web.desktop) "Volver al modo móvil" else "Modo escritorio",
-                        onClick = { web.setDesktop(!web.desktop) },
+                        onClick = { web.useDesktop(!web.desktop) },
                         background = X.Bg,
                         content = X.Text,
                         border = X.OutlineButton,

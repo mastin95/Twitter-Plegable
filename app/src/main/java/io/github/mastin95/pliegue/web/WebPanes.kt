@@ -139,7 +139,7 @@ class WebPanes(
         slots[slot]?.settings?.textZoom = percent
     }
 
-    fun setDesktop(on: Boolean) {
+    fun useDesktop(on: Boolean) {
         if (desktop == on) return
         desktop = on
         slots.forEach { (slot, v) ->
