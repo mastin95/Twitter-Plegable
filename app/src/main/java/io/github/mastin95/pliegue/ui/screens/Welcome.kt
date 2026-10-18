@@ -16,7 +16,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -25,6 +28,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -32,6 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -113,13 +118,17 @@ fun LoginScreen(vm: AppViewModel) {
     }
     BackHandler(onBack = leave)
     DisposableEffect(Unit) { onDispose { web.drop("login") } }
+    var menu by remember { mutableStateOf(false) }
+    var showLog by rememberSaveable { mutableStateOf(false) }
+    val url = web.urls["login"] ?: XWeb.LOGIN
+    val progress = web.progress["login"] ?: 0
     Column(Modifier.fillMaxSize()) {
         Row(
             Modifier
                 .fillMaxWidth()
                 .height(53.dp)
                 .bottomBorder()
-                .padding(start = 4.dp, end = 16.dp),
+                .padding(start = 4.dp, end = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             IconButton(onClick = leave) {
@@ -127,11 +136,56 @@ fun LoginScreen(vm: AppViewModel) {
             }
             Spacer(Modifier.width(8.dp))
             Column(Modifier.weight(1f)) {
-                Text("Iniciar sesión en X", style = XType.title)
-                if (expired) Text("Tu sesión caducó; vuelve a entrar.", style = XType.small)
+                Text("Iniciar sesión en X", style = XType.title, maxLines = 1)
+                // Qué página hay debajo y si sigue cargando: con la web en negro es la única pista.
+                Text(
+                    when {
+                        expired -> "Tu sesión caducó; vuelve a entrar."
+                        progress < 100 -> "${url.removePrefix("https://")} · cargando $progress %"
+                        else -> url.removePrefix("https://")
+                    },
+                    style = XType.small,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            IconButton(onClick = { web.reload("login") }) {
+                Icon(XIcons.Reload, contentDescription = "Recargar", tint = X.Text, modifier = Modifier.size(20.dp))
+            }
+            Box {
+                IconButton(onClick = { menu = true }) {
+                    Icon(XIcons.More, contentDescription = "Más opciones", tint = X.Text, modifier = Modifier.size(20.dp))
+                }
+                DropdownMenu(expanded = menu, onDismissRequest = { menu = false }, modifier = Modifier.background(X.Bg)) {
+                    DropdownMenuItem(
+                        text = { Text(if (web.desktop) "Volver al modo móvil" else "Probar en modo escritorio", style = XType.body) },
+                        onClick = {
+                            web.setDesktop(!web.desktop)
+                            menu = false
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = { Text(if (showLog) "Ocultar el registro" else "Ver el registro", style = XType.body) },
+                        onClick = {
+                            showLog = !showLog
+                            menu = false
+                        },
+                    )
+                }
             }
         }
+        if (showLog) WebLog(Modifier.fillMaxWidth().height(180.dp).bottomBorder())
         WebPane("login", XWeb.LOGIN, Modifier.weight(1f), PaneOptions(interceptPosts = false, hideChrome = false))
+    }
+}
+
+/** Los últimos avisos de las webs, para contar qué pasa cuando algo no carga. */
+@Composable
+fun WebLog(modifier: Modifier = Modifier) {
+    val web = LocalWebPanes.current
+    LazyColumn(modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
+        if (web.log.isEmpty()) item { Text("Sin avisos todavía.", style = XType.small) }
+        items(web.log) { line -> Text(line, style = XType.small.copy(fontSize = 12.sp, lineHeight = 15.sp)) }
     }
 }
 
@@ -208,6 +262,21 @@ fun SettingsDialog(vm: AppViewModel) {
                 items(vm.threads, key = { "t:$it" }) { url ->
                     ListRow(XWeb.shortLabel(url)) { vm.toggleThread(url) }
                 }
+                item {
+                    Section("Si X no carga")
+                    Text("Las webs se presentan como Chrome para Android. Si alguna se queda en negro, prueba el modo escritorio y mira el registro.", style = XType.small)
+                    Spacer(Modifier.height(10.dp))
+                    PillButton(
+                        if (web.desktop) "Volver al modo móvil" else "Modo escritorio",
+                        onClick = { web.setDesktop(!web.desktop) },
+                        background = X.Bg,
+                        content = X.Text,
+                        border = X.OutlineButton,
+                        height = 32.dp,
+                    )
+                }
+                item { Section("Registro de la web") }
+                item { WebLog(Modifier.fillMaxWidth().height(220.dp)) }
                 item { Spacer(Modifier.height(16.dp)) }
             }
         }

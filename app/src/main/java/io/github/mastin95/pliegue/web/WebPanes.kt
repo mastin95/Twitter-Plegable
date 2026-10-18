@@ -17,16 +17,20 @@ import android.os.Looper
 import android.view.DragEvent
 import android.view.View
 import android.view.ViewGroup
+import android.webkit.ConsoleMessage
 import android.webkit.CookieManager
 import android.webkit.JavascriptInterface
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
+import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
 import android.webkit.WebSettings
 import android.webkit.WebStorage
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -70,6 +74,13 @@ class WebPanes(
     /** Última ranura en la que pasó algo; a ella va el botón atrás. */
     var lastActive by mutableStateOf("pane0")
         private set
+
+    /** Presentarse como Chrome de escritorio en todas las webs (recurso si X no carga como móvil). */
+    var desktop by mutableStateOf(false)
+        private set
+
+    /** Últimos avisos de las webs (consola, errores de carga), para saber qué pasa sin un depurador. */
+    val log = mutableStateListOf<String>()
 
     private var custom by mutableStateOf<View?>(null)
     private var customCallback: WebChromeClient.CustomViewCallback? = null
@@ -127,6 +138,27 @@ class WebPanes(
     fun textZoom(slot: String, percent: Int) {
         slots[slot]?.settings?.textZoom = percent
     }
+
+    fun setDesktop(on: Boolean) {
+        if (desktop == on) return
+        desktop = on
+        slots.forEach { (slot, v) ->
+            v.settings.userAgentString = userAgent(v)
+            requested[slot]?.let { v.loadUrl(it) }
+        }
+        log("Agente de usuario: " + if (on) "Chrome de escritorio" else "Chrome para Android")
+    }
+
+    private fun userAgent(v: WebView): String =
+        if (desktop) XWeb.DESKTOP_UA else XWeb.chromeUa(WebSettings.getDefaultUserAgent(v.context))
+
+    private fun log(line: String) {
+        val stamp = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.ROOT).format(java.util.Date())
+        log.add(0, "$stamp $line")
+        while (log.size > 80) log.removeAt(log.lastIndex)
+    }
+
+    private fun short(url: String) = url.removePrefix("https://").take(90)
 
     fun reload(slot: String) {
         slots[slot]?.reload()
@@ -189,6 +221,7 @@ class WebPanes(
             setSupportZoom(false)
             builtInZoomControls = false
             displayZoomControls = false
+            userAgentString = userAgent(v)
         }
         CookieManager.getInstance().apply {
             setAcceptCookie(true)
@@ -199,8 +232,11 @@ class WebPanes(
         v.addJavascriptInterface(Bridge(slot), "Pliegue")
         v.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
+                // Los marcos internos (captchas, inicio de sesión con Google) se quedan donde están.
+                if (!request.isForMainFrame) return false
                 val url = request.url.toString()
                 if (XWeb.isOwn(url)) return false
+                log("[$slot] fuera de la app: ${short(url)}")
                 runCatching { activity.startActivity(Intent(Intent.ACTION_VIEW, request.url)) }
                 return true
             }
@@ -209,6 +245,7 @@ class WebPanes(
                 urls[slot] = url
                 progress[slot] = 5
                 lastActive = slot
+                log("[$slot] carga ${short(url)}")
             }
 
             override fun onPageFinished(view: WebView, url: String) {
@@ -216,6 +253,15 @@ class WebPanes(
                 progress[slot] = 100
                 inject(view, slot)
                 checkLogin()
+                log("[$slot] cargada ${short(url)}" + if (loggedIn) " · con sesión" else " · sin sesión")
+            }
+
+            override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
+                if (request.isForMainFrame) log("[$slot] error ${error.errorCode} ${error.description} en ${short(request.url.toString())}")
+            }
+
+            override fun onReceivedHttpError(view: WebView, request: WebResourceRequest, errorResponse: WebResourceResponse) {
+                if (request.isForMainFrame) log("[$slot] HTTP ${errorResponse.statusCode} en ${short(request.url.toString())}")
             }
 
             override fun doUpdateVisitedHistory(view: WebView, url: String, isReload: Boolean) {
@@ -229,6 +275,11 @@ class WebPanes(
             override fun onProgressChanged(view: WebView, newProgress: Int) {
                 progress[slot] = newProgress
                 if (newProgress > 60) inject(view, slot)
+            }
+
+            override fun onConsoleMessage(message: ConsoleMessage): Boolean {
+                if (message.messageLevel() == ConsoleMessage.MessageLevel.ERROR) log("[$slot] js: ${message.message().take(160)}")
+                return true
             }
 
             override fun onShowCustomView(view: View, callback: CustomViewCallback) {

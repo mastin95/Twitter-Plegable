@@ -12,6 +12,16 @@ object XWeb {
     const val LOGOUT = "https://x.com/logout"
     const val COMPOSE = "https://x.com/compose/post"
 
+    /** Chrome de escritorio, por si la web de X se niega a cargar con el navegador del móvil. */
+    const val DESKTOP_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
+
+    /**
+     * El agente de usuario de WebView lleva la marca "wv" y un "Version/4.0" que no tiene Chrome;
+     * X los usa para tratar la app como navegador incrustado y deja el inicio de sesión en blanco.
+     * Quitándolos se presenta como Chrome para Android, que es lo que es por dentro.
+     */
+    fun chromeUa(ua: String): String = ua.replace("; wv", "").replace(Regex("Version/\\d+(\\.\\d+)* "), "")
+
     /** Dominios que se abren dentro de la app; el resto va al navegador. */
     private val ownHosts = setOf("x.com", "www.x.com", "mobile.x.com", "twitter.com", "www.twitter.com", "mobile.twitter.com", "t.co", "pbs.twimg.com", "video.twimg.com", "abs.twimg.com", "accounts.google.com", "appleid.apple.com")
 
