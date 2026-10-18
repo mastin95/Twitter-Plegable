@@ -249,17 +249,44 @@ object XWeb {
           }, true);
           window.addEventListener('error', function(e){ say('error ' + e.message + ' @ ' + String(e.filename).split('/').pop() + ':' + e.lineno); }, true);
           window.addEventListener('unhandledrejection', function(e){ var r = e.reason; say('promesa rechazada ' + (r && r.stack || r && r.message || r)); });
+          // El error "Input2SSO: Unsupported provider" sale del código de X, que desde fuera no se puede leer:
+          // se buscan esas palabras en los scripts que la página ya tiene cargados y se anota el trozo de alrededor.
+          function buscar(motivo){
+            var hecho = false; try { hecho = sessionStorage.getItem('pl_buscado') === '1'; } catch(e){}
+            if (hecho && motivo === 'carga') return;
+            try { sessionStorage.setItem('pl_buscado', '1'); } catch(e){}
+            var urls = {};
+            Array.prototype.forEach.call(document.scripts, function(s){ if (s.src) urls[s.src] = 1; });
+            try { performance.getEntriesByType('resource').forEach(function(r){ if (/\.js(\?|$)/.test(r.name)) urls[r.name] = 1; }); } catch(e){}
+            var list = Object.keys(urls), hits = 0, done = 0;
+            say('busco Input2SSO en ' + list.length + ' scripts (' + motivo + ')');
+            list.forEach(function(u){
+              var nombre = u.split('/').pop().split('?')[0].slice(0, 60);
+              fetch(u, {mode: 'cors', credentials: 'omit'}).then(function(r){ return r.text(); }).then(function(t){
+                var i = t.indexOf('Input2SSO'); if (i < 0) i = t.indexOf('Unsupported provider');
+                if (i >= 0 && hits < 3) {
+                  hits++;
+                  say('fuente ' + nombre + ' @' + i + ' de ' + t.length);
+                  say('antes: ' + t.slice(Math.max(0, i - 560), i));
+                  say('después: ' + t.slice(i, i + 560));
+                }
+              }).catch(function(e){ say('no pude leer ' + nombre + ': ' + e); }).then(function(){ done++; if (done === list.length) say('búsqueda terminada: ' + hits + ' scripts con Input2SSO'); });
+            });
+          }
+          setTimeout(function(){ buscar('carga'); }, 5000);
           var ce = console.error;
           console.error = function(){
             try {
               var a = arguments[0];
+              if (/Input2SSO|Unsupported provider/.test(String(a && a.message || a))) setTimeout(function(){ buscar('error'); }, 0);
               var st = String((a && a.stack) || new Error().stack || '').split('\n').filter(function(l){ return /\bat\b|@/.test(l) && l.indexOf('<anonymous>') < 0; }).slice(0, 6).join(' ⇐ ');
               say('error ' + String(a && a.message || a).slice(0, 200) + ' · pila: ' + red(st).slice(0, 600));
             } catch(e){}
             return ce.apply(console, arguments);
           };
           var brands = ''; try { brands = (navigator.userAgentData && navigator.userAgentData.brands || []).map(function(b){ return b.brand + ' ' + b.version; }).join(', '); } catch(e){}
-          say('gancho de login puesto · FedCM ' + ('IdentityCredential' in window ? 'sí' : 'no') + ' · window.chrome ' + typeof window.chrome + ' · marcas: ' + (brands || 'ninguna'));
+          var nav = ''; try { nav = (performance.getEntriesByType('navigation')[0] || {}).type || ''; } catch(e){}
+          say('gancho de login puesto · navegación ' + (nav || '?') + ' · FedCM ' + ('IdentityCredential' in window ? 'sí' : 'no') + ' · window.chrome ' + typeof window.chrome + ' · marcas: ' + (brands || 'ninguna'));
         })();
     """.trimIndent()
 
