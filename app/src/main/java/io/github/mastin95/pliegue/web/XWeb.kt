@@ -207,6 +207,41 @@ object XWeb {
           if (gv) watchAccounts(gv);
           var wo = window.open;
           window.open = function(u, n, f){ say('window.open ' + (u || '(vacío)') + ' nombre=' + n); return wo.apply(window, arguments); };
+          // Peticiones de la web de X que tocan el inicio de sesión: así se ve si el rechazo viene del servidor.
+          function api(u){ return /onboarding|sso|jot|login|password/i.test(String(u || '')); }
+          function pathOf(u){ try { var x = new URL(String(u), location.href); return x.host + x.pathname + (x.search ? x.search.slice(0, 80) : ''); } catch(e){ return String(u).slice(0, 120); } }
+          function bodyInfo(b){
+            if (!b) return '';
+            var s = typeof b === 'string' ? b : (b instanceof URLSearchParams ? b.toString() : (b instanceof FormData ? '[formdata]' : '[' + (b.constructor && b.constructor.name) + ']'));
+            var out = '', m, ids = [], re = /"subtask_id"\s*:\s*"([^"]+)"/g;
+            while ((m = re.exec(s))) ids.push(m[1]);
+            if (ids.length) out += 'subtareas=' + ids.join(',') + ' ';
+            var prov = s.match(/.{0,60}provider.{0,60}/g); if (prov) out += 'provider: ' + prov.slice(0, 4).join(' | ') + ' ';
+            var sso = s.match(/.{0,40}sso.{0,80}/gi); if (sso) out += 'sso: ' + sso.slice(0, 4).join(' | ') + ' ';
+            var err = s.match(/"errors"\s*:\s*\[.{0,300}/); if (err) out += 'errores: ' + err[0];
+            if (!out) out = s.slice(0, 200);
+            return red(out).slice(0, 700);
+          }
+          var of = window.fetch;
+          if (of) window.fetch = function(input, init){
+            var u = typeof input === 'string' ? input : (input && input.url) || '';
+            var method = (init && init.method) || (input && input.method) || 'GET';
+            var isApi = api(u);
+            if (isApi) say('pide ' + method + ' ' + pathOf(u) + ' ' + bodyInfo(init && init.body));
+            var p = of.apply(this, arguments);
+            if (isApi) p.then(function(r){ try { r.clone().text().then(function(t){ say('responde ' + r.status + ' ' + pathOf(u) + ' ' + bodyInfo(t)); }); } catch(e){} }, function(e){ say('falla ' + pathOf(u) + ' ' + e); });
+            return p;
+          };
+          var XO = XMLHttpRequest.prototype.open, XS = XMLHttpRequest.prototype.send;
+          XMLHttpRequest.prototype.open = function(m, u){ this.__plu = String(u || ''); this.__plm = m; return XO.apply(this, arguments); };
+          XMLHttpRequest.prototype.send = function(b){
+            var x = this, u = x.__plu || '';
+            if (api(u)) {
+              say('pide ' + x.__plm + ' ' + pathOf(u) + ' ' + bodyInfo(b));
+              x.addEventListener('loadend', function(){ var t = ''; try { t = (x.responseType === '' || x.responseType === 'text') ? x.responseText : '[' + x.responseType + ']'; } catch(e){} say('responde ' + x.status + ' ' + pathOf(u) + ' ' + bodyInfo(t)); });
+            }
+            return XS.apply(this, arguments);
+          };
           window.addEventListener('message', function(e){
             if (!/google|apple/.test(e.origin)) return;
             var d = e.data; try { d = typeof d === 'string' ? d : JSON.stringify(d); } catch(x){ d = String(d); }
@@ -215,9 +250,16 @@ object XWeb {
           window.addEventListener('error', function(e){ say('error ' + e.message + ' @ ' + String(e.filename).split('/').pop() + ':' + e.lineno); }, true);
           window.addEventListener('unhandledrejection', function(e){ var r = e.reason; say('promesa rechazada ' + (r && r.stack || r && r.message || r)); });
           var ce = console.error;
-          console.error = function(){ try { var a = arguments[0]; if (a && a.stack) say('pila: ' + String(a.stack).slice(0, 500)); } catch(e){} return ce.apply(console, arguments); };
+          console.error = function(){
+            try {
+              var a = arguments[0];
+              var st = String((a && a.stack) || new Error().stack || '').split('\n').filter(function(l){ return /\bat\b|@/.test(l) && l.indexOf('<anonymous>') < 0; }).slice(0, 6).join(' ⇐ ');
+              say('error ' + String(a && a.message || a).slice(0, 200) + ' · pila: ' + red(st).slice(0, 600));
+            } catch(e){}
+            return ce.apply(console, arguments);
+          };
           var brands = ''; try { brands = (navigator.userAgentData && navigator.userAgentData.brands || []).map(function(b){ return b.brand + ' ' + b.version; }).join(', '); } catch(e){}
-          say('gancho de login puesto · FedCM ' + ('IdentityCredential' in window ? 'sí' : 'no') + ' · marcas: ' + (brands || 'ninguna'));
+          say('gancho de login puesto · FedCM ' + ('IdentityCredential' in window ? 'sí' : 'no') + ' · window.chrome ' + typeof window.chrome + ' · marcas: ' + (brands || 'ninguna'));
         })();
     """.trimIndent()
 

@@ -201,6 +201,7 @@ class WebPanes(
     }
 
     private var hintsLogged = ""
+    private var headersLogged = false
 
     private fun log(line: String) {
         val stamp = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.ROOT).format(java.util.Date())
@@ -387,6 +388,19 @@ class WebPanes(
                 if (XWeb.isWeb(url) && (XWeb.isOwn(url) || options[slot]?.keepInside == true)) return false
                 openOutside(slot, request.url)
                 return true
+            }
+
+            override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
+                // Una vez por arranque, en el login: las cabeceras con las que sale la petición principal,
+                // para saber si la WebView sigue mandando X-Requested-With (delata la app ante X).
+                if (!headersLogged && request.isForMainFrame && options[slot]?.debugLogin == true) {
+                    headersLogged = true
+                    val headers = request.requestHeaders
+                    val xrw = headers.entries.firstOrNull { it.key.equals("X-Requested-With", ignoreCase = true) }?.value
+                    val names = headers.keys.sorted().joinToString(", ")
+                    main.post { log("[$slot] cabeceras de ${short(request.url.toString()).substringBefore('/')}: $names" + (xrw?.let { " · X-Requested-With=$it" } ?: " · sin X-Requested-With")) }
+                }
+                return null
             }
 
             override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) {
