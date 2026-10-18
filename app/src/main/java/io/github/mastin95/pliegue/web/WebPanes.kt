@@ -165,14 +165,29 @@ class WebPanes(
         if (desktop == on) return
         desktop = on
         slots.forEach { (slot, v) ->
-            v.settings.userAgentString = userAgent(v)
+            presentAsChrome(v)
             requested[slot]?.let { v.loadUrl(it) }
         }
+        popup?.let(::presentAsChrome)
         log("Agente de usuario: " + if (on) "Chrome de escritorio" else "Chrome para Android")
     }
 
-    private fun userAgent(v: WebView): String =
-        if (desktop) XWeb.DESKTOP_UA else XWeb.chromeUa(WebSettings.getDefaultUserAgent(v.context))
+    private fun userAgent(v: WebView): String {
+        val base = WebSettings.getDefaultUserAgent(v.context)
+        return if (desktop) XWeb.desktopUa(base) else XWeb.chromeUa(base)
+    }
+
+    /** Agente de usuario y "client hints" a juego: la web ve un Chrome, no una WebView. */
+    private fun presentAsChrome(v: WebView) {
+        v.settings.userAgentString = userAgent(v)
+        val how = ClientHints.apply(v.settings, WebSettings.getDefaultUserAgent(v.context), desktop)
+        if (how != hintsLogged) {
+            hintsLogged = how
+            log("Se presenta como $how")
+        }
+    }
+
+    private var hintsLogged = ""
 
     private fun log(line: String) {
         val stamp = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.ROOT).format(java.util.Date())
@@ -180,7 +195,7 @@ class WebPanes(
         while (log.size > 80) log.removeAt(log.lastIndex)
     }
 
-    private fun short(url: String) = url.removePrefix("https://").take(90)
+    private fun short(url: String) = url.removePrefix("https://").take(160)
 
     fun reload(slot: String) {
         slots[slot]?.reload()
@@ -257,8 +272,8 @@ class WebPanes(
             setSupportZoom(false)
             builtInZoomControls = false
             displayZoomControls = false
-            userAgentString = userAgent(v)
         }
+        presentAsChrome(v)
         CookieManager.getInstance().apply {
             setAcceptCookie(true)
             setAcceptThirdPartyCookies(v, true)
