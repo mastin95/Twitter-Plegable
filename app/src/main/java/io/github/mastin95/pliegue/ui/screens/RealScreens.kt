@@ -181,6 +181,7 @@ fun RealOpen(vm: AppViewModel, screen: ScreenInfo) {
         val hingeStart = screen.firstPane?.let { it - origin } ?: (maxWidth / 2)
         val leftWidth = (hingeStart - margin).coerceAtLeast(200.dp)
         val gap = margin * 2 + screen.hinge
+        val compact = maxWidth < 760.dp
         val expanded = vm.expanded
         Column(Modifier.fillMaxSize()) {
             Box(
@@ -207,7 +208,7 @@ fun RealOpen(vm: AppViewModel, screen: ScreenInfo) {
                     .topBorder(),
                 contentAlignment = Alignment.Center,
             ) {
-                OpenToolbar(vm, compact = maxWidth < 760.dp)
+                OpenToolbar(vm, compact = compact)
             }
         }
         if (expanded == null) {
