@@ -186,7 +186,7 @@ object XWeb {
             if (!id || typeof id !== 'object' || id.__pl) return id;
             id.__pl = true;
             // Google rellena google.accounts.id método a método: se envuelve cada uno cuando llega.
-            ['initialize','prompt','renderButton'].forEach(function(n){
+            ['initialize','prompt','renderButton','cancel','disableAutoSelect','revoke','storeCredential','setLogLevel'].forEach(function(n){
               var cur = id[n];
               function wrap(f){ if (typeof f !== 'function' || f.__pl) return f; var w = n === 'initialize' ? wrapInit(f) : wrapCall(n, f); w.__pl = true; return w; }
               cur = wrap(cur);
@@ -247,6 +247,20 @@ object XWeb {
             var d = e.data; try { d = typeof d === 'string' ? d : JSON.stringify(d); } catch(x){ d = String(d); }
             say('mensaje de ' + e.origin + ': ' + String(d).slice(0, 300));
           }, true);
+          ['visibilitychange','pagehide','pageshow','focus','blur','online','offline'].forEach(function(n){
+            window.addEventListener(n, function(){ say('evento ' + n + (n === 'visibilitychange' ? ' → ' + document.visibilityState : '')); }, true);
+          });
+          function esBoton(el){ return el && el.tagName === 'IFRAME' && /accounts\.google\.com\/gsi\/button/.test(el.src || ''); }
+          function vigilar(){
+            if (!document.body || window.__plObs) return; window.__plObs = true;
+            new MutationObserver(function(ms){
+              ms.forEach(function(m){
+                Array.prototype.forEach.call(m.addedNodes, function(el){ if (esBoton(el)) say('botón de Google añadido ' + (el.id || '')); else if (el.querySelectorAll) Array.prototype.forEach.call(el.querySelectorAll('iframe'), function(f){ if (esBoton(f)) say('botón de Google añadido ' + (f.id || '')); }); });
+                Array.prototype.forEach.call(m.removedNodes, function(el){ if (esBoton(el)) say('botón de Google quitado ' + (el.id || '')); else if (el.querySelectorAll) Array.prototype.forEach.call(el.querySelectorAll('iframe'), function(f){ if (esBoton(f)) say('botón de Google quitado ' + (f.id || '')); }); });
+              });
+            }).observe(document.body, {childList: true, subtree: true});
+          }
+          vigilar(); document.addEventListener('DOMContentLoaded', vigilar);
           window.addEventListener('error', function(e){ say('error ' + e.message + ' @ ' + String(e.filename).split('/').pop() + ':' + e.lineno); }, true);
           window.addEventListener('unhandledrejection', function(e){ var r = e.reason; say('promesa rechazada ' + (r && r.stack || r && r.message || r)); });
           // El error "Input2SSO: Unsupported provider" sale del código de X, que desde fuera no se puede leer:
@@ -264,11 +278,14 @@ object XWeb {
               var nombre = u.split('/').pop().split('?')[0].slice(0, 60);
               fetch(u, {mode: 'cors', credentials: 'omit'}).then(function(r){ return r.text(); }).then(function(t){
                 var i = t.indexOf('Input2SSO'); if (i < 0) i = t.indexOf('Unsupported provider');
-                if (i >= 0 && hits < 3) {
+                if (i >= 0 && hits < 2) {
                   hits++;
                   say('fuente ' + nombre + ' @' + i + ' de ' + t.length);
-                  say('antes: ' + t.slice(Math.max(0, i - 560), i));
-                  say('después: ' + t.slice(i, i + 560));
+                  // Unos 2.300 caracteres antes y 3.500 después, en trozos que quepan en una línea del registro.
+                  var ini = Math.max(0, i - 2320), n = 0;
+                  for (var p = ini; p < Math.min(t.length, i + 3480); p += 580) say('c' + (++n) + ': ' + t.slice(p, p + 580));
+                  var m = t.indexOf('mapResponse'), q = 0;
+                  while (m >= 0 && q < 4) { q++; say('mapResponse' + q + ' @' + m + ': ' + t.slice(Math.max(0, m - 200), m + 380)); m = t.indexOf('mapResponse', m + 11); }
                 }
               }).catch(function(e){ say('no pude leer ' + nombre + ': ' + e); }).then(function(){ done++; if (done === list.length) say('búsqueda terminada: ' + hits + ' scripts con Input2SSO'); });
             });
