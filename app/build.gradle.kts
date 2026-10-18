@@ -16,7 +16,22 @@ android {
         versionName = "0.1.0"
     }
 
+    // Clave de depuración fija y compartida: sin ella cada compilación en GitHub Actions firma con una
+    // clave nueva y Android obliga a desinstalar la versión anterior (y con ella la sesión de X).
+    // Es la clave de depuración de siempre de Android (contraseña "android"); no vale para publicar.
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
     buildTypes {
+        debug {
+            signingConfig = signingConfigs.getByName("debug")
+        }
         release {
             isMinifyEnabled = false
         }

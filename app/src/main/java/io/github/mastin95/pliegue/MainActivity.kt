@@ -32,6 +32,18 @@ class MainActivity : ComponentActivity() {
             navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
         )
         super.onCreate(savedInstanceState)
+        // Sin depurador a mano, un cierre inesperado se apunta en un archivo y el registro de la web lo
+        // enseña la próxima vez que se abre la app.
+        val previous = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { thread, error ->
+            runCatching {
+                java.io.File(filesDir, WebPanes.CRASH_FILE).writeText(
+                    "${java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.ROOT).format(java.util.Date())} en ${thread.name}: " +
+                        android.util.Log.getStackTraceString(error).take(1500),
+                )
+            }
+            previous?.uncaughtException(thread, error)
+        }
         web = WebPanes(this) { params, callback ->
             fileCallback?.onReceiveValue(null)
             fileCallback = callback
