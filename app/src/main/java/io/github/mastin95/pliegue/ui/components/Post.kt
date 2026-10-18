@@ -1,8 +1,13 @@
 package io.github.mastin95.pliegue.ui.components
 
+import android.content.ClipData
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.draganddrop.dragAndDropSource
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -16,11 +21,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draganddrop.DragAndDropTransferData
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.SpanStyle
@@ -30,8 +38,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import io.github.mastin95.pliegue.AppViewModel
 import io.github.mastin95.pliegue.model.Post
+import io.github.mastin95.pliegue.model.PostMark
 import io.github.mastin95.pliegue.model.SampleData
 import io.github.mastin95.pliegue.ui.XIcons
 import io.github.mastin95.pliegue.ui.count
@@ -118,24 +128,86 @@ fun PostHead(post: Post, modifier: Modifier = Modifier) {
     }
 }
 
-/** Post en un feed. `selected` lo marca cuando está abierto en la otra mitad. */
+/** Etiqueta azul de X para creadores nuevos: NUEVO PARA TI, NUEVO EN TU FEED, SUGERIDO. */
 @Composable
-fun PostCard(post: Post, vm: AppViewModel, selected: Boolean = false, onOpen: (() -> Unit)? = null) {
+fun NewBadge(text: String) {
+    Box(
+        Modifier
+            .height(20.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(X.Blue)
+            .padding(horizontal = 8.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(text, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 0.2.sp, maxLines = 1)
+    }
+}
+
+/**
+ * Post en un feed. `selected` lo marca cuando está abierto en la otra mitad; `mark` lo resalta
+ * como creador nuevo; `onDragStart` permite mantenerlo pulsado y arrastrarlo hacia Mi feed;
+ * `faded` lo atenúa mientras se arrastra.
+ */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun PostCard(
+    post: Post,
+    vm: AppViewModel,
+    selected: Boolean = false,
+    onOpen: (() -> Unit)? = null,
+    mark: PostMark? = null,
+    onMarkTap: (() -> Unit)? = null,
+    faded: Boolean = false,
+    onDragStart: (() -> Unit)? = null,
+) {
     val reposter = post.repostedBy?.let { SampleData.users[it] }
     Column(
         Modifier
             .fillMaxWidth()
-            .background(if (selected) X.Card else X.Bg)
+            .alpha(if (faded) 0.35f else 1f)
+            .background(
+                when {
+                    selected -> X.Card
+                    mark != null -> X.NewBg
+                    else -> X.Bg
+                },
+            )
             .then(if (onOpen != null) Modifier.clickable(onClickLabel = "Abrir post", onClick = onOpen) else Modifier)
+            .then(
+                if (onDragStart != null) {
+                    Modifier.dragAndDropSource {
+                        detectDragGesturesAfterLongPress(
+                            onDragStart = {
+                                onDragStart()
+                                startTransfer(DragAndDropTransferData(ClipData.newPlainText("post", post.id)))
+                            },
+                            onDrag = { _, _ -> },
+                        )
+                    }
+                } else {
+                    Modifier
+                },
+            )
             .drawBehind {
-                if (selected) {
-                    val w = 3.dp.toPx()
-                    drawRect(X.Text, topLeft = Offset(size.width - w, 0f), size = Size(w, size.height))
-                }
+                val w = 3.dp.toPx()
+                if (selected) drawRect(X.Text, topLeft = Offset(size.width - w, 0f), size = Size(w, size.height))
+                if (mark != null) drawRect(X.Blue, topLeft = Offset.Zero, size = Size(w, size.height))
             }
             .bottomBorder()
             .padding(horizontal = 16.dp, vertical = 12.dp),
     ) {
+        if (mark != null) {
+            Row(
+                Modifier
+                    .padding(start = 28.dp, bottom = 4.dp)
+                    .then(if (onMarkTap != null) Modifier.clickable(onClickLabel = "Añadir a Mi feed", onClick = onMarkTap) else Modifier),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Icon(XIcons.Sparkle, contentDescription = null, tint = X.Secondary, modifier = Modifier.size(16.dp))
+                Text(mark.context, style = XType.small.copy(fontWeight = FontWeight.Bold))
+            }
+        }
         if (reposter != null) {
             Row(
                 Modifier.padding(start = 28.dp, bottom = 4.dp),
@@ -147,10 +219,24 @@ fun PostCard(post: Post, vm: AppViewModel, selected: Boolean = false, onOpen: ((
             }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Avatar(post.userId)
+            // Anillo azul alrededor del avatar de un creador nuevo, como en el plan visual.
+            Box(
+                if (mark != null) {
+                    Modifier.drawBehind {
+                        val r = size.minDimension / 2
+                        drawCircle(X.Bg, radius = r + 2.dp.toPx(), style = Stroke(2.dp.toPx()))
+                        drawCircle(X.Blue, radius = r + 4.dp.toPx(), style = Stroke(2.dp.toPx()))
+                    }
+                } else {
+                    Modifier
+                },
+            ) {
+                Avatar(post.userId)
+            }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     PostHead(post, Modifier.weight(1f))
+                    if (mark != null) NewBadge(mark.mark.badge)
                     Icon(XIcons.More, contentDescription = "Más opciones", tint = X.Secondary, modifier = Modifier.size(18.75.dp))
                 }
                 val parentHandle = post.replyTo?.let { SampleData.posts[it] }?.let { SampleData.users[it.userId]?.handle }

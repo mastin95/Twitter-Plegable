@@ -8,6 +8,8 @@ Cliente con la interfaz de X (Twitter) pensado para móviles plegables. La app c
 | **Abierto** (pantalla interior) | Dos mitades. Por defecto, **doble feed**: un feed a cada lado. Al tocar un post se abre en la otra mitad y tapa ese feed; con la flecha o el botón con el nombre del feed vuelves a él. Con **Un solo feed**, la derecha queda para el post abierto. **Intercambiar** cambia las mitades. **Columnas** convierte la pantalla en un tablero al estilo de X Pro: notificaciones, listas, tendencias y búsquedas, una o dos columnas por mitad y la bisagra siempre entre columnas. Se añaden, se mueven y se quitan desde su menú, y al deslizar se pasa de página entera. |
 | **Sobremesa** (doblado en L) | Arriba el post (o el feed), abajo las respuestas (o el teclado para postear). |
 
+**Cruce de feeds.** La pestaña **Mi feed** es un feed que construyes tú: con el móvil abierto, mantén pulsado un post del otro feed y arrástralo sobre la bisagra hasta la zona punteada de Mi feed. Su autor pasa a Mi feed y la app te sugiere creadores parecidos (comparten temas con él). Los creadores recién añadidos salen marcados con **NUEVO EN TU FEED**, los sugeridos con **SUGERIDO** en Mi feed y con **NUEVO PARA TI** en los demás feeds, con una línea que explica por qué ("Porque añadiste a @lucia a Mi feed"). El resalte desaparece al abrir uno de sus posts o a la media hora.
+
 Al plegar y desplegar no se pierde el scroll ni el post abierto: lo que abriste plegado aparece en la mitad derecha al abrir el móvil.
 
 Los posts, usuarios e imágenes son contenido de ejemplo. Todavía no se conecta a X.
@@ -38,7 +40,7 @@ app/src/main/java/io/github/mastin95/pliegue/
   MainActivity.kt      arranque y bordes a pantalla completa
   Posture.kt           plegado, abierto o sobremesa
   AppViewModel.kt      estado: paneles, post abierto, me gusta, posts propios
-  model/               modelos y contenido de ejemplo
+  model/               modelos, contenido de ejemplo y la lógica de Mi feed
   ui/theme/            colores y tipografía de X
   ui/components/       post, acciones, feed, columnas, cabeceras, redactor
   ui/screens/          una pantalla por postura

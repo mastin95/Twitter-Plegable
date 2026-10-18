@@ -37,6 +37,8 @@ object XIcons {
     val Pin = stroke("pin", "M12 21s-6.5-5.8-6.5-11a6.5 6.5 0 0 1 13 0c0 5.2-6.5 11-6.5 11zM12 12.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z")
     val Globe = stroke("globe", "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM3 12h18M12 3c2.5 2.6 3.7 5.6 3.7 9s-1.2 6.4-3.7 9c-2.5-2.6-3.7-5.6-3.7-9S9.5 5.6 12 3z")
     val Swap = stroke("swap", "M7 7h13M16 3l4 4-4 4M17 17H4M8 13l-4 4 4 4")
+    val Plus = stroke("plus", "M12 5v14M5 12h14", width = 2.4f)
+    val Sparkle = stroke("sparkle", "M12 3l2.2 6.8L21 12l-6.8 2.2L12 21l-2.2-6.8L3 12l6.8-2.2z")
     val ListIcon = stroke("list", "M5 4h14v16H5zM8.5 9h7M8.5 12.5h7M8.5 16h4")
     val Trend = stroke("trend", "M3 17l6-6 4 4 8-8M15 7h6v6")
     val Stack = stroke("stack", "M4 9h16v11H4zM7 6h10M9 3h6")

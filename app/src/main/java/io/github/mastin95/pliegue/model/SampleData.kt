@@ -7,22 +7,22 @@ object SampleData {
 
     val users: Map<String, User> = listOf(
         me,
-        User("lucia", "Lucía R.", "@lucia", 0xFF1D9BF0, verified = true, bio = "Diseño producto para pantallas raras. Hilos sobre plegables."),
-        User("dgarcia", "Diego G.", "@dgarcia", 0xFF00BA7C, bio = "Música, café y Valencia."),
-        User("nerea_a", "Nerea A.", "@nerea_a", 0xFF7856FF, bio = "Preguntas serias a horas raras."),
-        User("pablom", "Pablo M.", "@pablom", 0xFFFFD400, bio = "Fotografía de paisaje en Almería."),
-        User("saracm", "Sara C.", "@saracm", 0xFFF91880, bio = "Desarrollo web."),
-        User("rubenb", "Rubén B.", "@rubenb", 0xFF536471),
-        User("ikerp", "Iker P.", "@ikerp", 0xFFF91880, verified = true, bio = "Tipógrafo. Hago letras para pantallas."),
-        User("martav", "Marta V.", "@martav", 0xFF7856FF, bio = "UX en apps de banca."),
-        User("javit", "Javi T.", "@javit", 0xFF00BA7C),
-        User("anam", "Ana M.", "@anam", 0xFFFFD400, bio = "Accesibilidad y color."),
-        User("elenao", "Elena O.", "@elenao", 0xFF00BA7C, bio = "Plantillas y recursos gratis."),
-        User("tecnohoy", "Tecnología Hoy", "@tecnohoy", 0xFF1D9BF0, verified = true),
-        User("plegables_es", "Plegables ES", "@plegables_es", 0xFF7856FF, bio = "Trucos para móviles plegables."),
-        User("carlaf", "Carla F.", "@carlaf", 0xFFF91880),
-        User("hugol", "Hugo L.", "@hugol", 0xFF00BA7C),
-        User("cocinafacil", "Cocina Fácil", "@cocinafacil", 0xFFFFD400, verified = true),
+        User("lucia", "Lucía R.", "@lucia", 0xFF1D9BF0, verified = true, bio = "Diseño producto para pantallas raras. Hilos sobre plegables.", topics = setOf("diseño", "plegables")),
+        User("dgarcia", "Diego G.", "@dgarcia", 0xFF00BA7C, bio = "Música, café y Valencia.", topics = setOf("música", "valencia")),
+        User("nerea_a", "Nerea A.", "@nerea_a", 0xFF7856FF, bio = "Preguntas serias a horas raras.", topics = setOf("humor")),
+        User("pablom", "Pablo M.", "@pablom", 0xFFFFD400, bio = "Fotografía de paisaje en Almería.", topics = setOf("foto")),
+        User("saracm", "Sara C.", "@saracm", 0xFFF91880, bio = "Desarrollo web.", topics = setOf("web")),
+        User("rubenb", "Rubén B.", "@rubenb", 0xFF536471, topics = setOf("podcasts")),
+        User("ikerp", "Iker P.", "@ikerp", 0xFFF91880, verified = true, bio = "Tipógrafo. Hago letras para pantallas.", topics = setOf("diseño", "tipografía")),
+        User("martav", "Marta V.", "@martav", 0xFF7856FF, bio = "UX en apps de banca.", topics = setOf("diseño", "ux")),
+        User("javit", "Javi T.", "@javit", 0xFF00BA7C, topics = setOf("diseño", "figma")),
+        User("anam", "Ana M.", "@anam", 0xFFFFD400, bio = "Accesibilidad y color.", topics = setOf("diseño", "accesibilidad")),
+        User("elenao", "Elena O.", "@elenao", 0xFF00BA7C, bio = "Plantillas y recursos gratis.", topics = setOf("diseño", "plegables")),
+        User("tecnohoy", "Tecnología Hoy", "@tecnohoy", 0xFF1D9BF0, verified = true, topics = setOf("tecnología", "plegables")),
+        User("plegables_es", "Plegables ES", "@plegables_es", 0xFF7856FF, bio = "Trucos para móviles plegables.", topics = setOf("plegables")),
+        User("carlaf", "Carla F.", "@carlaf", 0xFFF91880, topics = setOf("humor", "tipografía")),
+        User("hugol", "Hugo L.", "@hugol", 0xFF00BA7C, topics = setOf("foto", "valencia")),
+        User("cocinafacil", "Cocina Fácil", "@cocinafacil", 0xFFFFD400, verified = true, topics = setOf("cocina")),
     ).associateBy { it.id }
 
     private const val TODAY = "2:30 p. m. · 18 oct. 2026"
@@ -76,6 +76,9 @@ object SampleData {
 
     fun search(query: String): List<Post> =
         posts.values.filter { it.text.contains(query, ignoreCase = true) }.sortedByDescending { it.likes }
+
+    /** Mi feed empieza con tres creadores de diseño; el resto lo añades arrastrando. */
+    val initialMyFeed = setOf("javit", "anam", "martav")
 
     val initialFollowing = setOf("pablom", "dgarcia", "nerea_a", "saracm", "rubenb", "carlaf", "hugol", "lucia")
 
