@@ -1,10 +1,12 @@
 package io.github.mastin95.pliegue.ui.components
 
 import android.content.ClipDescription
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.draganddrop.dragAndDropTarget
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -162,6 +164,7 @@ private fun DropZone(handle: String, hovering: Boolean) {
  * bisagra hasta Mi feed, que los recibe en la zona punteada; los demás feeds solo cierran el
  * arrastre si se suelta fuera.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun FeedColumn(
     vm: AppViewModel,

@@ -181,6 +181,7 @@ fun PostCard(
                                 onDragStart()
                                 startTransfer(DragAndDropTransferData(ClipData.newPlainText("post", post.id)))
                             },
+                            onDrag = { _, _ -> },
                         )
                     }
                 } else {

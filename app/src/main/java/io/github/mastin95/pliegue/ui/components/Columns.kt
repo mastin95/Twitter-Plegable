@@ -60,6 +60,7 @@ private fun icon(kind: ColumnKind): ImageVector = when (kind) {
     ColumnKind.Diseno, ColumnKind.Plegables -> XIcons.ListIcon
     ColumnKind.Tendencias -> XIcons.Trend
     ColumnKind.Busqueda -> XIcons.Search
+    ColumnKind.MiFeed -> XIcons.Sparkle
     ColumnKind.ParaTi -> XIcons.Home
     ColumnKind.Siguiendo -> XIcons.People
 }
