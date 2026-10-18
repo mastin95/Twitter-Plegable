@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Marcador propio "P" plegado; no usa el logotipo de X. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#E7E9EA"
+        android:strokeWidth="5"
+        android:pathData="M36,34h18c8,0 14,6 14,14s-6,14 -14,14h-10v14h-8z" />
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#1D9BF0"
+        android:strokeWidth="3"
+        android:pathData="M54,30v48" />
+</vector>
