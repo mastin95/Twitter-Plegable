@@ -134,13 +134,17 @@ fun LoginScreen(vm: AppViewModel) {
             web.checkLogin()
         }
     }
-    // La flecha de X saca del formulario a una página que aquí se queda en negro: volvemos solos
-    // al formulario, un par de veces como mucho para no dar vueltas si X insiste.
+    // La flecha de X saca del formulario a x.com/i/jf/…, que aquí se queda en negro y a veces ni
+    // termina de cargar: si seguimos ahí sin sesión pasados unos segundos, volvemos solos al
+    // formulario, un par de veces como mucho para no dar vueltas si X insiste.
     var recoveries by remember { mutableStateOf(0) }
-    LaunchedEffect(url, progress) {
-        if (progress == 100 && !web.loggedIn && XWeb.isLoginDeadEnd(url) && recoveries < 2) {
-            recoveries++
-            web.load("login", XWeb.LOGIN)
+    LaunchedEffect(url) {
+        if (XWeb.isLoginDeadEnd(url) && recoveries < 2) {
+            delay(6000)
+            if (!web.loggedIn && XWeb.isLoginDeadEnd(web.urls["login"] ?: "")) {
+                recoveries++
+                web.load("login", XWeb.LOGIN)
+            }
         }
     }
     Column(Modifier.fillMaxSize()) {
@@ -170,7 +174,7 @@ fun LoginScreen(vm: AppViewModel) {
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            if (!inFlow && progress == 100) {
+            if (!inFlow) {
                 PillButton("Al formulario", onClick = { web.load("login", XWeb.LOGIN) }, background = X.Blue, content = Color.White, height = 32.dp)
                 Spacer(Modifier.width(4.dp))
             }
