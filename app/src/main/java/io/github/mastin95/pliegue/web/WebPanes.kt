@@ -44,7 +44,7 @@ class PaneWebView(context: Context) : WebView(context) {
  * Qué quiere cada panel de su web: avisar de los toques en posts, esconder la barra inferior de la
  * web y, en el inicio de sesión, no mandar nunca una página al navegador de fuera (`keepInside`).
  */
-data class PaneOptions(val interceptPosts: Boolean = true, val hideChrome: Boolean = true, val keepInside: Boolean = false)
+data class PaneOptions(val interceptPosts: Boolean = true, val hideChrome: Boolean = true, val keepInside: Boolean = false, val debugLogin: Boolean = false)
 
 /**
  * Guarda una WebView por "ranura" (pane0, pane1, col:…, mesa0…) para que sobrevivan a plegar y
@@ -192,7 +192,7 @@ class WebPanes(
     private fun log(line: String) {
         val stamp = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.ROOT).format(java.util.Date())
         log.add(0, "$stamp $line")
-        while (log.size > 80) log.removeAt(log.lastIndex)
+        while (log.size > 200) log.removeAt(log.lastIndex)
     }
 
     private fun short(url: String) = url.removePrefix("https://").take(160)
@@ -350,7 +350,7 @@ class WebPanes(
             }
 
             override fun onConsoleMessage(message: ConsoleMessage): Boolean {
-                if (message.messageLevel() == ConsoleMessage.MessageLevel.ERROR) log("[ventana] js: ${message.message().take(160)}")
+                logConsole("ventana", message)
                 return true
             }
         }
@@ -381,6 +381,7 @@ class WebPanes(
                 progress[slot] = 5
                 lastActive = slot
                 log("[$slot] carga ${short(url)}")
+                if (options[slot]?.debugLogin == true) view.evaluateJavascript(XWeb.loginHookScript(), null)
             }
 
             override fun onPageFinished(view: WebView, url: String) {
@@ -413,7 +414,7 @@ class WebPanes(
             }
 
             override fun onConsoleMessage(message: ConsoleMessage): Boolean {
-                if (message.messageLevel() == ConsoleMessage.MessageLevel.ERROR) log("[$slot] js: ${message.message().take(160)}")
+                logConsole(slot, message)
                 return true
             }
 
@@ -443,6 +444,17 @@ class WebPanes(
     private fun inject(view: WebView, slot: String) {
         val o = options[slot] ?: PaneOptions()
         view.evaluateJavascript(XWeb.bridgeScript(o.interceptPosts, o.hideChrome), null)
+        if (o.debugLogin) view.evaluateJavascript(XWeb.loginHookScript(), null)
+    }
+
+    /** Errores de la web y, en el inicio de sesión, lo que apunta nuestro gancho (líneas "[pliegue]"). */
+    private fun logConsole(from: String, message: ConsoleMessage) {
+        val text = message.message()
+        when {
+            text.startsWith("[pliegue]") -> log("[$from] ${text.removePrefix("[pliegue] ").take(600)}")
+            message.messageLevel() == ConsoleMessage.MessageLevel.ERROR ->
+                log("[$from] js: ${text.take(300)} (${message.sourceId().substringAfterLast('/').take(50)}:${message.lineNumber()})")
+        }
     }
 
     private inner class Bridge(private val slot: String) {
