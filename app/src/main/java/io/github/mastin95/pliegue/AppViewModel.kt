@@ -69,6 +69,34 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         prefs.mode = AppMode.Real.name
         loggingIn = false
         showToast("Sesión iniciada en X.")
+        pendingLink?.let {
+            pendingLink = null
+            showLink(it)
+        }
+    }
+
+    /** Enlace que llegó de fuera antes de tener sesión: se abre en cuanto se entra. */
+    private var pendingLink: String? = null
+
+    /**
+     * Un enlace que llega de otra app (un "abrir con" o un "compartir"). Uno de X se abre en la mitad
+     * derecha, como un post tocado en la izquierda; cualquier otro va al redactor con el enlace puesto.
+     * Sin sesión todavía, se guarda y se abre al entrar.
+     */
+    fun openFromOutside(url: String) {
+        if (appMode != AppMode.Real) {
+            pendingLink = url
+            if (appMode == AppMode.Elegir) startLogin()
+            return
+        }
+        showLink(url)
+    }
+
+    private fun showLink(url: String) {
+        expanded = null
+        webColumnPost = null
+        if (mode == OpenMode.Columnas || mode == OpenMode.Mesa) mode = OpenMode.Doble
+        if (XWeb.isOwn(url)) openWebPost(0, url) else composeWeb(1, quoting = url)
     }
 
     fun loggedOut() {

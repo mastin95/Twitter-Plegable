@@ -318,7 +318,8 @@ fun WebPostHeader(vm: AppViewModel, index: Int, compact: Boolean = false) {
     val title = when {
         composing -> "Redactar"
         external -> XWeb.siteLabel(current)
-        else -> "Post"
+        XWeb.isStatus(url) -> "Post"
+        else -> XWeb.handleOf(url)?.let { "@$it" } ?: "X"
     }
     Row(
         Modifier

@@ -1,5 +1,6 @@
 package io.github.mastin95.pliegue
 
+import android.content.Intent
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
@@ -12,10 +13,12 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.lifecycle.ViewModelProvider
 import io.github.mastin95.pliegue.ui.screens.PliegueApp
 import io.github.mastin95.pliegue.ui.theme.PliegueTheme
 import io.github.mastin95.pliegue.ui.web.LocalWebPanes
 import io.github.mastin95.pliegue.web.WebPanes
+import io.github.mastin95.pliegue.web.XWeb
 
 class MainActivity : ComponentActivity() {
     private lateinit var web: WebPanes
@@ -59,6 +62,20 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+        openFromOutside(intent)
+    }
+
+    /** Con launchMode singleTask, un enlace que llega con la app abierta entra por aquí. */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        openFromOutside(intent)
+    }
+
+    /** Un enlace de X abierto con Pliegue, o algo compartido con la app: lo mismo que ve PliegueApp. */
+    private fun openFromOutside(intent: Intent?) {
+        val url = XWeb.linkFromIntent(intent?.action, intent?.dataString, intent?.getStringExtra(Intent.EXTRA_TEXT)) ?: return
+        ViewModelProvider(this)[AppViewModel::class.java].openFromOutside(url)
     }
 
     override fun onDestroy() {

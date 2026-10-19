@@ -11,15 +11,40 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Pliegue">
         <!-- configChanges: al plegar o desplegar no se recrea la actividad, así no se pierde el scroll ni el post abierto. -->
+        <!-- launchMode singleTask: un enlace que llega con la app abierta entra en la que ya está (onNewIntent). -->
         <activity
             android:name=".MainActivity"
             android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|density|keyboardHidden|uiMode"
             android:exported="true"
+            android:launchMode="singleTask"
             android:resizeableActivity="true"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- Los enlaces de X (y sus cortos t.co) se pueden abrir en Pliegue en vez de en la app oficial.
+                 Android no los puede verificar (x.com no es nuestro), así que el usuario lo activa en
+                 Ajustes → Aplicaciones → Pliegue → Abrir de forma predeterminada; hay un botón en Ajustes. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" />
+                <data android:scheme="http" />
+                <data android:host="x.com" />
+                <data android:host="www.x.com" />
+                <data android:host="mobile.x.com" />
+                <data android:host="twitter.com" />
+                <data android:host="www.twitter.com" />
+                <data android:host="mobile.twitter.com" />
+                <data android:host="t.co" />
+            </intent-filter>
+            <!-- Compartir un enlace con Pliegue: uno de X se abre; cualquier otro va al redactor. -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
             </intent-filter>
         </activity>
     </application>
