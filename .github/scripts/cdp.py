@@ -84,6 +84,9 @@ def fake_session(port):
     for name, value, http_only in (('auth_token', 'prueba-falsa-del-emulador', True), ('twid', 'u%3D1', False)):
         r = c.call('Network.setCookie', name=name, value=value, domain='.x.com', path='/', secure=True, httpOnly=http_only)
         print('cookie', name, r.get('success'))
+    # La web de X recarga el formulario al ver la cookie y su servidor la borra por falsa antes de que la
+    # app la mire. Una página en blanco no pasa por X: la app mira las cookies al acabar de cargarla.
+    c.call('Page.navigate', url='about:blank')
 
 
 def watch(port, seconds, out):
