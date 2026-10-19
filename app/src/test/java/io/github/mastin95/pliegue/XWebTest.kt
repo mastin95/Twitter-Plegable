@@ -116,4 +116,11 @@ class XWebTest {
         assertEquals("https://x.com/intent/post?url=https%3A%2F%2Fx.com%2Fa%2Fstatus%2F1", XWeb.composeUrl(url = "https://x.com/a/status/1"))
         assertEquals("@javit · post 7890", XWeb.shortLabel("https://x.com/javit/status/1234567890"))
     }
+
+    @Test
+    fun `las mitades esconden la columna de iconos de X solo en la web ancha`() {
+        val script = XWeb.bridgeScript(interceptPosts = true, hideChrome = true)
+        assertTrue(script.contains("@media (min-width:500px){header[role=\"banner\"]{display:none!important}}"))
+        assertTrue(script.contains("[data-testid=\"BottomBar\"]"))
+    }
 }
