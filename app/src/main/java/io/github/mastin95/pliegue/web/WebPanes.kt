@@ -78,6 +78,9 @@ class WebPanes(
 
     /** Dirección actual y progreso de carga de cada ranura. */
     val urls = mutableStateMapOf<String, String>()
+
+    /** No leídos que X marca en sus enlaces ("notifications", "messages"); lo dice la última web que los vio. */
+    val unread = mutableStateMapOf<String, Int>()
     val progress = mutableStateMapOf<String, Int>()
 
     var loggedIn by mutableStateOf(false)
@@ -254,6 +257,11 @@ class WebPanes(
 
     fun reload(slot: String) {
         slots[slot]?.reload()
+    }
+
+    /** Vuelve arriba del todo en una ranura (tocar otra vez la pestaña activa, o doble toque en la cabecera). */
+    fun scrollTop(slot: String) {
+        slots[slot]?.evaluateJavascript("window.scrollTo({top:0,behavior:'smooth'})", null)
     }
 
     /** Apunta en el registro qué enseña ahora la web: títulos, avisos, campos (nunca lo escrito) y botones. */
@@ -570,6 +578,14 @@ class WebPanes(
         @JavascriptInterface
         fun dragUser(handle: String) {
             main.post { startDrag(slot, handle) }
+        }
+
+        @JavascriptInterface
+        fun unread(notifications: Int, messages: Int) {
+            main.post {
+                if (notifications >= 0) unread["notifications"] = notifications
+                if (messages >= 0) unread["messages"] = messages
+            }
         }
 
         /** La foto de un post: la app la abre en la otra mitad; donde no hay otra, en el navegador. */

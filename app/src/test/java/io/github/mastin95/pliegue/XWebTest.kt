@@ -111,6 +111,7 @@ class XWebTest {
         val all = XWeb.bridgeScript(interceptPosts = true, hideChrome = true, cleanup = Cleanup(ads = true, suggestions = true, premium = true, following = true))
         assertTrue(all.contains("clean: {ads:true,sug:true,premium:true,following:true}"))
         assertTrue(all.contains("placementTracking"))
+        assertTrue(all.contains("window.Pliegue.unread(n, m)"))
         assertEquals(listOf("ads", "following"), Cleanup(ads = true, following = true).toNames())
         assertEquals(Cleanup(premium = true), Cleanup.fromNames(listOf("premium")))
     }

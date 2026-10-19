@@ -382,6 +382,29 @@ object XWeb {
             console.log('[pliegue] web de ' + innerWidth + ' px · ' + (P.chrome ? 'sin' : 'con') + ' barras de X · columna de iconos: ' + estado);
           };
           setTimeout(P.report, 6000);
+          // No leídos de Notificaciones y Mensajes: X los pone en sus enlaces ("Notifications (3 unread items)"),
+          // que siguen en la página aunque sus barras estén escondidas. Se avisa a la app cuando cambian.
+          P.count = function(href){
+            var a = document.querySelector('a[href="' + href + '"]');
+            if (!a) return -1;
+            var m = (a.getAttribute('aria-label') || '').match(/\d+/);
+            if (m) return +m[0];
+            var b = a.querySelector('[aria-label*="unread" i],[aria-label*="sin leer" i],[aria-label*="no le" i]');
+            if (!b) return 0;
+            var t = (b.textContent || '').match(/\d+/);
+            return t ? +t[0] : 1;
+          };
+          P.unread = function(){
+            if (!window.Pliegue || !window.Pliegue.unread) return;
+            var n = P.count('/notifications'), m = P.count('/messages');
+            if (n < 0 && m < 0) return;
+            var k = n + ':' + m;
+            if (k === P.lastUnread) return;
+            P.lastUnread = k;
+            window.Pliegue.unread(n, m);
+          };
+          setInterval(P.unread, 15000);
+          setTimeout(P.unread, 3000);
           document.addEventListener('click', function(e){
             if (!P.posts || !window.Pliegue) return;
             var t = e.target;
