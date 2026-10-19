@@ -162,6 +162,24 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /**
+     * Un enlace de un post a otra web. Desde una mitad se abre en la otra, como un post, y así el post
+     * con sus respuestas sigue a la vista; en las columnas, en el hueco del post abierto. Donde no hay
+     * otra mitad (post ampliado, la mesa) va al navegador.
+     */
+    fun onWebLink(slot: String, url: String): Boolean {
+        when {
+            slot == "pane0" || slot == "pane1" -> openWebPost(if (slot == "pane0") 0 else 1, url)
+            slot.startsWith("col:") -> {
+                val side = slot.removePrefix("col:").substringBefore(':').toIntOrNull() ?: 0
+                webColumnPost = (1 - side) to url
+            }
+            slot == "colpost" -> webColumnPost = webColumnPost?.copy(second = url)
+            else -> return false
+        }
+        return true
+    }
+
     fun openWebPost(fromPanel: Int, url: String) {
         val to = 1 - fromPanel
         webPanels = webPanels.toMutableList().also { it[to] = it[to].copy(openUrl = url, fromLabel = it[fromPanel].source.label) }

@@ -170,6 +170,9 @@ fun WebColumnsBoard(vm: AppViewModel, leftWidth: Dp, gap: Dp, modifier: Modifier
 
 @Composable
 private fun ColumnPost(vm: AppViewModel, url: String, modifier: Modifier) {
+    val web = LocalWebPanes.current
+    val external = XWeb.isExternal(url)
+    val current = web.urls["colpost"]?.takeIf { XWeb.isExternal(it) } ?: url
     Column(modifier.background(X.Bg)) {
         Row(
             Modifier
@@ -183,13 +186,19 @@ private fun ColumnPost(vm: AppViewModel, url: String, modifier: Modifier) {
                 Icon(XIcons.Back, contentDescription = "Atrás", tint = X.Text, modifier = Modifier.size(20.dp))
             }
             Spacer(Modifier.width(8.dp))
-            Text("Post", style = XType.title, modifier = Modifier.weight(1f))
-            IconButton(onClick = { vm.expand(url) }) {
-                Icon(XIcons.Expand, contentDescription = "Ampliar", tint = X.Text, modifier = Modifier.size(20.dp))
+            Text(if (external) XWeb.siteLabel(current) else "Post", style = XType.title, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+            if (external) {
+                IconButton(onClick = { web.openInBrowser(current) }) {
+                    Icon(XIcons.Globe, contentDescription = "Abrir en el navegador", tint = X.Text, modifier = Modifier.size(20.dp))
+                }
+            } else {
+                IconButton(onClick = { vm.expand(url) }) {
+                    Icon(XIcons.Expand, contentDescription = "Ampliar", tint = X.Text, modifier = Modifier.size(20.dp))
+                }
             }
             PillButton("Columnas", onClick = vm::closeWebColumnPost, background = X.Bg, content = X.Text, border = X.OutlineButton, height = 32.dp, icon = XIcons.Stack)
         }
-        WebPane("colpost", url, Modifier.weight(1f))
+        WebPane("colpost", url, Modifier.weight(1f), if (external) PaneOptions.EXTERNAL else PaneOptions())
     }
 }
 

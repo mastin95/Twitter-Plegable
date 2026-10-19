@@ -74,6 +74,17 @@ class XWebTest {
     }
 
     @Test
+    fun `los enlaces de los posts a otras webs se abren en la otra mitad`() {
+        assertTrue(XWeb.isExternal("https://t.co/abc"))
+        assertTrue(XWeb.isExternal("https://www.elpais.com/articulo"))
+        assertFalse(XWeb.isExternal("https://x.com/user/status/1"))
+        assertFalse(XWeb.isExternal("https://accounts.google.com/gsi/select"))
+        assertFalse(XWeb.isExternal("mailto:a@b.c"))
+        assertEquals("elpais.com", XWeb.siteLabel("https://www.elpais.com/articulo?x=1"))
+        assertEquals("t.co", XWeb.siteLabel("https://t.co/abc"))
+    }
+
+    @Test
     fun `salir del formulario de inicio de sesión se reconoce`() {
         assertTrue(XWeb.isLoginFlow("https://x.com/i/flow/login?redirect_after_login=%2Fhome"))
     }
