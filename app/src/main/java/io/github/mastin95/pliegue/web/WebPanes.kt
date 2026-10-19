@@ -138,11 +138,19 @@ class WebPanes(
 
     fun has(slot: String) = slot in slots
 
+    /**
+     * Las WebViews tienen que ocupar todo su hueco con MATCH_PARENT. Sin parámetros, Compose las cuelga
+     * con WRAP_CONTENT, y entonces la WebView fuerza a 0 el alto que ve la página: 100vh y 100dvh valen 0.
+     * El formulario de login de X mide su caja con calc(100dvh - 32px), así que se quedaba con alto 0 y la
+     * pantalla en negro (visto en el Android virtual con las herramientas de Chrome).
+     */
+    private fun fullSize() = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+
     /** La WebView de una ranura; se crea y carga `url` la primera vez. */
     fun get(slot: String, url: String, opts: PaneOptions = PaneOptions()): PaneWebView {
         options[slot] = opts
         slots[slot]?.let { return it }
-        val v = PaneWebView(activity)
+        val v = PaneWebView(activity).apply { layoutParams = fullSize() }
         setUp(v, slot)
         slots[slot] = v
         requested[slot] = url
@@ -201,12 +209,11 @@ class WebPanes(
     }
 
     private var hintsLogged = ""
-    /** Cuándo se volvió al formulario desde la página negra de X, para no dar vueltas si X insiste. */
-    private val deadEndReturns = ArrayDeque<Long>()
-
     private fun log(line: String) {
         val stamp = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.ROOT).format(java.util.Date())
         log.add(0, "$stamp $line")
+        // También a logcat, para leerlo en las pruebas con el Android virtual.
+        android.util.Log.i("Pliegue", line)
         while (log.size > 200) log.removeAt(log.lastIndex)
     }
 
@@ -214,6 +221,15 @@ class WebPanes(
 
     fun reload(slot: String) {
         slots[slot]?.reload()
+    }
+
+    /** Apunta en el registro qué enseña ahora la web: títulos, avisos, campos (nunca lo escrito) y botones. */
+    fun describe(slot: String) {
+        val v = slots[slot] ?: return
+        v.evaluateJavascript(XWeb.describeScript()) { json ->
+            val text = runCatching { org.json.JSONTokener(json).nextValue() as? String }.getOrNull() ?: json
+            log("[$slot] pantalla: " + text.orEmpty().take(700))
+        }
     }
 
     fun canGoBack(slot: String) = slots[slot]?.canGoBack() == true
@@ -248,14 +264,6 @@ class WebPanes(
         p.destroy()
         // La ventana pudo dejar puesta la sesión (Google, Apple) sin que la web de X cambie de página.
         checkLogin()
-    }
-
-    private fun allowDeadEndReturn(): Boolean {
-        val now = System.currentTimeMillis()
-        while (deadEndReturns.isNotEmpty() && now - deadEndReturns.first() > 60_000) deadEndReturns.removeFirst()
-        if (deadEndReturns.size >= 4) return false
-        deadEndReturns.addLast(now)
-        return true
     }
 
     /** Borra cookies, almacenamiento y caché de las webs sin cerrarlas (para empezar el login de cero). */
@@ -336,7 +344,7 @@ class WebPanes(
             return false
         }
         closePopup()
-        val p = PaneWebView(activity)
+        val p = PaneWebView(activity).apply { layoutParams = fullSize() }
         applySettings(p, popupWindow = true)
         // Una vez la ventana está en X, Google o Apple, todo lo que pase dentro se queda dentro: el
         // inicio de sesión salta por páginas que no conocemos y abrirlas fuera lo rompe.
@@ -418,17 +426,7 @@ class WebPanes(
                 progress[slot] = 5
                 lastActive = slot
                 log("[$slot] carga ${short(url)}")
-                if (options[slot]?.debugLogin == true) {
-                    // X recarga el formulario sobre x.com/i/jf/…, que aquí se queda en negro: se vuelve al
-                    // formulario en el acto (como mucho cuatro veces por minuto, por si X insiste).
-                    if (XWeb.isLoginDeadEnd(url) && !loggedIn && allowDeadEndReturn()) {
-                        log("[$slot] página negra de X; vuelvo al formulario")
-                        view.stopLoading()
-                        main.post { load(slot, XWeb.LOGIN) }
-                        return
-                    }
-                    view.evaluateJavascript(XWeb.loginHookScript(), null)
-                }
+                if (options[slot]?.debugLogin == true) view.evaluateJavascript(XWeb.loginHookScript(), null)
             }
 
             override fun onPageFinished(view: WebView, url: String) {
@@ -441,10 +439,14 @@ class WebPanes(
 
             override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
                 if (request.isForMainFrame) log("[$slot] error ${error.errorCode} ${error.description} en ${short(request.url.toString())}")
+                else if (options[slot]?.debugLogin == true && XWeb.isXRequest(request.url.toString())) log("[$slot] falla ${request.url.host}${request.url.path}: ${error.description}")
             }
 
             override fun onReceivedHttpError(view: WebView, request: WebResourceRequest, errorResponse: WebResourceResponse) {
                 if (request.isForMainFrame) log("[$slot] HTTP ${errorResponse.statusCode} en ${short(request.url.toString())}")
+                // En el login también las peticiones internas de X que fallan (solo la ruta, sin parámetros):
+                // así se ve si X rechaza un paso del formulario sin tocar la página.
+                else if (options[slot]?.debugLogin == true && XWeb.isXRequest(request.url.toString())) log("[$slot] X responde ${errorResponse.statusCode} en ${request.url.host}${request.url.path}")
             }
 
             override fun doUpdateVisitedHistory(view: WebView, url: String, isReload: Boolean) {

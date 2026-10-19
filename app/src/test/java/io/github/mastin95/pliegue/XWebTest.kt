@@ -76,12 +76,6 @@ class XWebTest {
     @Test
     fun `salir del formulario de inicio de sesión se reconoce`() {
         assertTrue(XWeb.isLoginFlow("https://x.com/i/flow/login?redirect_after_login=%2Fhome"))
-        assertTrue(XWeb.isLoginDeadEnd("https://x.com/i/jf/onboarding/web?mode=login"))
-        assertFalse(XWeb.isLoginDeadEnd("https://x.com/"))
-        assertFalse(XWeb.isLoginDeadEnd("https://x.com/home"))
-        assertFalse(XWeb.isLoginDeadEnd("https://x.com/i/flow/login"))
-        assertFalse(XWeb.isLoginDeadEnd("https://x.com/i/flow/password_reset"))
-        assertFalse(XWeb.isLoginDeadEnd("https://accounts.google.com/o/oauth2/auth"))
     }
 
     @Test
@@ -91,7 +85,9 @@ class XWebTest {
         assertTrue(XWeb.isLoginPage("https://x.com/i/flow/login?redirect_after_login=%2Fhome"))
         assertTrue(XWeb.isLoginPage("https://x.com/login"))
         assertFalse(XWeb.isLoginPage("https://x.com/home"))
-        assertFalse(XWeb.isLoginPage("https://x.com/i/jf/onboarding/web?mode=login"))
+        // El formulario de X para móvil: la app no debe recargarlo mientras se escribe en él.
+        assertTrue(XWeb.isLoginPage("https://x.com/i/jf/onboarding/web?mode=login"))
+        assertFalse(XWeb.isLoginPage("https://x.com/i/flow/password_reset"))
         assertFalse(XWeb.isLoginPage("https://accounts.google.com/"))
         assertTrue(XWeb.isExternalScheme("mailto:a@b.c"))
         assertFalse(XWeb.isExternalScheme("storagerelay://https/x.com?id=auth1"))

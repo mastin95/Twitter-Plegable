@@ -69,6 +69,59 @@ object XWeb {
         return m.groupValues[1].lowercase().substringBefore(':')
     }
 
+    /** Peticiones a los servidores de X (no a sus archivos estáticos de twimg). */
+    fun isXRequest(url: String): Boolean {
+        val h = host(url) ?: return false
+        return h == "x.com" || h.endsWith(".x.com") || h == "twitter.com" || h.endsWith(".twitter.com")
+    }
+
+    /**
+     * Resumen de lo que enseña la página para el registro: títulos, avisos, campos (tipo y si están
+     * rellenos, nunca su contenido), botones y tamaño de la ventana.
+     */
+    fun describeScript(): String = """
+        (function(){
+          function vis(el){ var r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; }
+          function txt(el){ return String(el.innerText || el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 80); }
+          function all(q){ return Array.prototype.filter.call(document.querySelectorAll(q), vis); }
+          var out = [];
+          var h = all('h1,h2,[role=heading]').map(txt).filter(Boolean).slice(0, 3);
+          out.push('títulos: ' + (h.join(' | ') || 'ninguno'));
+          var a = all('[role=alert],[aria-live=assertive],[aria-live=polite]').map(txt).filter(Boolean).slice(0, 2);
+          if (a.length) out.push('avisos: ' + a.join(' | '));
+          var f = all('input,textarea').filter(function(i){ return i.type !== 'hidden'; }).map(function(i){
+            return (i.type || 'texto') + (i.name ? ' ' + i.name : '') + (i.autocomplete ? ' (' + i.autocomplete + ')' : '') +
+              (i.value ? ' · relleno' : ' · vacío') + (document.activeElement === i ? ' · con foco' : '');
+          }).slice(0, 4);
+          out.push('campos: ' + (f.join(' | ') || 'ninguno'));
+          var b = all('button,[role=button]').map(function(x){
+            var t = txt(x) || x.getAttribute('aria-label') || '';
+            return t ? t + (x.disabled || x.getAttribute('aria-disabled') === 'true' ? ' (desactivado)' : '') : '';
+          }).filter(Boolean).slice(0, 8);
+          out.push('botones: ' + (b.join(' | ') || 'ninguno'));
+          // Si hay un diálogo (el formulario de X lo es) pero no se ve: quién lo tapa o lo deja transparente.
+          var d = all('[role=dialog],dialog')[0];
+          if (d) {
+            var oculto = '', el = d;
+            while (el && el.nodeType === 1) {
+              var c = getComputedStyle(el);
+              if (c.opacity === '0' || c.visibility === 'hidden' || c.display === 'none') {
+                oculto = el.tagName.toLowerCase() + (el.id ? '#' + el.id : '') + ' (opacidad ' + c.opacity + ', ' + c.visibility + ', ' + c.display + ')';
+                break;
+              }
+              el = el.parentElement;
+            }
+            var r = d.getBoundingClientRect(), top = document.elementFromPoint(r.left + r.width / 2, r.top + Math.min(200, r.height / 2));
+            out.push('diálogo: ' + d.tagName.toLowerCase() + (d.hasAttribute('popover') ? ' popover' : '') +
+              (oculto ? ' · oculto por ' + oculto : ' · sin ocultar') +
+              ' · encima: ' + (top ? top.tagName.toLowerCase() + (top === d || d.contains(top) ? ' (del diálogo)' : ' (otra capa)') : 'nada'));
+          }
+          var alto = function(u){ var e = document.createElement('div'); e.style.cssText = 'position:fixed;top:0;left:0;width:1px;visibility:hidden;height:100' + u; document.documentElement.appendChild(e); var h = e.getBoundingClientRect().height; e.remove(); return Math.round(h); };
+          out.push('100vh=' + alto('vh') + ' 100dvh=' + alto('dvh') + ' · ventana ' + innerWidth + 'x' + innerHeight + ' · ' + location.host + location.pathname);
+          return out.join(' · ');
+        })()
+    """.trimIndent()
+
     /** La cookie `auth_token` solo existe con la sesión iniciada. */
     fun loggedIn(cookies: String?): Boolean = cookies?.contains(Regex("(^|;\\s*)auth_token=[^;]+")) == true
 
@@ -91,24 +144,15 @@ object XWeb {
     private fun path(url: String): String = Regex("^https?://[^/]+(/[^?#]*)?").find(url)?.groupValues?.get(1)?.trimEnd('/') ?: ""
 
     /**
-     * Una página de entrada de X: el formulario (/i/flow/login) o la portada sin sesión, que en el
-     * móvil lleva el formulario dentro (teléfono, Google, Apple, correo). Ahí no hay que tocar nada.
+     * Una página de entrada de X: el formulario (/i/flow/login), la portada sin sesión, que en el
+     * móvil lleva el formulario dentro (teléfono, Google, Apple, correo), o el formulario nuevo de X
+     * para móvil (/i/jf/onboarding/…), al que X pasa sola en cuanto carga. Ahí no hay que tocar nada:
+     * recargar por nuestra cuenta borraría lo que la persona está escribiendo.
      */
     fun isLoginPage(url: String): Boolean {
         if (!isX(url)) return false
         val p = path(url)
-        return p.isEmpty() || p == "/login" || p.startsWith("/i/flow/login")
-    }
-
-    /**
-     * Páginas a las que X manda al salir del formulario y que en la app se quedan vacías (el
-     * "jetfuel" /i/jf/…): de ahí volvemos al formulario. La portada y /home no lo son: X las
-     * resuelve solo (sin sesión enseña el formulario; con sesión, el inicio).
-     */
-    fun isLoginDeadEnd(url: String): Boolean {
-        if (!isX(url)) return false
-        val p = path(url)
-        return p.startsWith("/i/jf/") || p == "/i/flow"
+        return p.isEmpty() || p == "/login" || p.startsWith("/i/flow/login") || p.startsWith("/i/jf/onboarding")
     }
 
     /** Esquemas que tienen una app propia en el móvil; cualquier otro esquema raro se ignora. */
@@ -248,8 +292,11 @@ object XWeb {
           var P = { posts: $interceptPosts, chrome: $hideChrome };
           window.__pliegue = P;
           P.style = function(){
+            // Al empezar a cargar puede no haber documento todavía: entonces se pone al terminar de leerlo.
+            var root = document.head || document.documentElement;
+            if (!root) { document.addEventListener('DOMContentLoaded', P.style, {once: true}); return; }
             var s = document.getElementById('pliegue-style');
-            if (!s) { s = document.createElement('style'); s.id = 'pliegue-style'; document.documentElement.appendChild(s); }
+            if (!s) { s = document.createElement('style'); s.id = 'pliegue-style'; root.appendChild(s); }
             s.textContent = P.chrome ? '[data-testid="BottomBar"],[data-testid="FloatingActionButton"],a[data-testid="FloatingActionButtons_Tweet_Button"],[data-testid="BottomBar"]+div{display:none!important}' : '';
           };
           P.style();
