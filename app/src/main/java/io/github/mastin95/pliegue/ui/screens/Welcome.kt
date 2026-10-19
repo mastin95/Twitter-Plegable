@@ -194,6 +194,14 @@ fun LoginScreen(vm: AppViewModel) {
                         },
                     )
                     DropdownMenuItem(
+                        text = { Text("Anotar lo que se ve en el registro", style = XType.body) },
+                        onClick = {
+                            menu = false
+                            showLog = true
+                            web.describe("login")
+                        },
+                    )
+                    DropdownMenuItem(
                         text = { Text("Borrar datos de X y volver a cargar", style = XType.body) },
                         onClick = {
                             menu = false

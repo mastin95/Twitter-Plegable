@@ -69,6 +69,41 @@ object XWeb {
         return m.groupValues[1].lowercase().substringBefore(':')
     }
 
+    /** Peticiones a los servidores de X (no a sus archivos estáticos de twimg). */
+    fun isXRequest(url: String): Boolean {
+        val h = host(url) ?: return false
+        return h == "x.com" || h.endsWith(".x.com") || h == "twitter.com" || h.endsWith(".twitter.com")
+    }
+
+    /**
+     * Resumen de lo que enseña la página para el registro: títulos, avisos, campos (tipo y si están
+     * rellenos, nunca su contenido), botones y tamaño de la ventana.
+     */
+    fun describeScript(): String = """
+        (function(){
+          function vis(el){ var r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; }
+          function txt(el){ return String(el.innerText || el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 80); }
+          function all(q){ return Array.prototype.filter.call(document.querySelectorAll(q), vis); }
+          var out = [];
+          var h = all('h1,h2,[role=heading]').map(txt).filter(Boolean).slice(0, 3);
+          out.push('títulos: ' + (h.join(' | ') || 'ninguno'));
+          var a = all('[role=alert],[aria-live=assertive],[aria-live=polite]').map(txt).filter(Boolean).slice(0, 2);
+          if (a.length) out.push('avisos: ' + a.join(' | '));
+          var f = all('input,textarea').filter(function(i){ return i.type !== 'hidden'; }).map(function(i){
+            return (i.type || 'texto') + (i.name ? ' ' + i.name : '') + (i.autocomplete ? ' (' + i.autocomplete + ')' : '') +
+              (i.value ? ' · relleno' : ' · vacío') + (document.activeElement === i ? ' · con foco' : '');
+          }).slice(0, 4);
+          out.push('campos: ' + (f.join(' | ') || 'ninguno'));
+          var b = all('button,[role=button]').map(function(x){
+            var t = txt(x) || x.getAttribute('aria-label') || '';
+            return t ? t + (x.disabled || x.getAttribute('aria-disabled') === 'true' ? ' (desactivado)' : '') : '';
+          }).filter(Boolean).slice(0, 8);
+          out.push('botones: ' + (b.join(' | ') || 'ninguno'));
+          out.push('ventana ' + innerWidth + 'x' + innerHeight + ' · ' + location.host + location.pathname);
+          return out.join(' · ');
+        })()
+    """.trimIndent()
+
     /** La cookie `auth_token` solo existe con la sesión iniciada. */
     fun loggedIn(cookies: String?): Boolean = cookies?.contains(Regex("(^|;\\s*)auth_token=[^;]+")) == true
 

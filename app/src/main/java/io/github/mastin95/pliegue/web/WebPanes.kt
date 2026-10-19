@@ -207,6 +207,8 @@ class WebPanes(
     private fun log(line: String) {
         val stamp = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.ROOT).format(java.util.Date())
         log.add(0, "$stamp $line")
+        // También a logcat, para leerlo en las pruebas con el Android virtual.
+        android.util.Log.i("Pliegue", line)
         while (log.size > 200) log.removeAt(log.lastIndex)
     }
 
@@ -214,6 +216,15 @@ class WebPanes(
 
     fun reload(slot: String) {
         slots[slot]?.reload()
+    }
+
+    /** Apunta en el registro qué enseña ahora la web: títulos, avisos, campos (nunca lo escrito) y botones. */
+    fun describe(slot: String) {
+        val v = slots[slot] ?: return
+        v.evaluateJavascript(XWeb.describeScript()) { json ->
+            val text = runCatching { org.json.JSONTokener(json).nextValue() as? String }.getOrNull() ?: json
+            log("[$slot] pantalla: " + text.orEmpty().take(700))
+        }
     }
 
     fun canGoBack(slot: String) = slots[slot]?.canGoBack() == true
@@ -441,10 +452,14 @@ class WebPanes(
 
             override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
                 if (request.isForMainFrame) log("[$slot] error ${error.errorCode} ${error.description} en ${short(request.url.toString())}")
+                else if (options[slot]?.debugLogin == true && XWeb.isXRequest(request.url.toString())) log("[$slot] falla ${request.url.host}${request.url.path}: ${error.description}")
             }
 
             override fun onReceivedHttpError(view: WebView, request: WebResourceRequest, errorResponse: WebResourceResponse) {
                 if (request.isForMainFrame) log("[$slot] HTTP ${errorResponse.statusCode} en ${short(request.url.toString())}")
+                // En el login también las peticiones internas de X que fallan (solo la ruta, sin parámetros):
+                // así se ve si X rechaza un paso del formulario sin tocar la página.
+                else if (options[slot]?.debugLogin == true && XWeb.isXRequest(request.url.toString())) log("[$slot] X responde ${errorResponse.statusCode} en ${request.url.host}${request.url.path}")
             }
 
             override fun doUpdateVisitedHistory(view: WebView, url: String, isReload: Boolean) {
