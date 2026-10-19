@@ -7,6 +7,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -19,6 +21,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
@@ -36,6 +39,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
@@ -45,6 +49,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import io.github.mastin95.pliegue.AppViewModel
 import io.github.mastin95.pliegue.Posture
 import io.github.mastin95.pliegue.ScreenInfo
@@ -256,12 +261,14 @@ fun WebHalf(vm: AppViewModel, index: Int, modifier: Modifier) {
 fun SourceTabs(vm: AppViewModel, index: Int) {
     val web = LocalWebPanes.current
     val selected = vm.webPanels[index].source
+    val slot = "pane$index"
     Row(
         Modifier
             .fillMaxWidth()
             .height(53.dp)
             .background(X.Bg)
-            .bottomBorder(),
+            .bottomBorder()
+            .pointerInput(slot) { detectTapGestures(onDoubleTap = { web.scrollTop(slot) }) },
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Row(
@@ -271,10 +278,16 @@ fun SourceTabs(vm: AppViewModel, index: Int) {
         ) {
             Source.entries.forEach { s ->
                 val active = s == selected
+                val count = when (s) {
+                    Source.Notificaciones -> web.unread["notifications"]
+                    Source.Mensajes -> web.unread["messages"]
+                    else -> null
+                } ?: 0
                 Column(
                     Modifier
                         .fillMaxHeight()
-                        .clickable(onClickLabel = s.label, role = Role.Tab) { vm.selectSource(index, s) }
+                        // Tocar otra vez la pestaña activa vuelve arriba, como en X.
+                        .clickable(onClickLabel = s.label, role = Role.Tab) { if (active) web.scrollTop(slot) else vm.selectSource(index, s) }
                         .padding(horizontal = 14.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
@@ -285,6 +298,7 @@ fun SourceTabs(vm: AppViewModel, index: Int) {
                             color = if (active) X.Text else X.Secondary,
                             maxLines = 1,
                         )
+                        if (count > 0 && !active) UnreadBadge(count, Modifier.align(Alignment.TopEnd).offset(x = 12.dp, y = 4.dp))
                     }
                     Box(
                         Modifier
@@ -296,9 +310,25 @@ fun SourceTabs(vm: AppViewModel, index: Int) {
                 }
             }
         }
-        IconButton(onClick = { web.reload("pane$index") }) {
+        IconButton(onClick = { web.reload(slot) }) {
             Icon(XIcons.Reload, contentDescription = "Recargar", tint = X.Secondary, modifier = Modifier.size(18.dp))
         }
+    }
+}
+
+/** Globo azul con los no leídos, como el de X en su barra. */
+@Composable
+private fun UnreadBadge(count: Int, modifier: Modifier = Modifier) {
+    Box(
+        modifier
+            .defaultMinSize(minWidth = 17.dp)
+            .height(17.dp)
+            .clip(CircleShape)
+            .background(X.Blue)
+            .padding(horizontal = 4.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(if (count > 99) "99+" else count.toString(), style = XType.small.copy(color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold), maxLines = 1)
     }
 }
 
