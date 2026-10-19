@@ -308,10 +308,10 @@ fun SettingsDialog(vm: AppViewModel) {
                     Section("Limpieza del feed")
                     Text("Vale para todas las webs de X dentro de Pliegue.", style = XType.small)
                     val c = vm.cleanup
-                    SwitchRow("Esconder los posts promocionados", c.ads) { vm.setCleanup(c.copy(ads = it)) }
-                    SwitchRow("Esconder \"A quién seguir\" y tendencias en Inicio", c.suggestions) { vm.setCleanup(c.copy(suggestions = it)) }
-                    SwitchRow("Esconder los avisos de Premium", c.premium) { vm.setCleanup(c.copy(premium = it)) }
-                    SwitchRow("Inicio empieza en \"Siguiendo\"", c.following) { vm.setCleanup(c.copy(following = it)) }
+                    SwitchRow("Esconder los posts promocionados", c.ads) { vm.updateCleanup(c.copy(ads = it)) }
+                    SwitchRow("Esconder \"A quién seguir\" y tendencias en Inicio", c.suggestions) { vm.updateCleanup(c.copy(suggestions = it)) }
+                    SwitchRow("Esconder los avisos de Premium", c.premium) { vm.updateCleanup(c.copy(premium = it)) }
+                    SwitchRow("Inicio empieza en \"Siguiendo\"", c.following) { vm.updateCleanup(c.copy(following = it)) }
                 }
                 item {
                     val context = LocalContext.current

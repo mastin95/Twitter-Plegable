@@ -52,7 +52,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     var cleanup by mutableStateOf(Cleanup.fromNames(prefs.cleanup))
         private set
 
-    fun setCleanup(c: Cleanup) {
+    fun updateCleanup(c: Cleanup) {
         cleanup = c
         prefs.cleanup = c.toNames()
     }
