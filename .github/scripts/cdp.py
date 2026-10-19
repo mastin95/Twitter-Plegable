@@ -77,6 +77,15 @@ def evaluate(port, path):
         print(v)
 
 
+def fake_session(port):
+    """Cookie de sesión FALSA (no vale para X) solo para que la app pase a su modo con sesión en el
+    Android virtual y se puedan probar plegar y desplegar. No es de ninguna cuenta."""
+    c = CDP(port)
+    for name, value, http_only in (('auth_token', 'prueba-falsa-del-emulador', True), ('twid', 'u%3D1', False)):
+        r = c.call('Network.setCookie', name=name, value=value, domain='.x.com', path='/', secure=True, httpOnly=http_only)
+        print('cookie', name, r.get('success'))
+
+
 def watch(port, seconds, out):
     c = CDP(port)
     c.call('Network.enable')
@@ -140,6 +149,8 @@ if __name__ == '__main__':
             shot(sys.argv[2], sys.argv[3])
         elif cmd == 'eval':
             evaluate(sys.argv[2], sys.argv[3])
+        elif cmd == 'sesion-falsa':
+            fake_session(sys.argv[2])
         elif cmd == 'watch':
             watch(sys.argv[2], sys.argv[3], sys.argv[4])
     except Exception as e:

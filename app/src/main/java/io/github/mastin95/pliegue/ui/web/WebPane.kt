@@ -3,6 +3,8 @@ package io.github.mastin95.pliegue.ui.web
 import android.content.ClipDescription
 import androidx.activity.compose.BackHandler
 import android.view.ViewGroup
+import android.webkit.WebView
+import android.widget.FrameLayout
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.draganddrop.dragAndDropTarget
@@ -73,11 +75,7 @@ fun WebPane(
     val web = LocalWebPanes.current
     Box(modifier.fillMaxSize().background(X.Bg)) {
         key(slot) {
-            AndroidView(
-                factory = { web.get(slot, url, options).also { v -> (v.parent as? ViewGroup)?.removeView(v) } },
-                modifier = Modifier.fillMaxSize(),
-                onRelease = { v -> (v.parent as? ViewGroup)?.removeView(v) },
-            )
+            HostedWebView({ web.get(slot, url, options) }, Modifier.fillMaxSize())
         }
         LaunchedEffect(slot, url) { web.ensure(slot, url) }
         LaunchedEffect(slot, options) { web.configure(slot, options) }
@@ -93,6 +91,27 @@ fun WebPane(
             )
         }
     }
+}
+
+/**
+ * Cuelga una WebView que vive fuera de Compose dentro de una caja propia, y al soltarse vacía solo
+ * esa caja. Al plegar o desplegar, la pantalla nueva coge la WebView antes de que se suelte la vieja;
+ * antes, al soltarse, la vieja quitaba la WebView de "su padre", que ya era la caja nueva, y la
+ * pantalla plegada se quedaba en negro (visto en el Android virtual).
+ */
+@Composable
+private fun HostedWebView(view: () -> WebView, modifier: Modifier = Modifier) {
+    AndroidView(
+        factory = { context ->
+            FrameLayout(context).apply {
+                val v = view()
+                (v.parent as? ViewGroup)?.removeView(v)
+                addView(v, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+            }
+        },
+        modifier = modifier,
+        onRelease = { box -> box.removeAllViews() },
+    )
 }
 
 /**
@@ -127,11 +146,7 @@ fun PopupSheet() {
             }
             Box(Modifier.weight(1f).fillMaxWidth()) {
                 key(popup) {
-                    AndroidView(
-                        factory = { popup.also { v -> (v.parent as? ViewGroup)?.removeView(v) } },
-                        modifier = Modifier.fillMaxSize(),
-                        onRelease = { v -> (v.parent as? ViewGroup)?.removeView(v) },
-                    )
+                    HostedWebView({ popup }, Modifier.fillMaxSize())
                 }
                 if (web.popupProgress < 100) {
                     Box(Modifier.fillMaxWidth(web.popupProgress / 100f).height(3.dp).background(X.Blue).align(Alignment.TopStart))

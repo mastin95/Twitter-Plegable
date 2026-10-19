@@ -14,9 +14,10 @@ object XWeb {
      * Oculta la columna de iconos de X (Inicio, Buscar, Notificaciones…) en las mitades de la app, que
      * ya tienen sus pestañas y el botón de redactar. Sin condición de ancho: en el plegable cada mitad
      * mide menos de 500 px y aun así X pone la columna, así que una regla "a partir de 500 px" no
-     * llegaba a aplicarse nunca.
+     * llegaba a aplicarse nunca. Si alguna vez la cabecera de X envolviera la página entera, el
+     * `:not(:has(main))` evita esconder también los posts.
      */
-    const val RAIL_CSS = """header[role="banner"]{display:none!important}"""
+    const val RAIL_CSS = """header[role="banner"]:not(:has(main)){display:none!important}"""
     const val LOGOUT = "https://x.com/logout"
     const val COMPOSE = "https://x.com/compose/post"
 
@@ -299,7 +300,12 @@ object XWeb {
      */
     fun bridgeScript(interceptPosts: Boolean, hideChrome: Boolean): String = """
         (function(){
-          if (window.__pliegue) { window.__pliegue.posts = $interceptPosts; window.__pliegue.chrome = $hideChrome; window.__pliegue.style(); return; }
+          if (window.__pliegue) {
+            var W = window.__pliegue, cambia = W.chrome !== $hideChrome;
+            W.posts = $interceptPosts; W.chrome = $hideChrome; W.style();
+            if (cambia && W.report) setTimeout(W.report, 1500);
+            return;
+          }
           var P = { posts: $interceptPosts, chrome: $hideChrome };
           window.__pliegue = P;
           P.style = function(){
@@ -311,12 +317,14 @@ object XWeb {
             s.textContent = P.chrome ? '[data-testid="BottomBar"],[data-testid="FloatingActionButton"],a[data-testid="FloatingActionButtons_Tweet_Button"],[data-testid="BottomBar"]+div{display:none!important}$RAIL_CSS' : '';
           };
           P.style();
-          setTimeout(function(){
-            if (!P.chrome) return;
+          // Para comprobar en el móvil qué pasó: ancho de la web, si esta ranura esconde las barras de X
+          // y cómo quedó su columna de iconos. Al cargar y cada vez que la ranura cambia de modo.
+          P.report = function(){
             var h = document.querySelector('header[role="banner"]');
             var estado = !h ? 'no está' : (getComputedStyle(h).display === 'none' ? 'escondida' : 'visible');
-            console.log('[pliegue] web de ' + innerWidth + ' px · columna de iconos de X: ' + estado);
-          }, 6000);
+            console.log('[pliegue] web de ' + innerWidth + ' px · ' + (P.chrome ? 'sin' : 'con') + ' barras de X · columna de iconos: ' + estado);
+          };
+          setTimeout(P.report, 6000);
           document.addEventListener('click', function(e){
             if (!P.posts || !window.Pliegue) return;
             var t = e.target;
