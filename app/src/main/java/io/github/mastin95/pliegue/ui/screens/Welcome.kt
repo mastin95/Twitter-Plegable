@@ -194,6 +194,13 @@ fun LoginScreen(vm: AppViewModel) {
                         },
                     )
                     DropdownMenuItem(
+                        text = { Text("Borrar datos de X y volver a cargar", style = XType.body) },
+                        onClick = {
+                            menu = false
+                            web.clearData { web.load("login", XWeb.LOGIN) }
+                        },
+                    )
+                    DropdownMenuItem(
                         text = { Text(if (showLog) "Ocultar el registro" else "Ver el registro", style = XType.body) },
                         onClick = {
                             showLog = !showLog
