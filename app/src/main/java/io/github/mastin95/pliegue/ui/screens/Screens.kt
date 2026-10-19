@@ -88,6 +88,7 @@ fun PliegueApp(screen: ScreenInfo, vm: AppViewModel = viewModel()) {
         web.onOpenLink = vm::onWebLink
         web.onDragUser = { _, handle -> vm.dragHandle = handle }
     }
+    LaunchedEffect(vm.cleanup) { web.useCleanup(vm.cleanup) }
     val real = vm.appMode == AppMode.Real
     Box(
         Modifier

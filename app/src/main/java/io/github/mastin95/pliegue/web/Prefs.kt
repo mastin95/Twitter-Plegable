@@ -39,6 +39,10 @@ class Prefs(context: Context) {
         get() = decodeList(sp.getString("webColumns", "") ?: "")
         set(v) = sp.edit().putString("webColumns", encodeList(v)).apply()
 
+    var cleanup: List<String>
+        get() = decodeList(sp.getString("cleanup", "") ?: "")
+        set(v) = sp.edit().putString("cleanup", encodeList(v)).apply()
+
     var dropHintSeen: Boolean
         get() = sp.getBoolean("dropHintSeen", false)
         set(v) = sp.edit().putBoolean("dropHintSeen", v).apply()
