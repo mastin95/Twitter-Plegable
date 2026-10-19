@@ -94,6 +94,18 @@ paso abierto-otra-vez
 plegar
 paso plegado-tercera-vez
 
+# Enlaces que llegan de fuera, con la app ya abierta: un post de X, un enlace corto t.co (web ajena) y
+# algo compartido con Pliegue (va al redactor). Se manda a la actividad para que no salga el selector.
+adb shell am start -W -n "$PKG/.MainActivity" -a android.intent.action.VIEW -d "https://x.com/XDevelopers/status/1" >/dev/null
+sleep 10
+paso enlace-de-x
+adb shell am start -W -n "$PKG/.MainActivity" -a android.intent.action.VIEW -d "https://t.co/pliegue" >/dev/null
+sleep 10
+paso enlace-corto
+adb shell am start -W -n "$PKG/.MainActivity" -a android.intent.action.SEND -t text/plain --es android.intent.extra.TEXT "Mira https://example.com/noticia" >/dev/null
+sleep 10
+paso compartido
+
 adb shell wm size reset
 adb logcat -d -s Pliegue:I > "$OUT/registro-app.txt" 2>&1
 echo "===== registro de la app"

@@ -37,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -302,6 +303,20 @@ fun SettingsDialog(vm: AppViewModel) {
                     ListRow(XWeb.shortLabel(url)) { vm.toggleThread(url) }
                 }
                 item {
+                    val context = LocalContext.current
+                    Section("Enlaces de X")
+                    Text("Para que un enlace de x.com que te manden se abra en Pliegue y no en la app oficial, actívalo en los ajustes de Android: \"Abrir de forma predeterminada\" → enlaces de x.com.", style = XType.small)
+                    Spacer(Modifier.height(10.dp))
+                    PillButton(
+                        "Abrir los enlaces de X en Pliegue",
+                        onClick = { openLinkSettings(context) },
+                        background = X.Bg,
+                        content = X.Text,
+                        border = X.OutlineButton,
+                        height = 32.dp,
+                    )
+                }
+                item {
                     Section("Si X no carga")
                     Text("Las webs se presentan como Chrome para Android. Si alguna se queda en negro, prueba el modo escritorio y mira el registro.", style = XType.small)
                     Spacer(Modifier.height(10.dp))
@@ -320,6 +335,17 @@ fun SettingsDialog(vm: AppViewModel) {
             }
         }
     }
+}
+
+/**
+ * Los ajustes de Android donde se eligen los enlaces que abre la app (Android 12 o más; antes, la
+ * ficha de la app). Android no deja activarlos desde dentro porque x.com no es nuestro.
+ */
+private fun openLinkSettings(context: android.content.Context) {
+    val pkg = android.net.Uri.parse("package:${context.packageName}")
+    val action = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) android.provider.Settings.ACTION_APP_OPEN_BY_DEFAULT_SETTINGS else android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+    runCatching { context.startActivity(android.content.Intent(action, pkg)) }
+        .onFailure { runCatching { context.startActivity(android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, pkg)) } }
 }
 
 @Composable

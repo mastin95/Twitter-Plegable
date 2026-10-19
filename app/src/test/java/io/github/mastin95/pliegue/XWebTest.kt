@@ -85,6 +85,16 @@ class XWebTest {
     }
 
     @Test
+    fun `un enlace de fuera llega por abrir con o por compartir`() {
+        assertEquals("https://x.com/a/status/1", XWeb.linkFromIntent("android.intent.action.VIEW", "https://x.com/a/status/1", null))
+        assertNull(XWeb.linkFromIntent("android.intent.action.VIEW", "mailto:a@b.c", null))
+        assertEquals("https://x.com/a/status/1", XWeb.linkFromIntent("android.intent.action.SEND", null, "Mira esto https://x.com/a/status/1."))
+        assertEquals("https://elpais.com/x", XWeb.linkFromIntent("android.intent.action.SEND", null, "https://elpais.com/x"))
+        assertNull(XWeb.linkFromIntent("android.intent.action.SEND", null, "sin enlace"))
+        assertNull(XWeb.linkFromIntent("android.intent.action.MAIN", null, null))
+    }
+
+    @Test
     fun `salir del formulario de inicio de sesión se reconoce`() {
         assertTrue(XWeb.isLoginFlow("https://x.com/i/flow/login?redirect_after_login=%2Fhome"))
     }

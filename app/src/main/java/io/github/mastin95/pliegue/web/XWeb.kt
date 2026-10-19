@@ -76,6 +76,16 @@ object XWeb {
     /** Enlace de un post a otra web (los de X van por t.co): se abre en la otra mitad, no en el navegador. */
     fun isExternal(url: String): Boolean = isWeb(url) && (!isOwn(url) || host(url) == "t.co")
 
+    /**
+     * El enlace que trae un intent de fuera: el de un "abrir con" (VIEW, con la dirección en `data`) o
+     * el primero del texto compartido (SEND). Nulo si no hay ninguno.
+     */
+    fun linkFromIntent(action: String?, data: String?, text: String?): String? = when (action) {
+        "android.intent.action.VIEW" -> data?.takeIf(::isWeb)
+        "android.intent.action.SEND" -> text?.let { Regex("https?://[^\\s<>\"']+").find(it)?.value?.trimEnd('.', ',', ')') }
+        else -> null
+    }
+
     /** Nombre de la web de un enlace para la cabecera: "elpais.com". */
     fun siteLabel(url: String): String = host(url)?.removePrefix("www.")?.removePrefix("m.") ?: "Enlace"
 
