@@ -176,11 +176,13 @@ fun RealOpen(vm: AppViewModel, screen: ScreenInfo) {
             .fillMaxSize()
             .onGloballyPositioned { originX = it.positionInWindow().x },
     ) {
-        val margin = if (maxWidth >= 800.dp) 24.dp else 12.dp
+        // Las dos mitades llegan hasta la bisagra: solo se deja hueco si la bisagra corta de verdad la
+        // pantalla (dos pantallas separadas). Antes había 24 dp de margen a cada lado: una franja negra
+        // en medio que sobraba.
         val origin = with(density) { originX.toDp() }
         val hingeStart = screen.firstPane?.let { it - origin } ?: (maxWidth / 2)
-        val leftWidth = (hingeStart - margin).coerceAtLeast(200.dp)
-        val gap = margin * 2 + screen.hinge
+        val leftWidth = hingeStart.coerceAtLeast(200.dp)
+        val gap = screen.hinge
         val compact = maxWidth < 760.dp
         val expanded = vm.expanded
         Column(Modifier.fillMaxSize()) {
