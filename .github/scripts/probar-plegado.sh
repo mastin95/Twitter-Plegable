@@ -8,6 +8,8 @@
 set -u
 OUT="${GITHUB_WORKSPACE:-$PWD}/plegado-out"
 mkdir -p "$OUT"
+# Lo que dice la prueba también va a la rama de resultados (los registros de Actions no siempre se pueden leer).
+exec > >(tee -a "$OUT/salida.txt") 2>&1
 APK=app/build/outputs/apk/debug/app-debug.apk
 PKG=io.github.mastin95.pliegue
 UI=.github/scripts/ui.py
@@ -56,6 +58,19 @@ devtools() {
   [ -n "$sock" ] || { echo "sin socket de DevTools"; return 1; }
   adb forward tcp:9222 "localabstract:$sock" >/dev/null && echo "DevTools en $sock"
 }
+# Pone la cookie falsa hasta que la app la ve (lo apunta al mirar las cookies tras una carga).
+sesion_falsa() {
+  for i in 1 2 3 4; do
+    devtools && python3 .github/scripts/cdp.py sesion-falsa 9222
+    sleep 10
+    if adb logcat -d -s Pliegue:I | grep -q "cookies de x.com:.*auth_token"; then
+      echo "la app ya ve la sesión falsa"
+      return 0
+    fi
+    echo "la app aún no ve la sesión falsa (intento $i)"
+  done
+  return 1
+}
 abrir() { adb shell wm size 2208x1840; sleep 12; }
 plegar() { adb shell wm size reset; sleep 12; }
 
@@ -66,8 +81,8 @@ sleep 8
 sin_avisos
 toca '^Iniciar sesión en X$'
 sleep 12
-devtools && python3 .github/scripts/cdp.py sesion-falsa 9222
-sleep 15
+sesion_falsa
+sleep 10
 paso plegado
 
 abrir
