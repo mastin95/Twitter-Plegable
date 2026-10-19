@@ -134,19 +134,6 @@ fun LoginScreen(vm: AppViewModel) {
             web.checkLogin()
         }
     }
-    // La flecha de X saca del formulario a x.com/i/jf/…, que aquí se queda en negro y a veces ni
-    // termina de cargar: si seguimos ahí sin sesión pasados unos segundos, volvemos solos al
-    // formulario, un par de veces como mucho para no dar vueltas si X insiste.
-    var recoveries by remember { mutableStateOf(0) }
-    LaunchedEffect(url) {
-        if (XWeb.isLoginDeadEnd(url) && recoveries < 2) {
-            delay(6000)
-            if (!web.loggedIn && XWeb.isLoginDeadEnd(web.urls["login"] ?: "")) {
-                recoveries++
-                web.load("login", XWeb.LOGIN)
-            }
-        }
-    }
     Column(Modifier.fillMaxSize()) {
         Row(
             Modifier

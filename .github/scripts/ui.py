@@ -50,6 +50,12 @@ def main():
                 print(c[0], c[1])
                 return 0
         return 1
+    if cmd == 'fields':  # campos de texto: lo escrito (o [contraseña] si es de contraseña) y si tiene el foco
+        for n in ns:
+            if n.get('class') == 'android.widget.EditText':
+                kind = 'contraseña' if n.get('password') == 'true' else 'texto'
+                print(f"{kind} {(n.get('text') or '')!r}{' [foco]' if n.get('focused') == 'true' else ''}")
+        return 0
     return 2
 
 

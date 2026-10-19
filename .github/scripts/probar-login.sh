@@ -8,6 +8,8 @@ mkdir -p "$OUT"
 APK=app/build/outputs/apk/debug/app-debug.apk
 PKG=io.github.mastin95.pliegue
 EMAIL="pliegue.prueba.ci@example.com"
+# Cuenta pública de X (la de desarrolladores) solo para ver que el formulario pide la contraseña.
+USUARIO="XDevelopers"
 UI=.github/scripts/ui.py
 n=0
 
@@ -72,39 +74,84 @@ if devtools; then
   python3 .github/scripts/cdp.py shot 9222 "$OUT/web-formulario.png"
   python3 .github/scripts/cdp.py eval 9222 .github/scripts/diag.js > "$OUT/diag-formulario.json" 2>&1
   echo "===== diag-formulario"; head -c 6000 "$OUT/diag-formulario.json"; echo
-  python3 .github/scripts/cdp.py watch 9222 75 "$OUT/red-correo.txt" &
+  python3 .github/scripts/cdp.py watch 9222 110 "$OUT/red-correo.txt" &
   WATCH=$!
 fi
 
-if toca 'class=android.widget.EditText'; then
-  sleep 2
-  adb shell input text "$EMAIL"
-  sleep 2
-fi
-paso correo-escrito
+# Escribe en el campo del formulario y comprueba que el texto se queda (si la página se recargara,
+# el campo volvería vacío). Hasta tres intentos.
+escribir() { # texto
+  local intento
+  for intento in 1 2 3; do
+    espera 'class=android.widget.EditText' 30 || continue
+    toca 'class=android.widget.EditText' || continue
+    sleep 2
+    adb shell input text "$1"
+    sleep 3
+    volcar /tmp/ui.xml
+    if python3 "$UI" fields /tmp/ui.xml | grep -qF "$1"; then echo "escrito y sigue en el campo: $1"; return 0; fi
+    echo "el campo no conservó el texto (intento $intento)"
+  done
+  return 1
+}
 
-# Como haría una persona: Intro en el teclado; si sigue en el mismo paso, se toca el botón Continuar
-# con el teclado ya cerrado (con el teclado abierto el botón queda casi tapado).
-adb shell input keyevent 66
-sleep 10
-paso tras-intro
-if volcar /tmp/ui.xml && python3 "$UI" find /tmp/ui.xml '(?i)^email or username$' >/dev/null; then
-  echo "sigue en el paso del correo: cierro el teclado y toco Continuar"
+# Envía el paso con Intro, como en el teclado del móvil; si no avanza, cierra el teclado y toca el botón.
+enviar() { # patrón del paso siguiente
+  adb shell input keyevent 66
+  espera "$1" 25 && return 0
+  echo "Intro no avanzó: cierro el teclado y toco el botón"
   adb shell input keyevent 111
-  sleep 3
-  toca '^(Next|Siguiente|Continue|Continuar)$'
-  sleep 12
-  paso tras-continuar
-fi
+  sleep 2
+  toca '^(Next|Siguiente|Continue|Continuar|Log in|Iniciar sesión)$'
+  espera "$1" 25
+}
+
+SIGUIENTE='(?i)could not find|couldn.t find|no hemos podido encontrar|password|contraseña|phone number or username|unusual|verify|verific|try again|inténtalo'
+
+# 1) El formulario no debe recargarse solo: se espera 20 s y el campo tiene que seguir conservando lo escrito.
+sleep 20
+paso formulario-20-segundos
+escribir "$EMAIL"
+paso correo-escrito
+sleep 10
+paso correo-diez-segundos-despues
+python3 "$UI" fields "$OUT/$(printf '%02d' "$n")-correo-diez-segundos-despues.xml"
+enviar "$SIGUIENTE"
+sleep 3
+paso tras-enviar-correo
+
+# 2) Con un usuario público que sí existe, X debe pasar a pedir la contraseña. Aquí se para: no se
+# escribe ninguna contraseña. Se sale del login y se vuelve a entrar, como haría una persona.
+adb shell input keyevent 111
+sleep 1
+toca '^Atrás$'
+sleep 3
+toca '^Iniciar sesión en X$'
+espera 'class=android.widget.EditText' 90
+sleep 6
+escribir "$USUARIO"
+paso usuario-escrito
+enviar '(?i)password|contraseña'
+sleep 3
+paso tras-enviar-usuario
+volcar /tmp/ui.xml && python3 "$UI" fields /tmp/ui.xml
 
 sleep 10
 paso diez-segundos-despues
+
+# 3) El botón Recargar de la barra sobre el formulario de X: debe volver a pintarlo, no dejarlo en negro.
+adb shell input keyevent 111
+toca '^Recargar$'
+espera 'class=android.widget.EditText' 45
+sleep 5
+paso tras-recargar
 [ -n "${WATCH:-}" ] && wait "$WATCH"
 [ -f "$OUT/red-correo.txt" ] && { echo "===== red-correo"; head -c 8000 "$OUT/red-correo.txt"; echo; }
 devtools && python3 .github/scripts/cdp.py shot 9222 "$OUT/web-final.png"
 
 # Lo que la app apunta en su registro (también va a logcat con la etiqueta Pliegue).
 adb logcat -d -s Pliegue:I > "$OUT/registro-app.txt" 2>&1
+echo "===== cargas de x.com/i/flow/login (deben ser 2: una por cada vez que se abre el login): $(grep -c 'carga x.com/i/flow/login' "$OUT/registro-app.txt")"
 adb logcat -d | grep -iE 'chromium|cr_|webview' | tail -300 > "$OUT/logcat-webview.txt" 2>&1
 echo "===== registro de la app"
 cat "$OUT/registro-app.txt" | tail -80

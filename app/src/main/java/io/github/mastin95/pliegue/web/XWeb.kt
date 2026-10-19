@@ -144,24 +144,15 @@ object XWeb {
     private fun path(url: String): String = Regex("^https?://[^/]+(/[^?#]*)?").find(url)?.groupValues?.get(1)?.trimEnd('/') ?: ""
 
     /**
-     * Una página de entrada de X: el formulario (/i/flow/login) o la portada sin sesión, que en el
-     * móvil lleva el formulario dentro (teléfono, Google, Apple, correo). Ahí no hay que tocar nada.
+     * Una página de entrada de X: el formulario (/i/flow/login), la portada sin sesión, que en el
+     * móvil lleva el formulario dentro (teléfono, Google, Apple, correo), o el formulario nuevo de X
+     * para móvil (/i/jf/onboarding/…), al que X pasa sola en cuanto carga. Ahí no hay que tocar nada:
+     * recargar por nuestra cuenta borraría lo que la persona está escribiendo.
      */
     fun isLoginPage(url: String): Boolean {
         if (!isX(url)) return false
         val p = path(url)
-        return p.isEmpty() || p == "/login" || p.startsWith("/i/flow/login")
-    }
-
-    /**
-     * Páginas a las que X manda al salir del formulario y que en la app se quedan vacías (el
-     * "jetfuel" /i/jf/…): de ahí volvemos al formulario. La portada y /home no lo son: X las
-     * resuelve solo (sin sesión enseña el formulario; con sesión, el inicio).
-     */
-    fun isLoginDeadEnd(url: String): Boolean {
-        if (!isX(url)) return false
-        val p = path(url)
-        return p.startsWith("/i/jf/") || p == "/i/flow"
+        return p.isEmpty() || p == "/login" || p.startsWith("/i/flow/login") || p.startsWith("/i/jf/onboarding")
     }
 
     /** Esquemas que tienen una app propia en el móvil; cualquier otro esquema raro se ignora. */
