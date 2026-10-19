@@ -77,12 +77,6 @@ def evaluate(port, path):
         print(v)
 
 
-def navigate(port, url):
-    c = CDP(port)
-    c.call('Page.navigate', url=url)
-    print('navego a', url)
-
-
 def watch(port, seconds, out):
     c = CDP(port)
     c.call('Network.enable')
@@ -146,8 +140,6 @@ if __name__ == '__main__':
             shot(sys.argv[2], sys.argv[3])
         elif cmd == 'eval':
             evaluate(sys.argv[2], sys.argv[3])
-        elif cmd == 'nav':
-            navigate(sys.argv[2], sys.argv[3])
         elif cmd == 'watch':
             watch(sys.argv[2], sys.argv[3], sys.argv[4])
     except Exception as e:
