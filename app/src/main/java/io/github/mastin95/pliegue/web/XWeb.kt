@@ -11,11 +11,12 @@ object XWeb {
     const val LOGIN = "https://x.com/i/flow/login"
 
     /**
-     * Oculta la columna de iconos de X (Inicio, Buscar, Notificaciones…, la que pone la web a partir
-     * de 500 px de ancho) en las mitades de la app, que ya tienen sus pestañas y el botón de redactar.
-     * Por debajo de ese ancho X usa la disposición de móvil y no se toca nada.
+     * Oculta la columna de iconos de X (Inicio, Buscar, Notificaciones…) en las mitades de la app, que
+     * ya tienen sus pestañas y el botón de redactar. Sin condición de ancho: en el plegable cada mitad
+     * mide menos de 500 px y aun así X pone la columna, así que una regla "a partir de 500 px" no
+     * llegaba a aplicarse nunca.
      */
-    const val RAIL_CSS = """@media (min-width:500px){header[role="banner"]{display:none!important}}"""
+    const val RAIL_CSS = """header[role="banner"]{display:none!important}"""
     const val LOGOUT = "https://x.com/logout"
     const val COMPOSE = "https://x.com/compose/post"
 
@@ -291,9 +292,10 @@ object XWeb {
      * Script que ponemos en cada página de X:
      * - un toque sobre un post avisa a la app (`Pliegue.openPost`) en vez de navegar, para abrirlo en la otra mitad;
      * - mantener pulsado un avatar o un nombre avisa con su usuario (`Pliegue.dragUser`) para arrastrarlo a Mi feed;
-     * - los estilos ocultan la barra inferior y el botón flotante de la web dentro de los paneles y,
-     *   cuando la web es ancha (500 px o más), la columna de iconos de la izquierda: las pestañas de
-     *   cada mitad y nuestro botón de redactar ya hacen lo mismo y así el post ocupa todo el ancho.
+     * - los estilos ocultan la barra inferior, el botón flotante y la columna de iconos de la web
+     *   dentro de los paneles: las pestañas de cada mitad y nuestro botón de redactar ya hacen lo
+     *   mismo y así el post ocupa todo el ancho. Una vez por página se apunta en el registro el ancho
+     *   de la web y si la columna quedó escondida, para comprobarlo en el móvil.
      */
     fun bridgeScript(interceptPosts: Boolean, hideChrome: Boolean): String = """
         (function(){
@@ -309,6 +311,12 @@ object XWeb {
             s.textContent = P.chrome ? '[data-testid="BottomBar"],[data-testid="FloatingActionButton"],a[data-testid="FloatingActionButtons_Tweet_Button"],[data-testid="BottomBar"]+div{display:none!important}$RAIL_CSS' : '';
           };
           P.style();
+          setTimeout(function(){
+            if (!P.chrome) return;
+            var h = document.querySelector('header[role="banner"]');
+            var estado = !h ? 'no está' : (getComputedStyle(h).display === 'none' ? 'escondida' : 'visible');
+            console.log('[pliegue] web de ' + innerWidth + ' px · columna de iconos de X: ' + estado);
+          }, 6000);
           document.addEventListener('click', function(e){
             if (!P.posts || !window.Pliegue) return;
             var t = e.target;
