@@ -56,9 +56,14 @@ sleep 8
 paso inicio
 
 toca '^Iniciar sesión en X$'
-espera '(?i)phone, email|teléfono, correo|^(Next|Siguiente)$' 90
+espera '(?i)phone, email|email or username|teléfono, correo|correo o usuario|^(Next|Siguiente|Continue|Continuar)$' 90
 sleep 4
 paso formulario
+
+# Que la app apunte en su registro qué hay en la página (y si el formulario está oculto, por qué).
+toca '^Más opciones$' && sleep 2 && toca '^Anotar lo que se ve en el registro$'
+sleep 3
+paso registro-abierto
 
 if toca 'class=android.widget.EditText'; then
   sleep 2
@@ -67,7 +72,7 @@ if toca 'class=android.widget.EditText'; then
 fi
 paso correo-escrito
 
-toca '^(Next|Siguiente)$' || adb shell input keyevent 66
+toca '^(Next|Siguiente|Continue|Continuar)$' || adb shell input keyevent 66
 sleep 12
 paso tras-siguiente
 

@@ -99,7 +99,24 @@ object XWeb {
             return t ? t + (x.disabled || x.getAttribute('aria-disabled') === 'true' ? ' (desactivado)' : '') : '';
           }).filter(Boolean).slice(0, 8);
           out.push('botones: ' + (b.join(' | ') || 'ninguno'));
-          out.push('ventana ' + innerWidth + 'x' + innerHeight + ' · ' + location.host + location.pathname);
+          // Si hay un diálogo (el formulario de X lo es) pero no se ve: quién lo tapa o lo deja transparente.
+          var d = all('[role=dialog],dialog')[0];
+          if (d) {
+            var oculto = '', el = d;
+            while (el && el.nodeType === 1) {
+              var c = getComputedStyle(el);
+              if (c.opacity === '0' || c.visibility === 'hidden' || c.display === 'none') {
+                oculto = el.tagName.toLowerCase() + (el.id ? '#' + el.id : '') + ' (opacidad ' + c.opacity + ', ' + c.visibility + ', ' + c.display + ')';
+                break;
+              }
+              el = el.parentElement;
+            }
+            var r = d.getBoundingClientRect(), top = document.elementFromPoint(r.left + r.width / 2, r.top + Math.min(200, r.height / 2));
+            out.push('diálogo: ' + d.tagName.toLowerCase() + (d.hasAttribute('popover') ? ' popover' : '') +
+              (oculto ? ' · oculto por ' + oculto : ' · sin ocultar') +
+              ' · encima: ' + (top ? top.tagName.toLowerCase() + (top === d || d.contains(top) ? ' (del diálogo)' : ' (otra capa)') : 'nada'));
+          }
+          out.push('popover ' + ('popover' in HTMLElement.prototype ? 'sí' : 'no') + ' · ventana ' + innerWidth + 'x' + innerHeight + ' · ' + location.host + location.pathname);
           return out.join(' · ');
         })()
     """.trimIndent()
