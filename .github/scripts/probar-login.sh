@@ -72,7 +72,7 @@ if devtools; then
   python3 .github/scripts/cdp.py shot 9222 "$OUT/web-formulario.png"
   python3 .github/scripts/cdp.py eval 9222 .github/scripts/diag.js > "$OUT/diag-formulario.json" 2>&1
   echo "===== diag-formulario"; head -c 6000 "$OUT/diag-formulario.json"; echo
-  python3 .github/scripts/cdp.py watch 9222 45 "$OUT/red-correo.txt" &
+  python3 .github/scripts/cdp.py watch 9222 75 "$OUT/red-correo.txt" &
   WATCH=$!
 fi
 
@@ -83,9 +83,19 @@ if toca 'class=android.widget.EditText'; then
 fi
 paso correo-escrito
 
-toca '^(Next|Siguiente|Continue|Continuar)$' || adb shell input keyevent 66
-sleep 12
-paso tras-siguiente
+# Como haría una persona: Intro en el teclado; si sigue en el mismo paso, se toca el botón Continuar
+# con el teclado ya cerrado (con el teclado abierto el botón queda casi tapado).
+adb shell input keyevent 66
+sleep 10
+paso tras-intro
+if volcar /tmp/ui.xml && python3 "$UI" find /tmp/ui.xml '(?i)^email or username$' >/dev/null; then
+  echo "sigue en el paso del correo: cierro el teclado y toco Continuar"
+  adb shell input keyevent 111
+  sleep 3
+  toca '^(Next|Siguiente|Continue|Continuar)$'
+  sleep 12
+  paso tras-continuar
+fi
 
 sleep 10
 paso diez-segundos-despues
