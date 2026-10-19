@@ -1,5 +1,6 @@
 package io.github.mastin95.pliegue
 
+import io.github.mastin95.pliegue.model.Cleanup
 import io.github.mastin95.pliegue.web.XWeb
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -92,6 +93,26 @@ class XWebTest {
         assertEquals("https://elpais.com/x", XWeb.linkFromIntent("android.intent.action.SEND", null, "https://elpais.com/x"))
         assertNull(XWeb.linkFromIntent("android.intent.action.SEND", null, "sin enlace"))
         assertNull(XWeb.linkFromIntent("android.intent.action.MAIN", null, null))
+    }
+
+    @Test
+    fun `la foto de un post se abre a tamaño grande`() {
+        assertTrue(XWeb.isMedia("https://pbs.twimg.com/media/abc?format=jpg&name=small"))
+        assertFalse(XWeb.isMedia("https://x.com/a/status/1/photo/1"))
+        assertEquals("https://pbs.twimg.com/media/abc?format=jpg&name=large", XWeb.largeImage("https://pbs.twimg.com/media/abc?format=jpg&name=small"))
+        assertEquals("https://pbs.twimg.com/media/abc?name=large&format=png", XWeb.largeImage("https://pbs.twimg.com/media/abc?name=360x360&format=png"))
+        assertEquals("https://pbs.twimg.com/media/abc.jpg?name=large", XWeb.largeImage("https://pbs.twimg.com/media/abc.jpg"))
+    }
+
+    @Test
+    fun `la limpieza del feed entra en el script y se guarda por nombres`() {
+        val none = XWeb.bridgeScript(interceptPosts = true, hideChrome = true)
+        assertTrue(none.contains("clean: {ads:false,sug:false,premium:false,following:false}"))
+        val all = XWeb.bridgeScript(interceptPosts = true, hideChrome = true, cleanup = Cleanup(ads = true, suggestions = true, premium = true, following = true))
+        assertTrue(all.contains("clean: {ads:true,sug:true,premium:true,following:true}"))
+        assertTrue(all.contains("placementTracking"))
+        assertEquals(listOf("ads", "following"), Cleanup(ads = true, following = true).toNames())
+        assertEquals(Cleanup(premium = true), Cleanup.fromNames(listOf("premium")))
     }
 
     @Test

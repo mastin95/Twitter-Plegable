@@ -171,7 +171,7 @@ fun WebColumnsBoard(vm: AppViewModel, leftWidth: Dp, gap: Dp, modifier: Modifier
 @Composable
 private fun ColumnPost(vm: AppViewModel, url: String, modifier: Modifier) {
     val web = LocalWebPanes.current
-    val external = XWeb.isExternal(url)
+    val external = XWeb.isExternal(url) || XWeb.isMedia(url)
     val current = web.urls["colpost"]?.takeIf { XWeb.isExternal(it) } ?: url
     Column(modifier.background(X.Bg)) {
         Row(
@@ -186,7 +186,7 @@ private fun ColumnPost(vm: AppViewModel, url: String, modifier: Modifier) {
                 Icon(XIcons.Back, contentDescription = "Atrás", tint = X.Text, modifier = Modifier.size(20.dp))
             }
             Spacer(Modifier.width(8.dp))
-            Text(if (external) XWeb.siteLabel(current) else "Post", style = XType.title, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+            Text(if (XWeb.isMedia(url)) "Foto" else if (external) XWeb.siteLabel(current) else "Post", style = XType.title, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
             if (external) {
                 IconButton(onClick = { web.openInBrowser(current) }) {
                     Icon(XIcons.Globe, contentDescription = "Abrir en el navegador", tint = X.Text, modifier = Modifier.size(20.dp))

@@ -22,6 +22,8 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -303,6 +305,15 @@ fun SettingsDialog(vm: AppViewModel) {
                     ListRow(XWeb.shortLabel(url)) { vm.toggleThread(url) }
                 }
                 item {
+                    Section("Limpieza del feed")
+                    Text("Vale para todas las webs de X dentro de Pliegue.", style = XType.small)
+                    val c = vm.cleanup
+                    SwitchRow("Esconder los posts promocionados", c.ads) { vm.updateCleanup(c.copy(ads = it)) }
+                    SwitchRow("Esconder \"A quién seguir\" y tendencias en Inicio", c.suggestions) { vm.updateCleanup(c.copy(suggestions = it)) }
+                    SwitchRow("Esconder los avisos de Premium", c.premium) { vm.updateCleanup(c.copy(premium = it)) }
+                    SwitchRow("Inicio empieza en \"Siguiendo\"", c.following) { vm.updateCleanup(c.copy(following = it)) }
+                }
+                item {
                     val context = LocalContext.current
                     Section("Enlaces de X")
                     Text("Para que un enlace de x.com que te manden se abra en Pliegue y no en la app oficial, actívalo en los ajustes de Android: \"Abrir de forma predeterminada\" → enlaces de x.com.", style = XType.small)
@@ -346,6 +357,14 @@ private fun openLinkSettings(context: android.content.Context) {
     val action = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) android.provider.Settings.ACTION_APP_OPEN_BY_DEFAULT_SETTINGS else android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS
     runCatching { context.startActivity(android.content.Intent(action, pkg)) }
         .onFailure { runCatching { context.startActivity(android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, pkg)) } }
+}
+
+@Composable
+private fun SwitchRow(label: String, on: Boolean, onChange: (Boolean) -> Unit) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(label, style = XType.body, modifier = Modifier.weight(1f).padding(end = 12.dp))
+        Switch(checked = on, onCheckedChange = onChange, colors = SwitchDefaults.colors(checkedTrackColor = X.Blue, checkedThumbColor = Color.White))
+    }
 }
 
 @Composable

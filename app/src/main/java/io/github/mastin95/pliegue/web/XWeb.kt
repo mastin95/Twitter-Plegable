@@ -1,5 +1,6 @@
 package io.github.mastin95.pliegue.web
 
+import io.github.mastin95.pliegue.model.Cleanup
 import java.net.URLEncoder
 
 /**
@@ -84,6 +85,16 @@ object XWeb {
         "android.intent.action.VIEW" -> data?.takeIf(::isWeb)
         "android.intent.action.SEND" -> text?.let { Regex("https?://[^\\s<>\"']+").find(it)?.value?.trimEnd('.', ',', ')') }
         else -> null
+    }
+
+    /** Una imagen de X (pbs.twimg.com), abierta sola en una mitad al tocar la foto de un post. */
+    fun isMedia(url: String): Boolean = host(url) == "pbs.twimg.com"
+
+    /** La misma imagen de X a tamaño grande: en el feed va con name=small o name=360x360. */
+    fun largeImage(url: String): String = when {
+        Regex("[?&]name=").containsMatchIn(url) -> url.replace(Regex("([?&])name=[^&#]*"), "$1name=large")
+        '?' in url -> "$url&name=large"
+        else -> "$url?name=large"
     }
 
     /** Nombre de la web de un enlace para la cabecera: "elpais.com". */
@@ -314,15 +325,44 @@ object XWeb {
      *   mismo y así el post ocupa todo el ancho. Una vez por página se apunta en el registro el ancho
      *   de la web y si la columna quedó escondida, para comprobarlo en el móvil.
      */
-    fun bridgeScript(interceptPosts: Boolean, hideChrome: Boolean): String = """
+    fun bridgeScript(interceptPosts: Boolean, hideChrome: Boolean, cleanup: Cleanup = Cleanup()): String = bridge(interceptPosts, hideChrome, "{ads:${cleanup.ads},sug:${cleanup.suggestions},premium:${cleanup.premium},following:${cleanup.following}}")
+
+    private fun bridge(interceptPosts: Boolean, hideChrome: Boolean, clean: String): String = """
         (function(){
           if (window.__pliegue) {
             var W = window.__pliegue, cambia = W.chrome !== $hideChrome;
-            W.posts = $interceptPosts; W.chrome = $hideChrome; W.style();
+            W.posts = $interceptPosts; W.chrome = $hideChrome; W.clean = $clean; W.style();
+            if (W.followSoon) W.followSoon();
             if (cambia && W.report) setTimeout(W.report, 1500);
             return;
           }
-          var P = { posts: $interceptPosts, chrome: $hideChrome };
+          var P = { posts: $interceptPosts, chrome: $hideChrome, clean: $clean };
+          // Lo que se esconde de X: las barras (en las mitades) y la limpieza elegida en Ajustes.
+          // Los módulos de Inicio ("A quién seguir", tendencias) solo en /home, para no tocar otras listas.
+          P.css = function(){
+            var c = P.chrome ? '[data-testid="BottomBar"],[data-testid="FloatingActionButton"],a[data-testid="FloatingActionButtons_Tweet_Button"],[data-testid="BottomBar"]+div{display:none!important}$RAIL_CSS' : '';
+            var k = P.clean || {}, home = location.pathname === '/home';
+            if (k.ads) c += '[data-testid="cellInnerDiv"]:has([data-testid="placementTracking"]){display:none!important}';
+            if (k.sug && home) c += '[data-testid="cellInnerDiv"]:has([data-testid="UserCell"]),[data-testid="cellInnerDiv"]:has(a[href^="/i/connect_people"]),[data-testid="cellInnerDiv"]:has([data-testid="trend"]),[data-testid="cellInnerDiv"]:has(a[href^="/explore/tabs"]),[data-testid="cellInnerDiv"]:has(h2){display:none!important}';
+            if (k.premium) c += '[data-testid="cellInnerDiv"]:has(a[href^="/i/premium"]),[data-testid="cellInnerDiv"]:has([data-testid*="upsell" i]),aside:has(a[href^="/i/premium"]){display:none!important}';
+            return c;
+          };
+          // Inicio en "Siguiendo": si al cargar /home está elegida la primera pestaña ("Para ti"), se toca la segunda.
+          // Una vez por dirección: si luego vuelves a "Para ti" a mano, se respeta.
+          P.follow = function(){
+            var k = P.clean || {};
+            if (!k.following || location.pathname !== '/home' || P.followed === location.href) return;
+            var tabs = document.querySelectorAll('[role="tablist"] [role="tab"]');
+            if (tabs.length < 2) return;
+            if (tabs[0].getAttribute('aria-selected') === 'true') {
+              P.followed = location.href;
+              tabs[1].click();
+              console.log('[pliegue] Inicio puesto en Siguiendo');
+            } else if (tabs[1].getAttribute('aria-selected') === 'true') {
+              P.followed = location.href;
+            }
+          };
+          P.followSoon = function(){ [800, 2000, 4000].forEach(function(ms){ setTimeout(P.follow, ms); }); };
           window.__pliegue = P;
           P.style = function(){
             // Al empezar a cargar puede no haber documento todavía: entonces se pone al terminar de leerlo.
@@ -330,9 +370,10 @@ object XWeb {
             if (!root) { document.addEventListener('DOMContentLoaded', P.style, {once: true}); return; }
             var s = document.getElementById('pliegue-style');
             if (!s) { s = document.createElement('style'); s.id = 'pliegue-style'; root.appendChild(s); }
-            s.textContent = P.chrome ? '[data-testid="BottomBar"],[data-testid="FloatingActionButton"],a[data-testid="FloatingActionButtons_Tweet_Button"],[data-testid="BottomBar"]+div{display:none!important}$RAIL_CSS' : '';
+            s.textContent = P.css();
           };
           P.style();
+          P.followSoon();
           // Para comprobar en el móvil qué pasó: ancho de la web, si esta ranura esconde las barras de X
           // y cómo quedó su columna de iconos. Al cargar y cada vez que la ranura cambia de modo.
           P.report = function(){
@@ -347,7 +388,17 @@ object XWeb {
             if (!t || !t.closest) return;
             var art = t.closest('article[data-testid="tweet"]');
             if (!art) return;
-            if (t.closest('a,button,[role="button"],[role="link"],video,[data-testid="tweetPhoto"],[data-testid="videoPlayer"],[data-testid="card.wrapper"]')) return;
+            // La foto de un post se abre sola en la otra mitad, a tamaño grande; los vídeos siguen en su sitio.
+            var ph = t.closest('[data-testid="tweetPhoto"]');
+            if (ph) {
+              var img = ph.querySelector('img[src*="pbs.twimg.com/media/"]');
+              if (img && img.src && window.Pliegue.openLink) {
+                e.preventDefault(); e.stopPropagation();
+                window.Pliegue.openLink(img.src);
+              }
+              return;
+            }
+            if (t.closest('a,button,[role="button"],[role="link"],video,[data-testid="videoPlayer"],[data-testid="card.wrapper"]')) return;
             var time = art.querySelector('a[href*="/status/"] time');
             var link = time ? time.parentElement : art.querySelector('a[href*="/status/"]');
             if (!link || !link.href) return;

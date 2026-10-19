@@ -5,6 +5,15 @@ import io.github.mastin95.pliegue.web.XWeb
 /** Con qué arranca la app: aún sin elegir, la demo con posts de ejemplo, o X de verdad con tu sesión. */
 enum class AppMode { Elegir, Demo, Real }
 
+/** Limpieza de la web de X que elige el usuario en Ajustes; vale para todas las webs de la app. */
+data class Cleanup(val ads: Boolean = false, val suggestions: Boolean = false, val premium: Boolean = false, val following: Boolean = false) {
+    fun toNames(): List<String> = listOfNotNull("ads".takeIf { ads }, "suggestions".takeIf { suggestions }, "premium".takeIf { premium }, "following".takeIf { following })
+
+    companion object {
+        fun fromNames(names: Collection<String>) = Cleanup("ads" in names, "suggestions" in names, "premium" in names, "following" in names)
+    }
+}
+
 /** Lo que puede enseñar un panel de X real. `url` nula = se calcula (Mi feed, Perfil). */
 enum class Source(val label: String, val url: String?) {
     Inicio("Inicio", XWeb.HOME),

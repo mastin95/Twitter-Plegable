@@ -34,6 +34,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import io.github.mastin95.pliegue.model.Cleanup
 
 /** WebView de un panel. No acepta arrastres: así caen en la zona de soltar de Compose que hay encima. */
 class PaneWebView(context: Context) : WebView(context) {
@@ -91,6 +92,16 @@ class WebPanes(
     /** Presentarse como Chrome de escritorio en todas las webs (recurso si X no carga como móvil). */
     var desktop by mutableStateOf(false)
         private set
+
+    /** Limpieza de X elegida en Ajustes; se aplica a todas las webs sin recargarlas. */
+    var cleanup by mutableStateOf(Cleanup())
+        private set
+
+    fun useCleanup(c: Cleanup) {
+        if (cleanup == c) return
+        cleanup = c
+        slots.forEach { (slot, v) -> inject(v, slot) }
+    }
 
     /** Últimos avisos de las webs (consola, errores de carga), para saber qué pasa sin un depurador. */
     val log = mutableStateListOf<String>()
@@ -533,7 +544,7 @@ class WebPanes(
     private fun inject(view: WebView, slot: String) {
         val o = options[slot] ?: PaneOptions()
         if (o.external) return
-        view.evaluateJavascript(XWeb.bridgeScript(o.interceptPosts, o.hideChrome), null)
+        view.evaluateJavascript(XWeb.bridgeScript(o.interceptPosts, o.hideChrome, cleanup), null)
         if (o.debugLogin) view.evaluateJavascript(XWeb.loginHookScript(), null)
     }
 
@@ -559,6 +570,15 @@ class WebPanes(
         @JavascriptInterface
         fun dragUser(handle: String) {
             main.post { startDrag(slot, handle) }
+        }
+
+        /** La foto de un post: la app la abre en la otra mitad; donde no hay otra, en el navegador. */
+        @JavascriptInterface
+        fun openLink(url: String) {
+            main.post {
+                lastActive = slot
+                if (!onOpenLink(slot, url)) openOutside(slot, Uri.parse(url))
+            }
         }
     }
 

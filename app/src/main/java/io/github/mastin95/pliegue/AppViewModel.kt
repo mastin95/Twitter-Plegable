@@ -9,6 +9,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import io.github.mastin95.pliegue.model.AppMode
+import io.github.mastin95.pliegue.model.Cleanup
 import io.github.mastin95.pliegue.model.ColumnKind
 import io.github.mastin95.pliegue.model.Creator
 import io.github.mastin95.pliegue.model.Drag
@@ -46,6 +47,15 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         private set
 
     var settingsOpen by mutableStateOf(false)
+
+    /** Limpieza de la web de X (Ajustes). */
+    var cleanup by mutableStateOf(Cleanup.fromNames(prefs.cleanup))
+        private set
+
+    fun updateCleanup(c: Cleanup) {
+        cleanup = c
+        prefs.cleanup = c.toNames()
+    }
 
     fun chooseDemo() {
         appMode = AppMode.Demo
@@ -195,7 +205,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
      * con sus respuestas sigue a la vista; en las columnas, en el hueco del post abierto. Donde no hay
      * otra mitad (post ampliado, la mesa) va al navegador.
      */
-    fun onWebLink(slot: String, url: String): Boolean {
+    fun onWebLink(slot: String, link: String): Boolean {
+        val url = if (XWeb.isMedia(link)) XWeb.largeImage(link) else link
         when {
             slot == "pane0" || slot == "pane1" -> openWebPost(if (slot == "pane0") 0 else 1, url)
             slot.startsWith("col:") -> {

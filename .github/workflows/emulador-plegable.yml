@@ -28,8 +28,12 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
+      # La salida de Gradle va también a la rama de resultados: los registros de Actions no siempre se pueden leer.
       - name: APK de depuración
-        run: ./gradlew --no-daemon assembleDebug
+        run: |
+          mkdir -p plegado-out
+          ./gradlew --no-daemon assembleDebug > plegado-out/gradle.txt 2>&1 || { grep -E "^e: |error:|FAILED|What went wrong" -A3 plegado-out/gradle.txt | head -80; exit 1; }
+          tail -n 3 plegado-out/gradle.txt
 
       - name: Cliente de DevTools
         run: python3 -m pip install --quiet websocket-client
