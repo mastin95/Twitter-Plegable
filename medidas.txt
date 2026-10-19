@@ -1,0 +1,5 @@
+estilo: @media (min-width:500px){header[role="banner"]{display:none!important}}
+560 antes   {"url": "https://x.com/XDevelopers", "ancho": 980, "iconos": null, "main": null, "posts": null}
+560 después {"url": "https://x.com/XDevelopers", "ancho": 980, "iconos": null, "main": null, "posts": null}
+420 antes   {"url": "https://x.com/XDevelopers", "ancho": 980, "iconos": null, "main": null, "posts": null}
+420 después {"url": "https://x.com/XDevelopers", "ancho": 980, "iconos": null, "main": null, "posts": null}
