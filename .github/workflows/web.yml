@@ -1,0 +1,43 @@
+name: Prueba de estilos en la web de X
+
+# Abre un perfil público de X en Chromium al ancho de una mitad del plegable y comprueba los estilos
+# que la app pone encima. Las capturas se suben a la rama pruebas-web.
+on:
+  push:
+    branches: ['prueba-**', 'iconos-**']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: web-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  estilos:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Chromium
+        run: |
+          python3 -m pip install --quiet playwright==1.48.0
+          python3 -m playwright install --with-deps chromium
+      - name: Medir y capturar
+        run: |
+          mkdir -p web-out
+          python3 .github/scripts/probar-css.py web-out | tee web-out/medidas.txt
+      - name: Subir capturas a la rama pruebas-web
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          [ -d web-out ] || exit 0
+          cd web-out
+          git init -q
+          git checkout -q -b pruebas-web
+          git add -A
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -q -m "Prueba de estilos de ${GITHUB_SHA::7} (ejecución ${GITHUB_RUN_ID})"
+          git push -q -f "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" pruebas-web

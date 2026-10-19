@@ -9,6 +9,13 @@ import java.net.URLEncoder
 object XWeb {
     const val HOME = "https://x.com/home"
     const val LOGIN = "https://x.com/i/flow/login"
+
+    /**
+     * Oculta la columna de iconos de X (Inicio, Buscar, Notificaciones…, la que pone la web a partir
+     * de 500 px de ancho) en las mitades de la app, que ya tienen sus pestañas y el botón de redactar.
+     * Por debajo de ese ancho X usa la disposición de móvil y no se toca nada.
+     */
+    const val RAIL_CSS = """@media (min-width:500px){header[role="banner"]{display:none!important}}"""
     const val LOGOUT = "https://x.com/logout"
     const val COMPOSE = "https://x.com/compose/post"
 
@@ -284,7 +291,9 @@ object XWeb {
      * Script que ponemos en cada página de X:
      * - un toque sobre un post avisa a la app (`Pliegue.openPost`) en vez de navegar, para abrirlo en la otra mitad;
      * - mantener pulsado un avatar o un nombre avisa con su usuario (`Pliegue.dragUser`) para arrastrarlo a Mi feed;
-     * - los estilos ocultan la barra inferior y el botón flotante de la web dentro de los paneles.
+     * - los estilos ocultan la barra inferior y el botón flotante de la web dentro de los paneles y,
+     *   cuando la web es ancha (500 px o más), la columna de iconos de la izquierda: las pestañas de
+     *   cada mitad y nuestro botón de redactar ya hacen lo mismo y así el post ocupa todo el ancho.
      */
     fun bridgeScript(interceptPosts: Boolean, hideChrome: Boolean): String = """
         (function(){
@@ -297,7 +306,7 @@ object XWeb {
             if (!root) { document.addEventListener('DOMContentLoaded', P.style, {once: true}); return; }
             var s = document.getElementById('pliegue-style');
             if (!s) { s = document.createElement('style'); s.id = 'pliegue-style'; root.appendChild(s); }
-            s.textContent = P.chrome ? '[data-testid="BottomBar"],[data-testid="FloatingActionButton"],a[data-testid="FloatingActionButtons_Tweet_Button"],[data-testid="BottomBar"]+div{display:none!important}' : '';
+            s.textContent = P.chrome ? '[data-testid="BottomBar"],[data-testid="FloatingActionButton"],a[data-testid="FloatingActionButtons_Tweet_Button"],[data-testid="BottomBar"]+div{display:none!important}$RAIL_CSS' : '';
           };
           P.style();
           document.addEventListener('click', function(e){
