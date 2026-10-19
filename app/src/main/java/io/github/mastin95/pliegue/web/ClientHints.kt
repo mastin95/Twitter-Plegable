@@ -36,8 +36,8 @@ object ClientHints {
             WebSettingsCompat.setUserAgentMetadata(settings, metadata)
             true
         }.getOrDefault(false)
-        // Se intenta aunque la WebView no anuncie la función: si de verdad no puede, lanza y queda en false.
         val header = runCatching {
+            if (!WebViewFeature.isFeatureSupported(WebViewFeature.REQUESTED_WITH_HEADER_ALLOW_LIST)) return@runCatching false
             WebSettingsCompat.setRequestedWithHeaderOriginAllowList(settings, emptySet())
             true
         }.getOrDefault(false)

@@ -201,7 +201,8 @@ class WebPanes(
     }
 
     private var hintsLogged = ""
-    private var headersLogged = false
+    /** Cuándo se volvió al formulario desde la página negra de X, para no dar vueltas si X insiste. */
+    private val deadEndReturns = ArrayDeque<Long>()
 
     private fun log(line: String) {
         val stamp = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.ROOT).format(java.util.Date())
@@ -247,6 +248,28 @@ class WebPanes(
         p.destroy()
         // La ventana pudo dejar puesta la sesión (Google, Apple) sin que la web de X cambie de página.
         checkLogin()
+    }
+
+    private fun allowDeadEndReturn(): Boolean {
+        val now = System.currentTimeMillis()
+        while (deadEndReturns.isNotEmpty() && now - deadEndReturns.first() > 60_000) deadEndReturns.removeFirst()
+        if (deadEndReturns.size >= 4) return false
+        deadEndReturns.addLast(now)
+        return true
+    }
+
+    /** Borra cookies, almacenamiento y caché de las webs sin cerrarlas (para empezar el login de cero). */
+    fun clearData(done: () -> Unit) {
+        val cm = CookieManager.getInstance()
+        cm.removeAllCookies {
+            WebStorage.getInstance().deleteAllData()
+            slots.values.forEach { it.clearCache(true) }
+            cm.setCookie("https://x.com", "night_mode=2; Domain=.x.com; Path=/; Secure")
+            cm.flush()
+            checkLogin()
+            log("datos de las webs borrados")
+            done()
+        }
     }
 
     /** Borra la sesión de X (cookies y almacenamiento) y cierra todas las webs. */
@@ -390,25 +413,22 @@ class WebPanes(
                 return true
             }
 
-            override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
-                // Una vez por arranque, en el login: las cabeceras con las que sale la petición principal,
-                // para saber si la WebView sigue mandando X-Requested-With (delata la app ante X).
-                if (!headersLogged && request.isForMainFrame && options[slot]?.debugLogin == true) {
-                    headersLogged = true
-                    val headers = request.requestHeaders
-                    val xrw = headers.entries.firstOrNull { it.key.equals("X-Requested-With", ignoreCase = true) }?.value
-                    val names = headers.keys.sorted().joinToString(", ")
-                    main.post { log("[$slot] cabeceras de ${short(request.url.toString()).substringBefore('/')}: $names" + (xrw?.let { " · X-Requested-With=$it" } ?: " · sin X-Requested-With")) }
-                }
-                return null
-            }
-
             override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) {
                 urls[slot] = url
                 progress[slot] = 5
                 lastActive = slot
                 log("[$slot] carga ${short(url)}")
-                if (options[slot]?.debugLogin == true) view.evaluateJavascript(XWeb.loginHookScript(), null)
+                if (options[slot]?.debugLogin == true) {
+                    // X recarga el formulario sobre x.com/i/jf/…, que aquí se queda en negro: se vuelve al
+                    // formulario en el acto (como mucho cuatro veces por minuto, por si X insiste).
+                    if (XWeb.isLoginDeadEnd(url) && !loggedIn && allowDeadEndReturn()) {
+                        log("[$slot] página negra de X; vuelvo al formulario")
+                        view.stopLoading()
+                        main.post { load(slot, XWeb.LOGIN) }
+                        return
+                    }
+                    view.evaluateJavascript(XWeb.loginHookScript(), null)
+                }
             }
 
             override fun onPageFinished(view: WebView, url: String) {
