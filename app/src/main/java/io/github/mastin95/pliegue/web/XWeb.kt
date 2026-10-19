@@ -167,11 +167,12 @@ object XWeb {
           if (window.__pliegueHook) return; window.__pliegueHook = true;
           function red(s){ return String(s).replace(/[A-Za-z0-9_\-\.]{40,}/g, '…'); }
           function say(m){ try { console.log('[pliegue] ' + red(m)); } catch(e){} }
+          var nInit = 0;
           function wrapInit(init){
             return function(cfg){
               try {
                 var c = {}; for (var k in cfg) { c[k] = typeof cfg[k] === 'function' ? 'fn' : cfg[k]; }
-                say('gsi.initialize ' + JSON.stringify(c));
+                say('gsi.initialize #' + (++nInit) + ' ' + JSON.stringify(c));
                 var cb = cfg && cfg.callback;
                 if (typeof cb === 'function') cfg.callback = function(r){
                   try { say('gsi.callback ' + JSON.stringify({select_by: r && r.select_by, state: r && r.state, credential: r && r.credential ? 'sí, ' + r.credential.length + ' caracteres' : 'no', claves: Object.keys(r || {})})); } catch(e){}
@@ -194,8 +195,22 @@ object XWeb {
             });
             return id;
           }
+          // X solo llama a google.accounts.id.initialize una vez por página y lo apunta en window.google.isInitialized.
+          // Si el botón de Google se vuelve a montar (en el móvil pasa nada más cargar), la instancia nueva no repite
+          // initialize y Google sigue avisando a la instancia vieja, que ya está vacía: de ahí "Input2SSO:
+          // Unsupported provider". Con la marca siempre a falso, cada montaje repite initialize (Google se queda con
+          // el último) y la credencial llega a la instancia viva.
+          function liberar(g){
+            if (!g || typeof g !== 'object' || g.__plLibre) return; g.__plLibre = true;
+            try {
+              Object.defineProperty(g, 'isInitialized', {configurable: true, enumerable: true,
+                get: function(){ return false; },
+                set: function(v){ say('X marca google.isInitialized=' + v + ' (se ignora: cada montaje repite initialize)'); }});
+            } catch(e){ say('no pude liberar isInitialized: ' + e); }
+          }
           function watchAccounts(g){
             if (!g || g.__plw) return; g.__plw = true;
+            liberar(g);
             var acc = g.accounts;
             function watchId(a){ if (!a || a.__plw) return; a.__plw = true; var idv = a.id; if (idv) wrapId(idv);
               Object.defineProperty(a, 'id', {configurable: true, get: function(){ return idv; }, set: function(x){ idv = wrapId(x); }}); }
@@ -290,7 +305,6 @@ object XWeb {
               }).catch(function(e){ say('no pude leer ' + nombre + ': ' + e); }).then(function(){ done++; if (done === list.length) say('búsqueda terminada: ' + hits + ' scripts con Input2SSO'); });
             });
           }
-          setTimeout(function(){ buscar('carga'); }, 5000);
           var ce = console.error;
           console.error = function(){
             try {
