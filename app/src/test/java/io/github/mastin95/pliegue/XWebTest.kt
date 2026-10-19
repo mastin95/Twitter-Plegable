@@ -120,7 +120,7 @@ class XWebTest {
     @Test
     fun `las mitades esconden la columna de iconos de X sea cual sea el ancho`() {
         val script = XWeb.bridgeScript(interceptPosts = true, hideChrome = true)
-        assertTrue(script.contains("header[role=\"banner\"]{display:none!important}"))
+        assertTrue(script.contains("header[role=\"banner\"]:not(:has(main)){display:none!important}"))
         assertFalse(script.contains("@media"))
         assertTrue(script.contains("[data-testid=\"BottomBar\"]"))
     }

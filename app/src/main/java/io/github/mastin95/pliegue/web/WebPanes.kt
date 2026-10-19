@@ -148,8 +148,15 @@ class WebPanes(
 
     /** La WebView de una ranura; se crea y carga `url` la primera vez. */
     fun get(slot: String, url: String, opts: PaneOptions = PaneOptions()): PaneWebView {
+        // Una WebView que ya existe cambia de sitio al plegar o desplegar (la mitad izquierda pasa a
+        // ser la pantalla entera y al revés): sus opciones se aplican a la página que ya tiene, no
+        // solo a la siguiente que cargue. Antes se guardaban aquí sin más y configure() ya no veía
+        // el cambio, así que la mitad izquierda seguía con los estilos de la pantalla plegada.
+        slots[slot]?.let {
+            configure(slot, opts)
+            return it
+        }
         options[slot] = opts
-        slots[slot]?.let { return it }
         val v = PaneWebView(activity).apply { layoutParams = fullSize() }
         setUp(v, slot)
         slots[slot] = v
@@ -176,6 +183,7 @@ class WebPanes(
         if (options[slot] == opts) return
         options[slot] = opts
         slots[slot]?.let { inject(it, slot) }
+        log("[$slot] " + if (opts.hideChrome) "sin las barras de X" else "con las barras de X")
     }
 
     fun textZoom(slot: String, percent: Int) {
