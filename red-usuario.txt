@@ -1,0 +1,28 @@
+01:35:24 pide POST https://play.google.com/log?format=json&hasfast=true&authuser=0 [[1,null,null,null,null,null,null,null,null,null,[null,null,null,null,"en",null,null,null,[[["Chromium","124"],["Google Chrome","124"],["Not=A?Brand","24"]],1,"Android","15.0.0","","sdk_gphone64_x86_64","124.0.6367.219"],[4,0]]],1112,[[1792373714138,null,null,null,null,null,null,"[\"…\",12,0,null,\"
+01:35:25 responde 200 https://play.google.com/log?format=json&hasfast=true&authuser=0
+01:35:25 pide POST https://api.x.com/1.1/flow/viewer.json debug=true&log=…
+01:35:25 responde 200 https://api.x.com/1.1/flow/viewer.json
+01:35:25   cuerpo https://api.x.com/1.1/flow/viewer.json: 
+01:35:26 pide GET https://x.com/favicon.ico 
+01:35:26 responde 200 https://x.com/favicon.ico
+01:35:29 pide POST https://api.x.com/1.1/flow/viewer.json debug=true&log=…
+01:35:29 pide POST https://api.x.com/1.1/graphql/viewer_context.json category=perftown&log=…
+01:35:29 responde 200 https://api.x.com/1.1/graphql/viewer_context.json
+01:35:29 responde 200 https://api.x.com/1.1/flow/viewer.json
+01:35:29   cuerpo https://api.x.com/1.1/flow/viewer.json: 
+01:35:36 pide POST https://jf.x.com/onboarding/web/actions/begin_login username_or_email=XDevelopers&%24castle_token=…
+01:35:36 pide GET https://x.com/favicon.ico 
+01:35:36 responde 200 https://x.com/favicon.ico
+01:35:36 responde 200 https://jf.x.com/onboarding/web/actions/begin_login
+01:35:36   cuerpo https://jf.x.com/onboarding/web/actions/begin_login: õ     ×  i  êÅ Áð        page onboarding section signup component begin_login errors?Weâ€™ve temporarily limited your login. Please try again later.     error    username_or_email?Weâ€™ve temporarily limited your login. Please try again later.  ésÕj       
+01:35:38 pide POST https://api.x.com/1.1/flow/viewer.json debug=true&log=…+temporarily+limited+your+login.+Please+try+again+…
+01:35:38 responde 200 https://api.x.com/1.1/flow/viewer.json
+01:35:38   cuerpo https://api.x.com/1.1/flow/viewer.json: 
+01:35:48 pide POST https://api.x.com/1.1/flow/viewer.json debug=true&log=…
+01:35:48 responde 200 https://api.x.com/1.1/flow/viewer.json
+01:35:48   cuerpo https://api.x.com/1.1/flow/viewer.json: 
+01:36:07 pide GET https://x.com/favicon.ico 
+01:36:07 responde 200 https://x.com/favicon.ico
+01:36:10 pide POST https://api.x.com/1.1/flow/viewer.json debug=true&log=…
+01:36:11 responde 200 https://api.x.com/1.1/flow/viewer.json
+01:36:11   cuerpo https://api.x.com/1.1/flow/viewer.json: 

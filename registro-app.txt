@@ -1,0 +1,26 @@
+--------- beginning of main
+10-19 01:32:22.112  2181  2181 I Pliegue : cookies de x.com: ninguna
+10-19 01:32:40.661  2181  2181 I Pliegue : Se presenta como Chrome 124, client hints de Chrome, sin X-Requested-With
+10-19 01:32:41.617  2181  2181 I Pliegue : cookies de x.com: night_mode
+10-19 01:32:42.837  2181  2181 I Pliegue : [login] carga x.com/i/flow/login
+10-19 01:32:42.843  2181  2181 I Pliegue : cookies de x.com: __cf_bm, gt, guest_id, night_mode
+10-19 01:32:42.910  2181  2181 I Pliegue : [login] gancho de login puesto · FedCM no · marcas: Chromium 124, Google Chrome 124, Not=A?Brand 24
+10-19 01:32:43.933  2181  2181 I Pliegue : [login] cargada x.com/i/flow/login · sin sesión
+10-19 01:32:44.029  2181  2181 I Pliegue : [login] cargada x.com/i/flow/login · sin sesión
+10-19 01:32:45.930  2181  2181 I Pliegue : cookies de x.com: __cf_bm, __cuid, __cuid, gt, guest_id, night_mode
+10-19 01:32:47.010  2181  2181 I Pliegue : [login] gsi.initialize #1 {"client_id":"…","callback":"fn"}
+10-19 01:32:47.015  2181  2181 I Pliegue : [login] X marca google.isInitialized=true (se ignora: cada montaje repite initialize)
+10-19 01:32:47.015  2181  2181 I Pliegue : [login] gsi.renderButton {"theme":"outline","size":"large","shape":"pill","locale":"en","logo_alignment":"center","text":"continue_with","type":"standard"}
+10-19 01:32:47.068  2181  2181 I Pliegue : cookies de x.com: __cf_bm, __cuid, __cuid, g_state, gt, guest_id, night_mode
+10-19 01:32:47.315  2181  2181 I Pliegue : [login] mensaje de https://accounts.google.com: {"type":"readyForConnect","iframeId":"gsi_566846_671782","sessionId":"…"}
+10-19 01:35:11.738  2181  2181 I Pliegue : [login] carga x.com/i/flow/login
+10-19 01:35:11.761  2181  2181 I Pliegue : [login] gancho de login puesto · FedCM no · marcas: Chromium 124, Google Chrome 124, Not=A?Brand 24
+10-19 01:35:12.083  2181  2181 I Pliegue : [login] cargada x.com/i/flow/login · sin sesión
+10-19 01:35:12.126  2181  2181 I Pliegue : [login] cargada x.com/i/flow/login · sin sesión
+10-19 01:35:13.507  2181  2181 I Pliegue : [login] gsi.initialize #1 {"client_id":"…","callback":"fn"}
+10-19 01:35:13.526  2181  2181 I Pliegue : [login] X marca google.isInitialized=true (se ignora: cada montaje repite initialize)
+10-19 01:35:13.527  2181  2181 I Pliegue : [login] gsi.renderButton {"theme":"outline","size":"large","shape":"pill","locale":"en","logo_alignment":"center","text":"continue_with","type":"standard"}
+10-19 01:35:14.136  2181  2181 I Pliegue : [login] mensaje de https://accounts.google.com: {"type":"readyForConnect","iframeId":"gsi_713528_560022","sessionId":"…"}
+10-19 01:37:08.111  2181  2181 I Pliegue : [login] carga x.com/
+10-19 01:37:08.150  2181  2181 I Pliegue : [login] gancho de login puesto · FedCM no · marcas: Chromium 124, Google Chrome 124, Not=A?Brand 24
+10-19 01:37:08.365  2181  2181 I Pliegue : [login] cargada x.com/ · sin sesión

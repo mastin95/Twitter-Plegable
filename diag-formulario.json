@@ -1,0 +1,472 @@
+página: https://x.com/i/jf/onboarding/web?mode=login
+{
+ "visibilidad": "visible",
+ "alto100": {
+  "vh": 789,
+  "dvh": 789,
+  "svh": 789,
+  "lvh": 789,
+  "innerHeight": 789
+ },
+ "foco": false,
+ "fotogramasEnMedioSegundo": 32,
+ "padres": [
+  {
+   "tag": "div",
+   "rect": [
+    0,
+    0,
+    412,
+    789
+   ],
+   "op": "1",
+   "vis": "visible",
+   "disp": "block",
+   "color": "rgb(255, 255, 255)",
+   "bg": "rgb(0, 0, 0)",
+   "pos": "fixed",
+   "z": "50",
+   "id": "_r_0_",
+   "cls": "pointer-events-auto group/xds-modal fixed z-50 outline-hidden bg-modal shadow-lg transition-all dura",
+   "role": "dialog"
+  },
+  {
+   "tag": "div",
+   "rect": [
+    0,
+    0,
+    412,
+    0
+   ],
+   "op": "1",
+   "vis": "visible",
+   "disp": "block",
+   "color": "rgb(255, 255, 255)",
+   "bg": "rgba(0, 0, 0, 0)",
+   "pos": "static",
+   "z": "auto",
+   "id": "_r_1_"
+  },
+  {
+   "tag": "body",
+   "rect": [
+    0,
+    0,
+    412,
+    789
+   ],
+   "op": "1",
+   "vis": "visible",
+   "disp": "block",
+   "color": "rgb(255, 255, 255)",
+   "bg": "rgb(0, 0, 0)",
+   "pos": "static",
+   "z": "auto",
+   "overflow": "hidden"
+  },
+  {
+   "tag": "html",
+   "rect": [
+    0,
+    0,
+    412,
+    789
+   ],
+   "op": "1",
+   "vis": "visible",
+   "disp": "block",
+   "color": "rgb(255, 255, 255)",
+   "bg": "rgb(0, 0, 0)",
+   "pos": "static",
+   "z": "auto"
+  }
+ ],
+ "dentro": [
+  {
+   "depth": 0,
+   "tag": "div",
+   "rect": [
+    0,
+    0,
+    412,
+    789
+   ],
+   "op": "1",
+   "vis": "visible",
+   "disp": "block",
+   "color": "rgb(255, 255, 255)",
+   "bg": "rgb(0, 0, 0)",
+   "pos": "fixed",
+   "z": "50",
+   "id": "_r_0_",
+   "cls": "pointer-events-auto group/xds-modal fixed z-50 outline-hidden bg-modal shadow-lg transition-all dura",
+   "role": "dialog"
+  },
+  {
+   "depth": 1,
+   "tag": "div",
+   "rect": [
+    0,
+    0,
+    412,
+    664
+   ],
+   "op": "1",
+   "vis": "visible",
+   "disp": "block",
+   "color": "rgb(255, 255, 255)",
+   "bg": "rgba(0, 0, 0, 0)",
+   "pos": "static",
+   "z": "auto",
+   "cls": "h-[664px] max-h-[calc(100dvh-32px)] w-full"
+  },
+  {
+   "depth": 2,
+   "tag": "div",
+   "rect": [
+    0,
+    0,
+    412,
+    664
+   ],
+   "op": "1",
+   "vis": "visible",
+   "disp": "block",
+   "color": "rgb(255, 255, 255)",
+   "bg": "rgba(0, 0, 0, 0)",
+   "pos": "relative",
+   "z": "auto",
+   "cls": "jf-element jetfuel-style-root relative h-full w-full h-full w-full"
+  },
+  {
+   "depth": 3,
+   "tag": "div",
+   "rect": [
+    0,
+    0,
+    412,
+    664
+   ],
+   "op": "1",
+   "vis": "visible",
+   "disp": "flex",
+   "color": "rgb(255, 255, 255)",
+   "bg": "rgba(0, 0, 0, 0)",
+   "pos": "static",
+   "z": "auto",
+   "cls": "jf-element w-full j-bd9wn50 jy49p8z0 jlvpxdh0 jfa278c0 jh08j6z0 jq6l2zd0"
+  },
+  {
+   "depth": 4,
+   "tag": "form",
+   "rect": [
+    0,
+    0,
+    412,
+    664
+   ],
+   "op": "1",
+   "vis": "visible",
+   "disp": "flex",
+   "color": "rgb(255, 255, 255)",
+   "bg": "rgba(0, 0, 0, 0)",
+   "pos": "static",
+   "z": "auto",
+   "cls": "jf-element flex flex-col j-bd9wn50 jy49p8z0 jlvpxdh0 jfa278c0"
+  },
+  {
+   "depth": 5,
+   "tag": "div",
+   "rect": [
+    0,
+    0,
+    412,
+    664
+   ],
+   "op": "1",
+   "vis": "visible",
+   "disp": "flex",
+   "color": "rgb(255, 255, 255)",
+   "bg": "rgba(0, 0, 0, 0)",
+   "pos": "relative",
+   "z": "auto",
+   "cls": "jf-element flex jy49p8z0 j-i5opld0 j-ugihcf0"
+  },
+  {
+   "depth": 6,
+   "tag": "div",
+   "rect": [
+    0,
+    0,
+    48,
+    48
+   ],
+   "op": "1",
+   "vis": "visible",
+   "disp": "flex",
+   "color": "rgb(255, 255, 255)",
+   "bg": "rgba(0, 0, 0, 0)",
+   "pos": "absolute",
+   "z": "10",
+   "cls": "jf-element flex jb4wt3f0 jsm6dqr0 j-ur6a990 j-8gedh00 j-ry01y617 j8f6ag717"
+  },
+  {
+   "depth": 7,
+   "tag": "div",
+   "rect": [
+    0,
+    0,
+    48,
+    48
+   ],
+   "op": "1",
+   "vis": "visible",
+   "disp": "flex",
+   "color": "rgb(255, 255, 255)",
+   "bg": "rgba(0, 0, 0, 0)",
+   "pos": "static",
+   "z": "auto",
+   "cls": "jf-element flex j-ou8jrn0 j-ccq4uw0"
+  },
+  {
+   "depth": 6,
+   "tag": "div",
+   "rect": [
+    0,
+    0,
+    412,
+    664
+   ],
+   "op": "1",
+   "vis": "visible",
+   "disp": "flex",
+   "color": "rgb(255, 255, 255)",
+   "bg": "rgba(0, 0, 0, 0)",
+   "pos": "absolute",
+   "z": "auto",
+   "cls": "jf-element jf-vscroller  at-top at-bottom jb4wt3f0 jqdyc9c0 j-1r6s030 j-bd9wn50 j-i5opld0 jy49p8z0 j",
+   "overflow": "hidden scroll"
+  },
+  {
+   "depth": 7,
+   "tag": "div",
+   "rect": [
+    8,
+    0,
+    396,
+    0
+   ],
+   "op": "1",
+   "vis": "visible",
+   "disp": "flex",
+   "color": "rgb(255, 255, 255)",
+   "bg": "rgba(0, 0, 0, 0)",
+   "pos": "relative",
+   "z": "auto",
+   "cls": "jf-element flex jfa278c0 j-ou8jrn0 jdjkzud0 j-ugihcf0 j-by1qh80"
+  },
+  {
+   "depth": 7,
+   "tag": "div",
+   "rect": [
+    8,
+    0,
+    396,
+    648
+   ],
+   "op": "1",
+   "vis": "visible",
+   "disp": "flex",
+   "color": "rgb(255, 255, 255)",
+   "bg": "rgba(0, 0, 0, 0)",
+   "pos": "static",
+   "z": "auto",
+   "cls": "jf-element flex jy49p8z0 j-i5opld0 jfa278c0 j-b9iunn28 jbftyop29"
+  },
+  {
+   "depth": 6,
+   "tag": "div",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "op": "0",
+   "vis": "visible",
+   "disp": "none",
+   "color": "rgb(255, 255, 255)",
+   "bg": "rgba(0, 0, 0, 0)",
+   "pos": "absolute",
+   "z": "auto",
+   "cls": "jf-element jf-can-scroll-indicator jf-scroll-indicator-down j-6fssxc0 jb4wt3f0 j-a264be0 j-ur6a990 j",
+   "text": ""
+  },
+  {
+   "depth": 5,
+   "tag": "div",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "op": "1",
+   "vis": "visible",
+   "disp": "none",
+   "color": "rgb(255, 255, 255)",
+   "bg": "rgba(0, 0, 0, 0)",
+   "pos": "static",
+   "z": "auto",
+   "cls": "jf-element flex jh9bqrp0 j-3uyhgj29 j-bd9wn529"
+  },
+  {
+   "depth": 6,
+   "tag": "div",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "op": "1",
+   "vis": "visible",
+   "disp": "flex",
+   "color": "rgb(255, 255, 255)",
+   "bg": "rgba(0, 0, 0, 0)",
+   "pos": "static",
+   "z": "auto",
+   "cls": "jf-element flex jy49p8z0 jyks6vd0 j42ofci0 jfa278c0 jhji4sz0 jrg0orv0 j2artyj0 j-b9iunn28 jbftyop29"
+  },
+  {
+   "depth": 7,
+   "tag": "div",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "op": "1",
+   "vis": "visible",
+   "disp": "flex",
+   "color": "rgb(255, 255, 255)",
+   "bg": "rgb(38, 38, 38)",
+   "pos": "static",
+   "z": "auto",
+   "cls": "jf-element flex jfa278c0 jqjp5430 j8vunac0 j-by1qh80 j-pmlt8x0 j-dlswat0 jllpup913 jllpup911 jvbtivl"
+  },
+  {
+   "depth": 7,
+   "tag": "div",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "op": "1",
+   "vis": "visible",
+   "disp": "flex",
+   "color": "rgb(255, 255, 255)",
+   "bg": "rgba(0, 0, 0, 0)",
+   "pos": "static",
+   "z": "auto",
+   "cls": "jf-element flex jy49p8z0 jyks6vd0"
+  },
+  {
+   "depth": 3,
+   "tag": "div",
+   "rect": [
+    206,
+    773,
+    0,
+    0
+   ],
+   "op": "1",
+   "vis": "visible",
+   "disp": "flex",
+   "color": "rgb(255, 255, 255)",
+   "bg": "rgba(0, 0, 0, 0)",
+   "pos": "fixed",
+   "z": "1000",
+   "cls": "jf-element",
+   "transform": "matrix(1, 0, 0, 1, 0, 0)"
+  },
+  {
+   "depth": 4,
+   "tag": "style",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "op": "1",
+   "vis": "visible",
+   "disp": "none",
+   "color": "rgb(255, 255, 255)",
+   "bg": "rgba(0, 0, 0, 0)",
+   "pos": "static",
+   "z": "auto",
+   "cls": "jf-element",
+   "text": "@keyframes slideUp {\n            from {\n"
+  },
+  {
+   "depth": 1,
+   "tag": "button",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "op": "1",
+   "vis": "visible",
+   "disp": "none",
+   "color": "rgb(255, 255, 255)",
+   "bg": "rgba(0, 0, 0, 0)",
+   "pos": "static",
+   "z": "auto",
+   "cls": "hidden",
+   "text": ""
+  }
+ ],
+ "animaciones": [],
+ "capaSuperior": [],
+ "cuerpo": {
+  "tag": "body",
+  "rect": [
+   0,
+   0,
+   412,
+   789
+  ],
+  "op": "1",
+  "vis": "visible",
+  "disp": "block",
+  "color": "rgb(255, 255, 255)",
+  "bg": "rgb(0, 0, 0)",
+  "pos": "static",
+  "z": "auto",
+  "overflow": "hidden"
+ },
+ "html": {
+  "tag": "html",
+  "rect": [
+   0,
+   0,
+   412,
+   789
+  ],
+  "op": "1",
+  "vis": "visible",
+  "disp": "block",
+  "color": "rgb(255, 255, 255)",
+  "bg": "rgb(0, 0, 0)",
+  "pos": "static",
+  "z": "auto"
+ },
+ "estilosHoja": 10,
+ "temaColor": "#000000"
+}

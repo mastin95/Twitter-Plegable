@@ -1,0 +1,6 @@
+TextView [134,733][182,820] 'P'
+TextView [84,913][357,1008] 'Pliegue'
+TextView [84,1040][996,1218] 'X para tu móvil plegable: dos mitades, sobremesa, columnas, la mesa y Mi feed, con tu cuenta de verdad.'
+TextView [126,1342][447,1389] 'Iniciar sesión en X'
+TextView [126,1500][336,1547] 'Ver la demo'
+TextView [84,1639][996,1763] 'Entras en la web oficial de X con tu usuario y contraseña. La app no ve la contraseña: solo guarda la sesión del navegad'

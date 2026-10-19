@@ -1,0 +1,33 @@
+01:33:27 pide GET https://x.com/favicon.ico 
+01:33:28 responde 200 https://x.com/favicon.ico
+01:33:28 pide POST https://api.x.com/1.1/flow/viewer.json debug=true&log=…
+01:33:28 pide POST https://api.x.com/1.1/graphql/viewer_context.json category=perftown&log=…
+01:33:28 responde 200 https://api.x.com/1.1/flow/viewer.json
+01:33:28   cuerpo https://api.x.com/1.1/flow/viewer.json: 
+01:33:28 responde 200 https://api.x.com/1.1/graphql/viewer_context.json
+01:33:30 pide POST https://api.x.com/1.1/flow/viewer.json debug=true&log=…
+01:33:30 responde 200 https://api.x.com/1.1/flow/viewer.json
+01:33:30   cuerpo https://api.x.com/1.1/flow/viewer.json: 
+01:33:31 pide POST https://api.x.com/1.1/flow/viewer.json debug=true&log=…
+01:33:32 responde 200 https://api.x.com/1.1/flow/viewer.json
+01:33:32   cuerpo https://api.x.com/1.1/flow/viewer.json: 
+01:33:43 pide POST https://api.x.com/1.1/flow/viewer.json debug=true&log=…
+01:33:43 responde 200 https://api.x.com/1.1/flow/viewer.json
+01:33:43   cuerpo https://api.x.com/1.1/flow/viewer.json: 
+01:33:50 pide POST https://jf.x.com/onboarding/web/actions/begin_login username_or_email=pliegue.prueba.ci%40example.com&%24castle_token=…
+01:33:50 pide OPTIONS https://jf.x.com/onboarding/web/actions/begin_login 
+01:33:50 responde 200 https://jf.x.com/onboarding/web/actions/begin_login
+01:33:51   sin cuerpo: Network.getResponseBody: {'code': -32000, 'message': 'No resource with given identifier found'}
+01:33:51 responde 200 https://jf.x.com/onboarding/web/actions/begin_login
+01:33:51   cuerpo https://jf.x.com/onboarding/web/actions/begin_login:       ×  i  êÅ Áð        page onboarding section signup component begin_verification2 errorsNSorry, something is not right. Please try using a different method to sign up.     error    codeNSorry, something is not right. Please try using a different method to sign up.   sÕj       
+01:33:53 pide POST https://api.x.com/1.1/flow/viewer.json debug=true&log=…+something+is+not+right.+Please+try+using+a+different+method+to+sign+…
+01:33:53 responde 200 https://api.x.com/1.1/flow/viewer.json
+01:33:53   cuerpo https://api.x.com/1.1/flow/viewer.json: 
+01:34:03 pide POST https://api.x.com/1.1/flow/viewer.json debug=true&log=…
+01:34:03 responde 200 https://api.x.com/1.1/flow/viewer.json
+01:34:03   cuerpo https://api.x.com/1.1/flow/viewer.json: 
+01:34:22 pide GET https://x.com/favicon.ico 
+01:34:22 responde 200 https://x.com/favicon.ico
+01:34:25 pide POST https://api.x.com/1.1/flow/viewer.json debug=true&log=…
+01:34:25 responde 200 https://api.x.com/1.1/flow/viewer.json
+01:34:25   cuerpo https://api.x.com/1.1/flow/viewer.json: 
