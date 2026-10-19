@@ -3,6 +3,8 @@
 (async () => {
   const out = {};
   out.visibilidad = document.visibilityState;
+  const alto = (u) => { const e = document.createElement('div'); e.style.cssText = `position:fixed;top:0;left:0;width:1px;visibility:hidden;height:100${u}`; document.documentElement.appendChild(e); const h = e.getBoundingClientRect().height; e.remove(); return Math.round(h); };
+  out.alto100 = { vh: alto('vh'), dvh: alto('dvh'), svh: alto('svh'), lvh: alto('lvh'), innerHeight };
   out.foco = document.hasFocus();
   out.fotogramasEnMedioSegundo = await new Promise((done) => {
     let n = 0;

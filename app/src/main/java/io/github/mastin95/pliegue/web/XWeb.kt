@@ -116,7 +116,8 @@ object XWeb {
               (oculto ? ' · oculto por ' + oculto : ' · sin ocultar') +
               ' · encima: ' + (top ? top.tagName.toLowerCase() + (top === d || d.contains(top) ? ' (del diálogo)' : ' (otra capa)') : 'nada'));
           }
-          out.push('popover ' + ('popover' in HTMLElement.prototype ? 'sí' : 'no') + ' · ventana ' + innerWidth + 'x' + innerHeight + ' · ' + location.host + location.pathname);
+          var alto = function(u){ var e = document.createElement('div'); e.style.cssText = 'position:fixed;top:0;left:0;width:1px;visibility:hidden;height:100' + u; document.documentElement.appendChild(e); var h = e.getBoundingClientRect().height; e.remove(); return Math.round(h); };
+          out.push('100vh=' + alto('vh') + ' 100dvh=' + alto('dvh') + ' · ventana ' + innerWidth + 'x' + innerHeight + ' · ' + location.host + location.pathname);
           return out.join(' · ');
         })()
     """.trimIndent()

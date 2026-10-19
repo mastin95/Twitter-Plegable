@@ -138,11 +138,19 @@ class WebPanes(
 
     fun has(slot: String) = slot in slots
 
+    /**
+     * Las WebViews tienen que ocupar todo su hueco con MATCH_PARENT. Sin parámetros, Compose las cuelga
+     * con WRAP_CONTENT, y entonces la WebView fuerza a 0 el alto que ve la página: 100vh y 100dvh valen 0.
+     * El formulario de login de X mide su caja con calc(100dvh - 32px), así que se quedaba con alto 0 y la
+     * pantalla en negro (visto en el Android virtual con las herramientas de Chrome).
+     */
+    private fun fullSize() = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+
     /** La WebView de una ranura; se crea y carga `url` la primera vez. */
     fun get(slot: String, url: String, opts: PaneOptions = PaneOptions()): PaneWebView {
         options[slot] = opts
         slots[slot]?.let { return it }
-        val v = PaneWebView(activity)
+        val v = PaneWebView(activity).apply { layoutParams = fullSize() }
         setUp(v, slot)
         slots[slot] = v
         requested[slot] = url
@@ -347,7 +355,7 @@ class WebPanes(
             return false
         }
         closePopup()
-        val p = PaneWebView(activity)
+        val p = PaneWebView(activity).apply { layoutParams = fullSize() }
         applySettings(p, popupWindow = true)
         // Una vez la ventana está en X, Google o Apple, todo lo que pase dentro se queda dentro: el
         // inicio de sesión salta por páginas que no conocemos y abrirlas fuera lo rompe.
