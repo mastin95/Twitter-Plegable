@@ -86,10 +86,15 @@ def watch(port, seconds, out):
     lines = []
     end = time.time() + float(seconds)
     while time.time() < end:
-        m = c.recv(max(0.1, end - time.time()))
+        try:
+            m = c.recv(max(0.1, end - time.time()))
+        except Exception as e:  # la WebView se cerró (por ejemplo, al salir del login)
+            lines.append(f"{time.strftime('%H:%M:%S')} fin: {e}")
+            break
         if not m:
             continue
         meth, p = m.get('method'), m.get('params', {})
+        n0 = len(lines)
         if meth == 'Network.requestWillBeSent':
             u = p['request']['url']
             if re.search(r'(^|\.)x\.com|twitter\.com|google\.com', u.split('/')[2] if '//' in u else ''):
@@ -121,6 +126,8 @@ def watch(port, seconds, out):
         elif meth == 'Log.entryAdded':
             e = p.get('entry', {})
             lines.append(f"aviso {e.get('level')}: {red(e.get('text'))[:400]} {e.get('url', '')[:100]}")
+        stamp = time.strftime('%H:%M:%S')
+        lines[n0:] = [f"{stamp} {l}" for l in lines[n0:]]
     with open(out, 'w', encoding='utf-8') as f:
         f.write('\n'.join(lines) + '\n')
     print(f'{len(lines)} líneas de red y consola en {out}')

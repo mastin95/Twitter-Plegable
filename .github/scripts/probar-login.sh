@@ -96,8 +96,10 @@ escribir() { # texto
 }
 
 # Envía el paso con Intro, como en el teclado del móvil; si no avanza, cierra el teclado y toca el botón.
-enviar() { # patrón del paso siguiente
+enviar() { # patrón del paso siguiente, nombre del paso
   adb shell input keyevent 66
+  sleep 2
+  paso "$2-al-momento"
   espera "$1" 25 && return 0
   echo "Intro no avanzó: cierro el teclado y toco el botón"
   adb shell input keyevent 111
@@ -116,7 +118,7 @@ paso correo-escrito
 sleep 10
 paso correo-diez-segundos-despues
 python3 "$UI" fields "$OUT/$(printf '%02d' "$n")-correo-diez-segundos-despues.xml"
-enviar "$SIGUIENTE"
+enviar "$SIGUIENTE" correo
 sleep 3
 paso tras-enviar-correo
 
@@ -129,9 +131,14 @@ sleep 3
 toca '^Iniciar sesión en X$'
 espera 'class=android.widget.EditText' 90
 sleep 6
+[ -n "${WATCH:-}" ] && wait "$WATCH"
+if devtools; then
+  python3 .github/scripts/cdp.py watch 9222 75 "$OUT/red-usuario.txt" &
+  WATCH=$!
+fi
 escribir "$USUARIO"
 paso usuario-escrito
-enviar '(?i)password|contraseña'
+enviar '(?i)password|contraseña' usuario
 sleep 3
 paso tras-enviar-usuario
 volcar /tmp/ui.xml && python3 "$UI" fields /tmp/ui.xml
@@ -146,7 +153,9 @@ espera 'class=android.widget.EditText' 45
 sleep 5
 paso tras-recargar
 [ -n "${WATCH:-}" ] && wait "$WATCH"
-[ -f "$OUT/red-correo.txt" ] && { echo "===== red-correo"; head -c 8000 "$OUT/red-correo.txt"; echo; }
+for f in red-correo red-usuario; do
+  [ -f "$OUT/$f.txt" ] && { echo "===== $f"; grep -v 'cuerpo https://jf.x.com/onboarding/web?mode' "$OUT/$f.txt" | head -c 8000; echo; }
+done
 devtools && python3 .github/scripts/cdp.py shot 9222 "$OUT/web-final.png"
 
 # Lo que la app apunta en su registro (también va a logcat con la etiqueta Pliegue).
