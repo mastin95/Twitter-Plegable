@@ -5,6 +5,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
+import android.webkit.WebView
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
@@ -44,6 +45,8 @@ class MainActivity : ComponentActivity() {
             }
             previous?.uncaughtException(thread, error)
         }
+        // Solo para las pruebas en el Android virtual: deja inspeccionar las webs con las herramientas de Chrome.
+        if (intent?.getBooleanExtra("depurar_web", false) == true) WebView.setWebContentsDebuggingEnabled(true)
         web = WebPanes(this) { params, callback ->
             fileCallback?.onReceiveValue(null)
             fileCallback = callback

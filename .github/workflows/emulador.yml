@@ -31,6 +31,9 @@ jobs:
       - name: APK de depuración
         run: ./gradlew --no-daemon assembleDebug
 
+      - name: Cliente de DevTools
+        run: python3 -m pip install --quiet websocket-client
+
       - name: Activar KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules

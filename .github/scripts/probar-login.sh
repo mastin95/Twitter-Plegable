@@ -51,7 +51,7 @@ espera() { # patrón segundos
 
 adb logcat -c
 adb install -r "$APK"
-adb shell am start -W -n "$PKG/.MainActivity"
+adb shell am start -W -n "$PKG/.MainActivity" --ez depurar_web true
 sleep 8
 paso inicio
 
@@ -60,10 +60,21 @@ espera '(?i)phone, email|email or username|teléfono, correo|correo o usuario|^(
 sleep 4
 paso formulario
 
-# Que la app apunte en su registro qué hay en la página (y si el formulario está oculto, por qué).
-toca '^Más opciones$' && sleep 2 && toca '^Anotar lo que se ve en el registro$'
-sleep 3
-paso registro-abierto
+# Herramientas de Chrome contra la web del login: lo que pinta la propia web y por qué.
+devtools() {
+  local pid sock
+  pid=$(adb shell pidof "$PKG" | tr -d '\r')
+  sock=$(adb shell cat /proc/net/unix | grep -o "webview_devtools_remote_$pid" | head -1)
+  [ -n "$sock" ] || { echo "sin socket de DevTools (pid $pid)"; return 1; }
+  adb forward tcp:9222 "localabstract:$sock" >/dev/null && echo "DevTools en $sock"
+}
+if devtools; then
+  python3 .github/scripts/cdp.py shot 9222 "$OUT/web-formulario.png"
+  python3 .github/scripts/cdp.py eval 9222 .github/scripts/diag.js > "$OUT/diag-formulario.json" 2>&1
+  echo "===== diag-formulario"; head -c 6000 "$OUT/diag-formulario.json"; echo
+  python3 .github/scripts/cdp.py watch 9222 45 "$OUT/red-correo.txt" &
+  WATCH=$!
+fi
 
 if toca 'class=android.widget.EditText'; then
   sleep 2
@@ -78,6 +89,9 @@ paso tras-siguiente
 
 sleep 10
 paso diez-segundos-despues
+[ -n "${WATCH:-}" ] && wait "$WATCH"
+[ -f "$OUT/red-correo.txt" ] && { echo "===== red-correo"; head -c 8000 "$OUT/red-correo.txt"; echo; }
+devtools && python3 .github/scripts/cdp.py shot 9222 "$OUT/web-final.png"
 
 # Lo que la app apunta en su registro (también va a logcat con la etiqueta Pliegue).
 adb logcat -d -s Pliegue:I > "$OUT/registro-app.txt" 2>&1

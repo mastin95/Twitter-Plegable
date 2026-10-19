@@ -300,8 +300,11 @@ object XWeb {
           var P = { posts: $interceptPosts, chrome: $hideChrome };
           window.__pliegue = P;
           P.style = function(){
+            // Al empezar a cargar puede no haber documento todavía: entonces se pone al terminar de leerlo.
+            var root = document.head || document.documentElement;
+            if (!root) { document.addEventListener('DOMContentLoaded', P.style, {once: true}); return; }
             var s = document.getElementById('pliegue-style');
-            if (!s) { s = document.createElement('style'); s.id = 'pliegue-style'; document.documentElement.appendChild(s); }
+            if (!s) { s = document.createElement('style'); s.id = 'pliegue-style'; root.appendChild(s); }
             s.textContent = P.chrome ? '[data-testid="BottomBar"],[data-testid="FloatingActionButton"],a[data-testid="FloatingActionButtons_Tweet_Button"],[data-testid="BottomBar"]+div{display:none!important}' : '';
           };
           P.style();
