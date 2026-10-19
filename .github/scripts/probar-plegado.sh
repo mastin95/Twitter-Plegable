@@ -20,7 +20,18 @@ volcar() {
   done
   return 1
 }
+# El Android virtual a veces saca "Pixel Launcher isn't responding" encima de todo; se espera.
+sin_avisos() {
+  for _ in 1 2 3; do
+    volcar /tmp/aviso.xml || return 0
+    python3 "$UI" find /tmp/aviso.xml "isn't responding" >/dev/null 2>&1 || return 0
+    echo "aviso de 'no responde': toco Wait"
+    adb shell input tap $(python3 "$UI" find /tmp/aviso.xml '^Wait$')
+    sleep 3
+  done
+}
 paso() {
+  sin_avisos
   n=$((n + 1))
   local base
   base=$(printf '%02d-%s' "$n" "$1")
@@ -52,6 +63,7 @@ adb logcat -c
 adb install -r "$APK"
 adb shell am start -W -n "$PKG/.MainActivity" --ez depurar_web true
 sleep 8
+sin_avisos
 toca '^Iniciar sesión en X$'
 sleep 12
 devtools && python3 .github/scripts/cdp.py sesion-falsa 9222
