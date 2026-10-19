@@ -236,7 +236,7 @@ fun WebHalf(vm: AppViewModel, index: Int, modifier: Modifier) {
     val open = panel.openUrl
     val url = vm.paneUrl(index, web.userId)
     val other = vm.webPanels[1 - index]
-    val external = open != null && XWeb.isExternal(open)
+    val external = open != null && (XWeb.isExternal(open) || XWeb.isMedia(open))
     val reading = vm.mode == OpenMode.Libro && open != null && !external
     UserDropTarget(vm, fromLabel = other.source.label, modifier) {
         Column(Modifier.fillMaxSize()) {
@@ -312,11 +312,12 @@ fun WebPostHeader(vm: AppViewModel, index: Int, compact: Boolean = false) {
     val panel = vm.webPanels[index]
     val url = panel.openUrl ?: return
     val composing = panel.fromLabel == "Redactar"
-    val external = XWeb.isExternal(url)
+    val external = XWeb.isExternal(url) || XWeb.isMedia(url)
     // Una web ajena se llama por su dominio, el de la página de ahora (los enlaces de X pasan por t.co).
     val current = web.urls["pane$index"]?.takeIf { XWeb.isExternal(it) } ?: url
     val title = when {
         composing -> "Redactar"
+        XWeb.isMedia(url) -> "Foto"
         external -> XWeb.siteLabel(current)
         XWeb.isStatus(url) -> "Post"
         else -> XWeb.handleOf(url)?.let { "@$it" } ?: "X"

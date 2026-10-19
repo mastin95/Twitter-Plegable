@@ -86,6 +86,16 @@ object XWeb {
         else -> null
     }
 
+    /** Una imagen de X (pbs.twimg.com), abierta sola en una mitad al tocar la foto de un post. */
+    fun isMedia(url: String): Boolean = host(url) == "pbs.twimg.com"
+
+    /** La misma imagen de X a tamaño grande: en el feed va con name=small o name=360x360. */
+    fun largeImage(url: String): String = when {
+        Regex("[?&]name=").containsMatchIn(url) -> url.replace(Regex("([?&])name=[^&#]*"), "$1name=large")
+        '?' in url -> "$url&name=large"
+        else -> "$url?name=large"
+    }
+
     /** Nombre de la web de un enlace para la cabecera: "elpais.com". */
     fun siteLabel(url: String): String = host(url)?.removePrefix("www.")?.removePrefix("m.") ?: "Enlace"
 
@@ -347,7 +357,17 @@ object XWeb {
             if (!t || !t.closest) return;
             var art = t.closest('article[data-testid="tweet"]');
             if (!art) return;
-            if (t.closest('a,button,[role="button"],[role="link"],video,[data-testid="tweetPhoto"],[data-testid="videoPlayer"],[data-testid="card.wrapper"]')) return;
+            // La foto de un post se abre sola en la otra mitad, a tamaño grande; los vídeos siguen en su sitio.
+            var ph = t.closest('[data-testid="tweetPhoto"]');
+            if (ph) {
+              var img = ph.querySelector('img[src*="pbs.twimg.com/media/"]');
+              if (img && img.src && window.Pliegue.openLink) {
+                e.preventDefault(); e.stopPropagation();
+                window.Pliegue.openLink(img.src);
+              }
+              return;
+            }
+            if (t.closest('a,button,[role="button"],[role="link"],video,[data-testid="videoPlayer"],[data-testid="card.wrapper"]')) return;
             var time = art.querySelector('a[href*="/status/"] time');
             var link = time ? time.parentElement : art.querySelector('a[href*="/status/"]');
             if (!link || !link.href) return;

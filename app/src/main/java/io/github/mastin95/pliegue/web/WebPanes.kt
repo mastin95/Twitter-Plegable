@@ -560,6 +560,15 @@ class WebPanes(
         fun dragUser(handle: String) {
             main.post { startDrag(slot, handle) }
         }
+
+        /** La foto de un post: la app la abre en la otra mitad; donde no hay otra, en el navegador. */
+        @JavascriptInterface
+        fun openLink(url: String) {
+            main.post {
+                lastActive = slot
+                if (!onOpenLink(slot, url)) openOutside(slot, Uri.parse(url))
+            }
+        }
     }
 
     private fun startDrag(slot: String, handle: String) {

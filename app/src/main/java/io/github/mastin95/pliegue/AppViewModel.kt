@@ -195,7 +195,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
      * con sus respuestas sigue a la vista; en las columnas, en el hueco del post abierto. Donde no hay
      * otra mitad (post ampliado, la mesa) va al navegador.
      */
-    fun onWebLink(slot: String, url: String): Boolean {
+    fun onWebLink(slot: String, link: String): Boolean {
+        val url = if (XWeb.isMedia(link)) XWeb.largeImage(link) else link
         when {
             slot == "pane0" || slot == "pane1" -> openWebPost(if (slot == "pane0") 0 else 1, url)
             slot.startsWith("col:") -> {

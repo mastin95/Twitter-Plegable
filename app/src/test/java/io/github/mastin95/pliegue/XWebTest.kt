@@ -95,6 +95,15 @@ class XWebTest {
     }
 
     @Test
+    fun `la foto de un post se abre a tamaño grande`() {
+        assertTrue(XWeb.isMedia("https://pbs.twimg.com/media/abc?format=jpg&name=small"))
+        assertFalse(XWeb.isMedia("https://x.com/a/status/1/photo/1"))
+        assertEquals("https://pbs.twimg.com/media/abc?format=jpg&name=large", XWeb.largeImage("https://pbs.twimg.com/media/abc?format=jpg&name=small"))
+        assertEquals("https://pbs.twimg.com/media/abc?name=large&format=png", XWeb.largeImage("https://pbs.twimg.com/media/abc?name=360x360&format=png"))
+        assertEquals("https://pbs.twimg.com/media/abc.jpg?name=large", XWeb.largeImage("https://pbs.twimg.com/media/abc.jpg"))
+    }
+
+    @Test
     fun `salir del formulario de inicio de sesión se reconoce`() {
         assertTrue(XWeb.isLoginFlow("https://x.com/i/flow/login?redirect_after_login=%2Fhome"))
     }
