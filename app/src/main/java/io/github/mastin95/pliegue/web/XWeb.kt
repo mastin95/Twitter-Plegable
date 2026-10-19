@@ -70,8 +70,14 @@ object XWeb {
     /** Enlaces web (http/https), frente a `mailto:`, `intent:` o `tel:`, que siempre van fuera. */
     fun isWeb(url: String) = url.startsWith("https://") || url.startsWith("http://")
 
-    /** Las ventanas que la web abre aparte (el inicio de sesión con Google) se enseñan dentro; los enlaces de posts a otras webs van al navegador. */
+    /** Las ventanas que la web abre aparte (el inicio de sesión con Google) se enseñan dentro; los enlaces de posts a otras webs no son ventanas. */
     fun opensOutside(url: String): Boolean = !isWeb(url) || !isOwn(url) || host(url) == "t.co"
+
+    /** Enlace de un post a otra web (los de X van por t.co): se abre en la otra mitad, no en el navegador. */
+    fun isExternal(url: String): Boolean = isWeb(url) && (!isOwn(url) || host(url) == "t.co")
+
+    /** Nombre de la web de un enlace para la cabecera: "elpais.com". */
+    fun siteLabel(url: String): String = host(url)?.removePrefix("www.")?.removePrefix("m.") ?: "Enlace"
 
     fun host(url: String): String? {
         val m = Regex("^https?://([^/?#]+)").find(url) ?: return null

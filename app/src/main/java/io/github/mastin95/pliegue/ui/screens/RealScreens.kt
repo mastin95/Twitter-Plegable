@@ -67,6 +67,7 @@ import io.github.mastin95.pliegue.ui.web.LocalWebPanes
 import io.github.mastin95.pliegue.ui.web.UserDropTarget
 import io.github.mastin95.pliegue.ui.web.WebPane
 import io.github.mastin95.pliegue.web.PaneOptions
+import io.github.mastin95.pliegue.web.XWeb
 
 /** X real con tu sesión: la misma carcasa por posturas, pero cada mitad es una web de X. */
 @Composable
@@ -102,7 +103,7 @@ fun RealFolded(vm: AppViewModel) {
             if (url == null) {
                 EmptyMyFeed(Modifier.weight(1f))
             } else {
-                WebPane(slot, url, Modifier.weight(1f), PaneOptions(interceptPosts = false, hideChrome = false))
+                WebPane(slot, url, Modifier.weight(1f), if (XWeb.isExternal(url)) PaneOptions.EXTERNAL else PaneOptions(interceptPosts = false, hideChrome = false))
             }
         }
         if (focused == null) {
@@ -235,7 +236,8 @@ fun WebHalf(vm: AppViewModel, index: Int, modifier: Modifier) {
     val open = panel.openUrl
     val url = vm.paneUrl(index, web.userId)
     val other = vm.webPanels[1 - index]
-    val reading = vm.mode == OpenMode.Libro && open != null
+    val external = open != null && XWeb.isExternal(open)
+    val reading = vm.mode == OpenMode.Libro && open != null && !external
     UserDropTarget(vm, fromLabel = other.source.label, modifier) {
         Column(Modifier.fillMaxSize()) {
             if (open != null) WebPostHeader(vm, index) else SourceTabs(vm, index)
@@ -243,7 +245,7 @@ fun WebHalf(vm: AppViewModel, index: Int, modifier: Modifier) {
                 index == 1 && (vm.mode == OpenMode.Uno || vm.mode == OpenMode.Libro) && open == null -> EmptyDetail(libro = vm.mode == OpenMode.Libro)
                 panel.source == Source.Fijados && open == null -> PinnedList(vm, onOpen = { vm.openWebPost(index, it) }, modifier = Modifier.weight(1f))
                 url == null -> EmptyMyFeed(Modifier.weight(1f))
-                else -> WebPane("pane$index", url, Modifier.weight(1f), PaneOptions(interceptPosts = true, hideChrome = true), textZoom = if (reading) 118 else 100)
+                else -> WebPane("pane$index", url, Modifier.weight(1f), if (external) PaneOptions.EXTERNAL else PaneOptions(interceptPosts = true, hideChrome = true), textZoom = if (reading) 118 else 100)
             }
         }
     }
@@ -306,9 +308,18 @@ fun SourceTabs(vm: AppViewModel, index: Int) {
  */
 @Composable
 fun WebPostHeader(vm: AppViewModel, index: Int, compact: Boolean = false) {
+    val web = LocalWebPanes.current
     val panel = vm.webPanels[index]
     val url = panel.openUrl ?: return
     val composing = panel.fromLabel == "Redactar"
+    val external = XWeb.isExternal(url)
+    // Una web ajena se llama por su dominio, el de la página de ahora (los enlaces de X pasan por t.co).
+    val current = web.urls["pane$index"]?.takeIf { XWeb.isExternal(it) } ?: url
+    val title = when {
+        composing -> "Redactar"
+        external -> XWeb.siteLabel(current)
+        else -> "Post"
+    }
     Row(
         Modifier
             .fillMaxWidth()
@@ -322,13 +333,20 @@ fun WebPostHeader(vm: AppViewModel, index: Int, compact: Boolean = false) {
             Icon(XIcons.Back, contentDescription = "Atrás", tint = X.Text, modifier = Modifier.size(20.dp))
         }
         Spacer(Modifier.width(8.dp))
-        Text(if (composing) "Redactar" else "Post", style = XType.title, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+        Text(title, style = XType.title, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+        if (external) {
+            IconButton(onClick = { web.openInBrowser(current) }) {
+                Icon(XIcons.Globe, contentDescription = "Abrir en el navegador", tint = X.Text, modifier = Modifier.size(20.dp))
+            }
+        }
         if (!composing && !compact) {
-            IconButton(onClick = { vm.composeWeb(1 - index, quoting = url) }) {
+            IconButton(onClick = { vm.composeWeb(1 - index, quoting = current) }) {
                 Icon(XIcons.Compose, contentDescription = "Citar en un post", tint = X.Text, modifier = Modifier.size(20.dp))
             }
-            IconButton(onClick = { vm.expand(url) }) {
-                Icon(XIcons.Expand, contentDescription = "Ampliar", tint = X.Text, modifier = Modifier.size(20.dp))
+            if (!external) {
+                IconButton(onClick = { vm.expand(url) }) {
+                    Icon(XIcons.Expand, contentDescription = "Ampliar", tint = X.Text, modifier = Modifier.size(20.dp))
+                }
             }
         }
         if (!compact) {

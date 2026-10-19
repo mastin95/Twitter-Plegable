@@ -43,8 +43,15 @@ class PaneWebView(context: Context) : WebView(context) {
 /**
  * Qué quiere cada panel de su web: avisar de los toques en posts, esconder la barra inferior de la
  * web y, en el inicio de sesión, no mandar nunca una página al navegador de fuera (`keepInside`).
+ * `external` es una web ajena abierta desde un enlace de un post: sin el puente de X, y sus enlaces
+ * se quedan en ella.
  */
-data class PaneOptions(val interceptPosts: Boolean = true, val hideChrome: Boolean = true, val keepInside: Boolean = false, val debugLogin: Boolean = false)
+data class PaneOptions(val interceptPosts: Boolean = true, val hideChrome: Boolean = true, val keepInside: Boolean = false, val debugLogin: Boolean = false, val external: Boolean = false) {
+    companion object {
+        /** Una web ajena abierta desde un enlace: tal cual, sin tocar nada. */
+        val EXTERNAL = PaneOptions(interceptPosts = false, hideChrome = false, external = true)
+    }
+}
 
 /**
  * Guarda una WebView por "ranura" (pane0, pane1, col:…, mesa0…) para que sobrevivan a plegar y
@@ -59,6 +66,9 @@ class WebPanes(
 
     /** Se empezó a arrastrar un usuario desde una ranura. */
     var onDragUser: (slot: String, handle: String) -> Unit = { _, _ -> }
+
+    /** Un enlace a otra web tocado en una ranura; la app dice si lo enseña ella (en la otra mitad) o va al navegador. */
+    var onOpenLink: (slot: String, url: String) -> Boolean = { _, _ -> false }
 
     private val slots = HashMap<String, PaneWebView>()
     private val options = HashMap<String, PaneOptions>()
@@ -183,7 +193,11 @@ class WebPanes(
         if (options[slot] == opts) return
         options[slot] = opts
         slots[slot]?.let { inject(it, slot) }
-        log("[$slot] " + if (opts.hideChrome) "sin las barras de X" else "con las barras de X")
+        log("[$slot] " + when {
+            opts.external -> "web de fuera"
+            opts.hideChrome -> "sin las barras de X"
+            else -> "con las barras de X"
+        })
     }
 
     fun textZoom(slot: String, percent: Int) {
@@ -340,6 +354,23 @@ class WebPanes(
         runCatching { activity.startActivity(Intent(Intent.ACTION_VIEW, url)) }
     }
 
+    /** Abre una dirección en el navegador del móvil (botón "Abrir en el navegador" de una web ajena). */
+    fun openInBrowser(url: String) = openOutside("app", Uri.parse(url))
+
+    /**
+     * Un enlace a otra web tocado en una ranura. Dentro de una web ajena sigue en ella (con su historial);
+     * desde X, la app lo abre en la otra mitad si puede. Si no, al navegador.
+     */
+    private fun takeLink(view: WebView, slot: String, url: String): Boolean {
+        if (!XWeb.isWeb(url)) return false
+        if (options[slot]?.external == true) {
+            view.loadUrl(url)
+            return true
+        }
+        lastActive = slot
+        return onOpenLink(slot, url)
+    }
+
     /**
      * La ventana aparte que pidió una web. Si fue un enlace de un post a otra web (se sabe por el
      * punto tocado), va directamente al navegador y no hay ventana; si no, se crea y se enseña encima.
@@ -348,7 +379,7 @@ class WebPanes(
         val hit = runCatching { opener.hitTestResult }.getOrNull()
         val tapped = hit?.extra?.takeIf { hit.type == WebView.HitTestResult.SRC_ANCHOR_TYPE || hit.type == WebView.HitTestResult.SRC_IMAGE_ANCHOR_TYPE }
         if (tapped != null && XWeb.opensOutside(tapped)) {
-            openOutside(slot, Uri.parse(tapped))
+            if (!takeLink(opener, slot, tapped)) openOutside(slot, Uri.parse(tapped))
             return false
         }
         closePopup()
@@ -424,8 +455,9 @@ class WebPanes(
                 // Los marcos internos (captchas, inicio de sesión con Google) se quedan donde están.
                 if (!request.isForMainFrame) return false
                 val url = request.url.toString()
-                if (XWeb.isWeb(url) && (XWeb.isOwn(url) || options[slot]?.keepInside == true)) return false
-                openOutside(slot, request.url)
+                val o = options[slot]
+                if (XWeb.isWeb(url) && (XWeb.isOwn(url) || o?.keepInside == true || o?.external == true)) return false
+                if (!takeLink(view, slot, url)) openOutside(slot, request.url)
                 return true
             }
 
@@ -500,6 +532,7 @@ class WebPanes(
 
     private fun inject(view: WebView, slot: String) {
         val o = options[slot] ?: PaneOptions()
+        if (o.external) return
         view.evaluateJavascript(XWeb.bridgeScript(o.interceptPosts, o.hideChrome), null)
         if (o.debugLogin) view.evaluateJavascript(XWeb.loginHookScript(), null)
     }

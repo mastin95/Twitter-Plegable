@@ -85,6 +85,7 @@ fun PliegueApp(screen: ScreenInfo, vm: AppViewModel = viewModel()) {
     val web = LocalWebPanes.current
     LaunchedEffect(web) {
         web.onOpenPost = vm::onWebPost
+        web.onOpenLink = vm::onWebLink
         web.onDragUser = { _, handle -> vm.dragHandle = handle }
     }
     val real = vm.appMode == AppMode.Real
