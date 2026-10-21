@@ -92,16 +92,16 @@ plegar() { adb shell wm size reset; sleep 12; }
 
 adb logcat -c
 adb install -r "$APK"
-# Un vídeo de muestra para el reproductor propio (en el Android virtual no hay vídeos de X): se genera con
-# ffmpeg (barras de prueba y un tono) y se deja en la carpeta privada de la app, que con la red simulada lo
-# reproduce en vez del de X. Los vídeos públicos de muestra de internet no valen: el de Google devolvía 403.
-if ffmpeg -loglevel error -y -f lavfi -i "testsrc=duration=8:size=640x360:rate=24" -f lavfi -i "sine=frequency=440:duration=8" -pix_fmt yuv420p -c:v libx264 -profile:v baseline -level 3.0 -preset veryfast -c:a aac /tmp/muestra.mp4 \
-  && adb push /tmp/muestra.mp4 /data/local/tmp/muestra.mp4 >/dev/null \
-  && adb shell "run-as $PKG sh -c 'mkdir -p files && cp /data/local/tmp/muestra.mp4 files/muestra.mp4'"; then
-  echo "vídeo de muestra en la carpeta de la app"
-else
-  echo "sin vídeo de muestra (el reproductor dará error en las capturas)"
-fi
+# Un vídeo de muestra para el reproductor propio (en el Android virtual no hay vídeos de X): se graba la
+# pantalla del propio Android virtual unos segundos (screenrecord; el ejecutor no trae ffmpeg) y se deja
+# en la carpeta privada de la app, que con la red simulada lo reproduce en vez del de X. Los vídeos
+# públicos de muestra de internet no valen: el de Google devolvía 403.
+video_muestra() {
+  adb shell screenrecord --time-limit 6 --size 640x360 --bit-rate 1500000 /data/local/tmp/muestra.mp4 || return 1
+  sleep 2
+  adb shell "run-as $PKG sh -c 'mkdir -p files && cp /data/local/tmp/muestra.mp4 files/muestra.mp4 && ls -l files/muestra.mp4'"
+}
+if video_muestra; then echo "vídeo de muestra en la carpeta de la app"; else echo "sin vídeo de muestra (el reproductor dará error en las capturas)"; fi
 # Sin los avisos de "no responde" del sistema (el Android virtual va lento y el del lanzador tapa la app).
 adb shell settings put global hide_error_dialogs 1
 adb shell am start -W -n "$PKG/.MainActivity" --ez depurar_web true --ez red_simulada true
