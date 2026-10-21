@@ -14,6 +14,11 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "0.1.0"
+        // Para saber qué APK hay instalado (Ajustes → "Esta versión"): el número de ejecución de
+        // GitHub Actions, el commit y la hora de compilar; en un ordenador, "local".
+        buildConfigField("String", "BUILD", "\"${System.getenv("GITHUB_RUN_NUMBER") ?: "local"}\"")
+        buildConfigField("String", "COMMIT", "\"${(System.getenv("GITHUB_SHA") ?: "").take(7)}\"")
+        buildConfigField("String", "BUILT", "\"${java.time.ZonedDateTime.now(java.time.ZoneId.of("Europe/Madrid")).format(java.time.format.DateTimeFormatter.ofPattern("d/M HH:mm"))}\"")
     }
 
     // Clave de depuración fija y compartida: sin ella cada compilación en GitHub Actions firma con una
@@ -45,6 +50,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
