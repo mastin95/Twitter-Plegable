@@ -4,7 +4,7 @@ name: Prueba de plegar y desplegar
 # puestas. Las capturas, lo que hay en pantalla y el registro se suben a la rama pruebas-plegado.
 on:
   push:
-    branches: ['mitades-**', 'plegable-**']
+    branches: ['mitades-**', 'plegable-**', 'interfaz-**']
   workflow_dispatch:
 
 permissions:

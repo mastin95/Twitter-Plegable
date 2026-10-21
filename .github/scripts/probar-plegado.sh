@@ -72,6 +72,10 @@ sesion_falsa() {
   return 1
 }
 abrir() { adb shell wm size 2208x1840; sleep 12; }
+# La interfaz propia con posts de ejemplo: a la web de la ranura se le da una respuesta de X de las
+# pruebas, como si la hubiera recibido, y la app la pinta (en el Android virtual X no deja entrar).
+EJ=app/src/test/resources/x
+inyectar() { devtools && python3 .github/scripts/cdp.py inyectar 9222 "$EJ/$1.json" "$2" "${3:-}" "${4:-"{}"}"; sleep 4; }
 plegar() { adb shell wm size reset; sleep 12; }
 
 adb logcat -c
@@ -93,6 +97,18 @@ abrir
 paso abierto-otra-vez
 plegar
 paso plegado-tercera-vez
+
+# Interfaz propia: Inicio con posts de ejemplo, plegado y abierto; un post tocado se abre al otro lado.
+inyectar home HomeTimeline /home
+paso propia-plegado
+abrir
+inyectar home2 HomeTimeline /home '{"cursor":"CURSOR-BOTTOM-1"}'
+paso propia-abierto
+toca 'Para quien preguntaba' && sleep 8
+inyectar detail TweetDetail /status/ '{"focalTweetId":"1008"}'
+paso propia-post-al-lado
+plegar
+paso propia-post-plegado
 
 # Enlaces que llegan de fuera, con la app ya abierta: un post de X, un enlace corto t.co (web ajena) y
 # algo compartido con Pliegue (va al redactor). Se manda a la actividad para que no salga el selector.

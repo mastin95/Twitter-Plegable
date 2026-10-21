@@ -305,6 +305,11 @@ fun SettingsDialog(vm: AppViewModel) {
                     ListRow(XWeb.shortLabel(url)) { vm.toggleThread(url) }
                 }
                 item {
+                    Section("Interfaz")
+                    Text("Con la interfaz propia, Inicio, Mi feed, Guardados, los perfiles y los posts los pinta Pliegue con lo que la web de X se descarga con tu sesión. Si algo no carga, apágala y verás la web de X tal cual.", style = XType.small)
+                    SwitchRow("Interfaz propia de Pliegue", vm.nativeUi) { vm.updateNativeUi(it) }
+                }
+                item {
                     Section("Limpieza del feed")
                     Text("Vale para todas las webs de X dentro de Pliegue.", style = XType.small)
                     val c = vm.cleanup

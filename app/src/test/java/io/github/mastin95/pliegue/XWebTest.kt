@@ -1,6 +1,8 @@
 package io.github.mastin95.pliegue
 
 import io.github.mastin95.pliegue.model.Cleanup
+import io.github.mastin95.pliegue.model.Source
+import io.github.mastin95.pliegue.model.XView
 import io.github.mastin95.pliegue.web.XWeb
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -166,5 +168,33 @@ class XWebTest {
         assertTrue(script.contains("header[role=\"banner\"]:not(:has(main)){display:none!important}"))
         assertFalse(script.contains("@media"))
         assertTrue(script.contains("[data-testid=\"BottomBar\"]"))
+    }
+
+    @Test
+    fun `qué pinta la interfaz propia en cada dirección`() {
+        assertEquals(XView.Home, XWeb.view("https://x.com/home"))
+        assertEquals(XView.Home, XWeb.view("https://x.com/", Source.Inicio))
+        assertEquals(XView.Search("(from:lucia OR from:anam)"), XWeb.view(XWeb.myFeedUrl(listOf("lucia", "anam"))!!))
+        assertEquals(XView.Bookmarks, XWeb.view("https://x.com/i/bookmarks"))
+        assertEquals(XView.Profile("javit", null), XWeb.view("https://x.com/javit"))
+        assertEquals(XView.Profile(null, "42"), XWeb.view("https://x.com/i/user/42"))
+        assertEquals(XView.Thread("123"), XWeb.view("https://x.com/javit/status/123?s=20"))
+        assertNull(XWeb.view("https://x.com/notifications"))
+        assertNull(XWeb.view("https://x.com/messages"))
+        assertNull(XWeb.view("https://x.com/explore"))
+        assertNull(XWeb.view("https://x.com/compose/post"))
+        assertNull(XWeb.view("https://example.com/"))
+        assertEquals("https://x.com/intent/post?in_reply_to=5", XWeb.replyUrl("5"))
+        assertTrue(XWeb.isVideo("https://video.twimg.com/v/1.mp4"))
+        assertFalse(XWeb.isVideo("https://pbs.twimg.com/media/a.jpg"))
+    }
+
+    @Test
+    fun `el escucha de la API de X va en todas las páginas y no se duplica`() {
+        val js = XWeb.listenScript()
+        assertTrue(js.contains("window.__pliegueNet"))
+        assertTrue(js.contains("window.Pliegue.data(m[1], String(url), String(text))"))
+        assertTrue(js.contains("/i\\/api\\/graphql"))
+        assertTrue(XWeb.bridgeScript(true, true).contains("P.more = function"))
     }
 }

@@ -64,7 +64,9 @@ import io.github.mastin95.pliegue.ui.components.PillButton
 import io.github.mastin95.pliegue.ui.components.bottomBorder
 import io.github.mastin95.pliegue.ui.components.endBorder
 import io.github.mastin95.pliegue.ui.components.startBorder
+import io.github.mastin95.pliegue.ui.components.NavIcon
 import io.github.mastin95.pliegue.ui.components.topBorder
+import io.github.mastin95.pliegue.ui.x.NativeOrWeb
 import io.github.mastin95.pliegue.ui.theme.X
 import io.github.mastin95.pliegue.ui.theme.XType
 import io.github.mastin95.pliegue.ui.web.EmptyMyFeed
@@ -86,7 +88,11 @@ fun RealApp(screen: ScreenInfo, vm: AppViewModel) {
     }
 }
 
-/** Plegado: la web de X entera, con su propia barra inferior; lo nuestro es solo el botón de ajustes. */
+/**
+ * Plegado: una sola ranura a pantalla entera. Con la interfaz propia, la app pinta los posts y pone
+ * su barra inferior (Inicio, Explorar, Notificaciones, Mensajes, Perfil) y el botón de redactar;
+ * sin ella, la web de X entera con sus propias barras.
+ */
 @Composable
 fun RealFolded(vm: AppViewModel) {
     val web = LocalWebPanes.current
@@ -95,9 +101,14 @@ fun RealFolded(vm: AppViewModel) {
     val panel = focused ?: 0
     val slot = "pane$panel"
     val url = vm.paneUrl(panel, web.userId)
+    val source = vm.webPanels[panel].source
+    val native = vm.nativeUi
+    val external = url != null && (XWeb.isExternal(url) || XWeb.isMedia(url) || XWeb.isVideo(url))
+    // Con la interfaz propia, atrás no deshace la web escondida (la app no se enteraría): cierra lo abierto.
+    val ownPage = native && url != null && !external && XWeb.view(url, source) != null
     BackHandler {
         when {
-            web.canGoBack(slot) -> web.goBack(slot)
+            !ownPage && web.canGoBack(slot) -> web.goBack(slot)
             focused != null -> vm.closeWebPost(focused)
             else -> (context as? Activity)?.moveTaskToBack(true)
         }
@@ -105,14 +116,59 @@ fun RealFolded(vm: AppViewModel) {
     Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize()) {
             if (focused != null) WebPostHeader(vm, focused, compact = true)
-            if (url == null) {
-                EmptyMyFeed(Modifier.weight(1f))
-            } else {
-                WebPane(slot, url, Modifier.weight(1f), if (XWeb.isExternal(url)) PaneOptions.EXTERNAL else PaneOptions(interceptPosts = false, hideChrome = false))
+            when {
+                url == null -> EmptyMyFeed(Modifier.weight(1f))
+                external -> WebPane(slot, url, Modifier.weight(1f), PaneOptions.EXTERNAL)
+                else -> NativeOrWeb(vm, slot, url, PaneOptions(interceptPosts = native, hideChrome = native), Modifier.weight(1f), source)
             }
+            if (native && focused == null) FoldedNav(vm)
         }
         if (focused == null) {
             FoldedMenu(vm, Modifier.align(Alignment.TopEnd).padding(top = 6.dp, end = 8.dp))
+            if (native) {
+                Fab(
+                    onClick = { vm.composeWeb(1) },
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(end = 16.dp, bottom = 53.dp + 16.dp),
+                )
+            }
+        }
+    }
+}
+
+/** Barra inferior de X, nuestra: cambia la fuente de la ranura plegada; tocar la activa vuelve arriba. */
+@Composable
+private fun FoldedNav(vm: AppViewModel) {
+    val web = LocalWebPanes.current
+    val current = vm.webPanels[0].source
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .height(53.dp)
+            .background(X.Bg)
+            .topBorder(),
+        horizontalArrangement = Arrangement.SpaceAround,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        listOf(Source.Inicio, Source.Explorar, Source.Notificaciones, Source.Mensajes, Source.Perfil).forEach { s ->
+            val active = s == current
+            val icon = when (s) {
+                Source.Inicio -> if (active) XIcons.HomeFilled else XIcons.Home
+                Source.Explorar -> XIcons.Search
+                Source.Notificaciones -> XIcons.Bell
+                Source.Mensajes -> XIcons.Mail
+                else -> XIcons.User
+            }
+            val count = when (s) {
+                Source.Notificaciones -> web.unread["notifications"]
+                Source.Mensajes -> web.unread["messages"]
+                else -> null
+            } ?: 0
+            Box {
+                NavIcon(icon, s.label, { if (active) web.scrollTop("pane0") else vm.selectSource(0, s) })
+                if (count > 0) UnreadBadge(count, Modifier.align(Alignment.TopEnd).offset(x = (-6).dp, y = 6.dp))
+            }
         }
     }
 }
@@ -168,7 +224,8 @@ fun RealOpen(vm: AppViewModel, screen: ScreenInfo) {
         when {
             vm.expanded != null -> vm.collapse()
             vm.mode == OpenMode.Columnas && vm.webColumnPost != null -> vm.closeWebColumnPost()
-            web.canGoBack(web.lastActive) -> web.goBack(web.lastActive)
+            // Con la interfaz propia no se deshace la web escondida: la app no se enteraría del cambio.
+            !vm.nativeUi && web.canGoBack(web.lastActive) -> web.goBack(web.lastActive)
             focused != null -> vm.closeWebPost(focused)
             else -> (context as? Activity)?.moveTaskToBack(true)
         }
@@ -241,7 +298,7 @@ fun WebHalf(vm: AppViewModel, index: Int, modifier: Modifier) {
     val open = panel.openUrl
     val url = vm.paneUrl(index, web.userId)
     val other = vm.webPanels[1 - index]
-    val external = open != null && (XWeb.isExternal(open) || XWeb.isMedia(open))
+    val external = open != null && (XWeb.isExternal(open) || XWeb.isMedia(open) || XWeb.isVideo(open))
     val reading = vm.mode == OpenMode.Libro && open != null && !external
     UserDropTarget(vm, fromLabel = other.source.label, modifier) {
         Column(Modifier.fillMaxSize()) {
@@ -250,7 +307,9 @@ fun WebHalf(vm: AppViewModel, index: Int, modifier: Modifier) {
                 index == 1 && (vm.mode == OpenMode.Uno || vm.mode == OpenMode.Libro) && open == null -> EmptyDetail(libro = vm.mode == OpenMode.Libro)
                 panel.source == Source.Fijados && open == null -> PinnedList(vm, onOpen = { vm.openWebPost(index, it) }, modifier = Modifier.weight(1f))
                 url == null -> EmptyMyFeed(Modifier.weight(1f))
-                else -> WebPane("pane$index", url, Modifier.weight(1f), if (external) PaneOptions.EXTERNAL else PaneOptions(interceptPosts = true, hideChrome = true), textZoom = if (reading) 118 else 100)
+                external -> WebPane("pane$index", url, Modifier.weight(1f), PaneOptions.EXTERNAL)
+                // El post abierto al otro lado se marca en este feed.
+                else -> NativeOrWeb(vm, "pane$index", url, PaneOptions(interceptPosts = true, hideChrome = true), Modifier.weight(1f), if (open == null) panel.source else null, textZoom = if (reading) 118 else 100, selectedUrl = other.openUrl)
             }
         }
     }
@@ -342,12 +401,13 @@ fun WebPostHeader(vm: AppViewModel, index: Int, compact: Boolean = false) {
     val panel = vm.webPanels[index]
     val url = panel.openUrl ?: return
     val composing = panel.fromLabel == "Redactar"
-    val external = XWeb.isExternal(url) || XWeb.isMedia(url)
+    val external = XWeb.isExternal(url) || XWeb.isMedia(url) || XWeb.isVideo(url)
     // Una web ajena se llama por su dominio, el de la página de ahora (los enlaces de X pasan por t.co).
     val current = web.urls["pane$index"]?.takeIf { XWeb.isExternal(it) } ?: url
     val title = when {
         composing -> "Redactar"
         XWeb.isMedia(url) -> "Foto"
+        XWeb.isVideo(url) -> "Vídeo"
         external -> XWeb.siteLabel(current)
         XWeb.isStatus(url) -> "Post"
         else -> XWeb.handleOf(url)?.let { "@$it" } ?: "X"

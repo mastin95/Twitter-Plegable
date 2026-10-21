@@ -57,6 +57,37 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         prefs.cleanup = c.toNames()
     }
 
+    /** Interfaz propia: los posts los pinta la app con lo que la web de X se descarga. Apagada, se ve la web tal cual. */
+    var nativeUi by mutableStateOf(prefs.nativeUi)
+        private set
+
+    fun updateNativeUi(on: Boolean) {
+        nativeUi = on
+        prefs.nativeUi = on
+        showToast(if (on) "Interfaz de Pliegue activada." else "Se enseña la web de X tal cual.")
+    }
+
+    /** Pestaña de Inicio de cada ranura en la interfaz propia: 0 "Para ti", 1 "Siguiendo". */
+    private val homeTabs = mutableStateMapOf<String, Int>()
+
+    fun homeTab(slot: String): Int = homeTabs[slot] ?: (if (cleanup.following) 1 else 0)
+
+    fun setHomeTab(slot: String, tab: Int) {
+        homeTabs[slot] = tab
+    }
+
+    /** Responder desde la interfaz propia: el redactor de X, con la respuesta preparada, en la otra mitad. */
+    fun replyFromNative(slot: String, tweetId: String) {
+        when {
+            slot == "pane0" || slot == "pane1" -> composeWeb(if (slot == "pane0") 1 else 0, replyTo = tweetId)
+            slot.startsWith("col:") -> {
+                val side = slot.removePrefix("col:").substringBefore(':').toIntOrNull() ?: 0
+                webColumnPost = (1 - side) to XWeb.replyUrl(tweetId)
+            }
+            else -> composeWeb(0, replyTo = tweetId)
+        }
+    }
+
     fun chooseDemo() {
         appMode = AppMode.Demo
         prefs.mode = AppMode.Demo.name
@@ -235,9 +266,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         else -> null
     }
 
-    /** El redactor de X en una mitad; con `quoting`, el enlace del post fuente ya va en el texto. */
-    fun composeWeb(panel: Int = 0, quoting: String? = null) {
-        webPanels = webPanels.toMutableList().also { it[panel] = it[panel].copy(openUrl = XWeb.composeUrl(url = quoting), fromLabel = "Redactar") }
+    /** El redactor de X en una mitad; con `quoting`, el enlace del post fuente ya va en el texto; con `replyTo`, es una respuesta. */
+    fun composeWeb(panel: Int = 0, quoting: String? = null, replyTo: String? = null) {
+        val url = if (replyTo != null) XWeb.replyUrl(replyTo) else XWeb.composeUrl(url = quoting)
+        webPanels = webPanels.toMutableList().also { it[panel] = it[panel].copy(openUrl = url, fromLabel = "Redactar") }
     }
 
     fun closeWebColumnPost() {
@@ -385,6 +417,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun columnState(kind: ColumnKind): LazyListState =
         listStates.getOrPut("col:${kind.name}") { LazyListState() }
+
+    /** El scroll de un feed de la interfaz propia (ranura y consulta), para no perderlo al plegar. */
+    fun feedState(key: String): LazyListState = listStates.getOrPut("x:$key") { LazyListState() }
 
     fun post(id: String): Post? = myPosts.firstOrNull { it.id == id } ?: SampleData.posts[id]
 

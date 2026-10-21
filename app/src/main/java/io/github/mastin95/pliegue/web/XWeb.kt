@@ -1,6 +1,9 @@
 package io.github.mastin95.pliegue.web
 
 import io.github.mastin95.pliegue.model.Cleanup
+import io.github.mastin95.pliegue.model.Source
+import io.github.mastin95.pliegue.model.XView
+import java.net.URLDecoder
 import java.net.URLEncoder
 
 /**
@@ -95,6 +98,29 @@ object XWeb {
         Regex("[?&]name=").containsMatchIn(url) -> url.replace(Regex("([?&])name=[^&#]*"), "$1name=large")
         '?' in url -> "$url&name=large"
         else -> "$url?name=large"
+    }
+
+    /** Un vídeo de X (video.twimg.com): se abre solo en una mitad, con el reproductor del navegador. */
+    fun isVideo(url: String): Boolean = host(url) == "video.twimg.com"
+
+    /** La búsqueda de una dirección /search?q=…, ya legible. */
+    fun queryOf(url: String): String? = Regex("[?&]q=([^&#]*)").find(url)?.groupValues?.get(1)?.let { runCatching { URLDecoder.decode(it, "UTF-8") }.getOrNull() }
+
+    /**
+     * Qué pinta la interfaz propia en una dirección de X: Inicio, una búsqueda (Mi feed), Guardados,
+     * un perfil o un post. Nulo para lo demás (notificaciones, mensajes, explorar…), que sigue en la web.
+     */
+    fun view(url: String, source: Source? = null): XView? {
+        if (!isX(url)) return null
+        statusId(url)?.let { return XView.Thread(it) }
+        val p = path(url)
+        return when {
+            p == "/home" || (p.isEmpty() && source == Source.Inicio) -> XView.Home
+            p == "/search" -> queryOf(url)?.let { XView.Search(it) }
+            p == "/i/bookmarks" -> XView.Bookmarks
+            p.startsWith("/i/user/") -> XView.Profile(null, p.removePrefix("/i/user/").substringBefore('/'))
+            else -> handleOf(url)?.let { XView.Profile(it, null) }
+        }
     }
 
     /** Nombre de la web de un enlace para la cabecera: "elpais.com". */
@@ -225,6 +251,9 @@ object XWeb {
         return if (parts.isEmpty()) COMPOSE else "https://x.com/intent/post?" + parts.joinToString("&")
     }
 
+    /** El redactor de X como respuesta a un post. */
+    fun replyUrl(tweetId: String) = "https://x.com/intent/post?in_reply_to=$tweetId"
+
     /** Dirección en formato corto para enseñarla: `@usuario/status/123`. */
     fun shortLabel(url: String): String {
         val m = Regex("^https?://[^/]+/([A-Za-z0-9_]+)/status/(\\d+)").find(url) ?: return url.removePrefix("https://")
@@ -317,6 +346,43 @@ object XWeb {
     """.trimIndent()
 
     /**
+     * Escucha lo que la web de X se descarga para pintar sus listas (su API interna, /i/api/graphql/…/Nombre)
+     * y se lo pasa a la app (`Pliegue.data`) tal cual, sin pedir nada por nuestra cuenta: la interfaz propia
+     * pinta esos mismos posts. Va al arrancar cada documento; si se vuelve a poner, no hace nada.
+     */
+    fun listenScript(): String = """
+        (function(){
+          if (window.__pliegueNet) return; window.__pliegueNet = true;
+          var RE = /\/i\/api\/graphql\/[^\/?]+\/([A-Za-z0-9_]+)/;
+          function report(url, text){
+            try {
+              var m = RE.exec(url || ''); if (!m) return;
+              if (window.Pliegue && window.Pliegue.data) window.Pliegue.data(m[1], String(url), String(text));
+            } catch(e){}
+          }
+          var of = window.fetch;
+          if (typeof of === 'function') {
+            window.fetch = function(input){
+              var url = ''; try { url = typeof input === 'string' ? input : (input && input.url) || ''; } catch(e){}
+              var p = of.apply(this, arguments);
+              if (RE.test(url)) p.then(function(r){ try { if (r && r.ok) r.clone().text().then(function(t){ report(r.url || url, t); }); } catch(e){} }, function(){});
+              return p;
+            };
+          }
+          var XP = window.XMLHttpRequest && window.XMLHttpRequest.prototype;
+          if (XP && XP.open && XP.send) {
+            var oo = XP.open, os = XP.send;
+            XP.open = function(m, u){ try { this.__plUrl = String(u); } catch(e){} return oo.apply(this, arguments); };
+            XP.send = function(){
+              var x = this;
+              try { if (x.__plUrl && RE.test(x.__plUrl)) x.addEventListener('load', function(){ try { if (x.status === 200) report(x.responseURL || x.__plUrl, x.responseText); } catch(e){} }); } catch(e){}
+              return os.apply(this, arguments);
+            };
+          }
+        })();
+    """.trimIndent()
+
+    /**
      * Script que ponemos en cada página de X:
      * - un toque sobre un post avisa a la app (`Pliegue.openPost`) en vez de navegar, para abrirlo en la otra mitad;
      * - mantener pulsado un avatar o un nombre avisa con su usuario (`Pliegue.dragUser`) para arrastrarlo a Mi feed;
@@ -363,6 +429,15 @@ object XWeb {
             }
           };
           P.followSoon = function(){ [800, 2000, 4000].forEach(function(ms){ setTimeout(P.follow, ms); }); };
+          // Para la interfaz propia, que lee lo que la web se descarga: pedir la página siguiente es bajar
+          // la web hasta el final (X carga más sola), y las pestañas de Inicio se tocan en la web.
+          P.more = function(){ try { window.scrollTo(0, Math.max(document.documentElement.scrollHeight, document.body.scrollHeight)); } catch(e){} };
+          P.tab = function(i){
+            var tabs = document.querySelectorAll('[role="tablist"] [role="tab"]');
+            if (!tabs[i]) return false;
+            if (tabs[i].getAttribute('aria-selected') !== 'true') tabs[i].click();
+            return true;
+          };
           window.__pliegue = P;
           P.style = function(){
             // Al empezar a cargar puede no haber documento todavía: entonces se pone al terminar de leerlo.
