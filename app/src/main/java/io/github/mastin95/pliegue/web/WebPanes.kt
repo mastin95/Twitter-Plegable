@@ -105,6 +105,19 @@ class WebPanes(
     var desktop by mutableStateOf(false)
         private set
 
+    /**
+     * Solo pruebas en el Android virtual: las webs no salen a internet; cada página es un documento vacío en
+     * la dirección pedida (así la app, el puente y el escucha funcionan igual, y las cookies de la sesión de
+     * prueba no las borra X). Las peticiones se interceptan fuera del hilo principal.
+     */
+    @Volatile var simulatedNet = false
+        private set
+
+    fun simulateNetwork() {
+        simulatedNet = true
+        log("red simulada: las webs no salen a internet (solo pruebas)")
+    }
+
     /** Limpieza de X elegida en Ajustes; se aplica a todas las webs sin recargarlas. */
     var cleanup by mutableStateOf(Cleanup())
         private set
@@ -150,6 +163,8 @@ class WebPanes(
     companion object {
         /** Archivo donde MainActivity apunta el último cierre inesperado. */
         const val CRASH_FILE = "ultimo-cierre.txt"
+        /** La página vacía de la red simulada (pruebas). */
+        private const val BLANK_PAGE = "<!doctype html><html><head><meta charset=\"utf-8\"><title>X</title></head><body></body></html>"
     }
 
     private fun cookies(): String? = runCatching { CookieManager.getInstance().getCookie("https://x.com") }.getOrNull()
@@ -533,6 +548,12 @@ class WebPanes(
                 inject(view, slot)
                 checkLogin()
                 log("[$slot] cargada ${short(url)}" + if (loggedIn) " · con sesión" else " · sin sesión")
+            }
+
+            override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
+                if (!simulatedNet) return null
+                return if (request.isForMainFrame) WebResourceResponse("text/html", "utf-8", 200, "OK", emptyMap(), BLANK_PAGE.byteInputStream())
+                else WebResourceResponse("text/plain", "utf-8", 404, "Not Found", emptyMap(), ByteArray(0).inputStream())
             }
 
             override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {

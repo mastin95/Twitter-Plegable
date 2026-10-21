@@ -55,6 +55,8 @@ class MainActivity : ComponentActivity() {
             fileCallback = callback
             runCatching { chooser.launch(params.createIntent()) }.onFailure { fileCallback = null }.isSuccess
         }
+        // Solo para las pruebas en el Android virtual: las webs no salen a internet (X no deja entrar desde ahí).
+        if (intent?.getBooleanExtra("red_simulada", false) == true) web.simulateNetwork()
         setContent {
             PliegueTheme {
                 CompositionLocalProvider(LocalWebPanes provides web) {

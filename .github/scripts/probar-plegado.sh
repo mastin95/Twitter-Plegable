@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
-# Plegar y desplegar Pliegue en el Android virtual con las webs de X puestas. Para entrar en el modo
-# con sesión sin cuenta real se pone una cookie de sesión falsa (X no la acepta: las webs enseñan lo
-# que X dé a un visitante, normalmente su comprobación "Verify you are human"). Lo que se prueba es
-# la app: que cada web se vea (no en negro) al plegar y desplegar, y que cada ranura cambie de modo.
+# Plegar y desplegar Pliegue en el Android virtual con las webs de X puestas. La app arranca con la
+# red simulada (red_simulada): las webs no salen a internet y cada página es un documento vacío en la
+# dirección pedida, porque desde aquí X no deja entrar (Cloudflare) y, cuando deja, borra la cookie de
+# sesión falsa que se pone para entrar en el modo con sesión. Lo que se prueba es la app: que cada web
+# se vea (no en negro) al plegar y desplegar, que cada ranura cambie de modo y que la interfaz propia
+# pinte las respuestas de ejemplo que se le inyectan.
 # "Plegado" es la pantalla del Pixel 6 tal cual (411 dp); "abierto" la ensancha a 2208x1840 como la
 # pantalla interior de un plegable (la app decide por el ancho si no hay bisagra).
 set -u
@@ -89,7 +91,7 @@ plegar() { adb shell wm size reset; sleep 12; }
 
 adb logcat -c
 adb install -r "$APK"
-adb shell am start -W -n "$PKG/.MainActivity" --ez depurar_web true
+adb shell am start -W -n "$PKG/.MainActivity" --ez depurar_web true --ez red_simulada true
 sleep 8
 sin_avisos
 toca '^Iniciar sesión en X$'
