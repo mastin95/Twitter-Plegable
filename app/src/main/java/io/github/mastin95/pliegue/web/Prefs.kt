@@ -43,6 +43,11 @@ class Prefs(context: Context) {
         get() = decodeList(sp.getString("cleanup", "") ?: "")
         set(v) = sp.edit().putString("cleanup", encodeList(v)).apply()
 
+    /** Interfaz propia (los posts los pinta la app). Activada de inicio. */
+    var nativeUi: Boolean
+        get() = sp.getBoolean("nativeUi", true)
+        set(v) = sp.edit().putBoolean("nativeUi", v).apply()
+
     var dropHintSeen: Boolean
         get() = sp.getBoolean("dropHintSeen", false)
         set(v) = sp.edit().putBoolean("dropHintSeen", v).apply()

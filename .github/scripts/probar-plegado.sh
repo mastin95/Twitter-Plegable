@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
-# Plegar y desplegar Pliegue en el Android virtual con las webs de X puestas. Para entrar en el modo
-# con sesión sin cuenta real se pone una cookie de sesión falsa (X no la acepta: las webs enseñan lo
-# que X dé a un visitante, normalmente su comprobación "Verify you are human"). Lo que se prueba es
-# la app: que cada web se vea (no en negro) al plegar y desplegar, y que cada ranura cambie de modo.
+# Plegar y desplegar Pliegue en el Android virtual con las webs de X puestas. La app arranca con la
+# red simulada (red_simulada): las webs no salen a internet y cada página es un documento vacío en la
+# dirección pedida, porque desde aquí X no deja entrar (Cloudflare) y, cuando deja, borra la cookie de
+# sesión falsa que se pone para entrar en el modo con sesión. Lo que se prueba es la app: que cada web
+# se vea (no en negro) al plegar y desplegar, que cada ranura cambie de modo y que la interfaz propia
+# pinte las respuestas de ejemplo que se le inyectan.
 # "Plegado" es la pantalla del Pixel 6 tal cual (411 dp); "abierto" la ensancha a 2208x1840 como la
 # pantalla interior de un plegable (la app decide por el ancho si no hay bisagra).
 set -u
@@ -72,14 +74,29 @@ sesion_falsa() {
   return 1
 }
 abrir() { adb shell wm size 2208x1840; sleep 12; }
+# La interfaz propia con posts de ejemplo: a la web de la ranura se le da una respuesta de X de las
+# pruebas, como si la hubiera recibido, y la app la pinta (en el Android virtual X no deja entrar).
+EJ=app/src/test/resources/x
+inyectar() { devtools && python3 .github/scripts/cdp.py inyectar 9222 "$EJ/$1.json" "$2" "${3:-}" "${4:-"{}"}"; sleep 4; }
+desliza() { adb shell input swipe "$1" "$2" "$1" "$3" 400; sleep 2; }   # x, y de salida, y de llegada
+busca_y_toca() {  # baja por la lista (en x=$2, de y=$3 a y=$4) hasta ver el texto y lo toca
+  local i
+  for i in 1 2 3 4 5 6 7 8; do
+    toca "$1" && return 0
+    desliza "${2:-500}" "${3:-1400}" "${4:-500}"
+  done
+  return 1
+}
 plegar() { adb shell wm size reset; sleep 12; }
 
 adb logcat -c
 adb install -r "$APK"
-adb shell am start -W -n "$PKG/.MainActivity" --ez depurar_web true
+# Sin los avisos de "no responde" del sistema (el Android virtual va lento y el del lanzador tapa la app).
+adb shell settings put global hide_error_dialogs 1
+adb shell am start -W -n "$PKG/.MainActivity" --ez depurar_web true --ez red_simulada true
 sleep 8
 sin_avisos
-toca '^Iniciar sesión en X$'
+for _ in 1 2 3 4 5; do toca '^Iniciar sesión en X$' && break; sleep 5; done
 sleep 12
 sesion_falsa
 sleep 10
@@ -93,6 +110,18 @@ abrir
 paso abierto-otra-vez
 plegar
 paso plegado-tercera-vez
+
+# Interfaz propia: Inicio con posts de ejemplo, plegado y abierto; un post tocado se abre al otro lado.
+inyectar home HomeTimeline /home
+paso propia-plegado
+abrir
+inyectar home2 HomeTimeline /home '{"cursor":"CURSOR-BOTTOM-1"}'
+paso propia-abierto
+busca_y_toca 'Para quien preguntaba' 500 1400 500 && sleep 8
+inyectar detail TweetDetail /status/ '{"focalTweetId":"1008"}'
+paso propia-post-al-lado
+plegar
+paso propia-post-plegado
 
 # Enlaces que llegan de fuera, con la app ya abierta: un post de X, un enlace corto t.co (web ajena) y
 # algo compartido con Pliegue (va al redactor). Se manda a la actividad para que no salga el selector.

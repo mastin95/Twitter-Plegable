@@ -3,6 +3,8 @@
   cdp.py shot PUERTO salida.png        captura de lo que pinta la propia web
   cdp.py eval PUERTO script.js         ejecuta el script y escribe lo que devuelve
   cdp.py watch PUERTO SEGUNDOS salida  apunta las peticiones a X y los mensajes de consola
+  cdp.py inyectar PUERTO archivo.json NOMBRE [parte-de-la-url] [variables]
+                                       le da a la app una respuesta de X de ejemplo como si la web la hubiera recibido
 
 Los textos largos sin espacios (fichas de sesión y similares) se tapan con "…".
 """
@@ -11,6 +13,7 @@ import json
 import re
 import sys
 import time
+import urllib.parse
 import urllib.request
 
 import websocket
@@ -20,16 +23,18 @@ def red(s):
     return re.sub(r'[A-Za-z0-9_\-.%]{40,}', '…', str(s))
 
 
-def target(port):
+def target(port, part=None):
     pages = json.load(urllib.request.urlopen(f'http://127.0.0.1:{port}/json', timeout=10))
     pages = [p for p in pages if p.get('type') == 'page' and 'webSocketDebuggerUrl' in p]
+    if part:
+        pages = [p for p in pages if part in p.get('url', '')] or pages
     xs = [p for p in pages if 'x.com' in p.get('url', '')]
     return (xs or pages)[0]
 
 
 class CDP:
-    def __init__(self, port):
-        t = target(port)
+    def __init__(self, port, part=None):
+        t = target(port, part)
         print('página:', t.get('url'), file=sys.stderr)
         self.ws = websocket.create_connection(t['webSocketDebuggerUrl'], timeout=30, suppress_origin=True)
         self.n = 0
@@ -87,6 +92,18 @@ def fake_session(port):
     # La web de X recarga el formulario al ver la cookie y su servidor la borra por falsa antes de que la
     # app la mire. Una página en blanco no pasa por X: la app mira las cookies al acabar de cargarla.
     c.call('Page.navigate', url='about:blank')
+
+
+def inject(port, path, name, part=None, variables='{}'):
+    """Llama a Pliegue.data en la web de la ranura elegida con una respuesta de ejemplo (las de las
+    pruebas de la app). Así se ve la interfaz propia en el Android virtual, donde X no deja entrar."""
+    c = CDP(port, part)
+    with open(path, encoding='utf-8') as f:
+        body = f.read()
+    url = 'https://x.com/i/api/graphql/prueba/' + name + '?variables=' + urllib.parse.quote(variables, safe='')
+    expr = 'window.Pliegue && window.Pliegue.data ? (window.Pliegue.data(%s, %s, %s), "ok") : "sin puente"' % (json.dumps(name), json.dumps(url), json.dumps(body))
+    r = c.call('Runtime.evaluate', expression=expr, returnByValue=True)
+    print('inyectado', name, '→', r.get('result', {}).get('value'), r.get('exceptionDetails', {}).get('text', ''))
 
 
 def watch(port, seconds, out):
@@ -156,5 +173,7 @@ if __name__ == '__main__':
             fake_session(sys.argv[2])
         elif cmd == 'watch':
             watch(sys.argv[2], sys.argv[3], sys.argv[4])
+        elif cmd == 'inyectar':
+            inject(sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5] if len(sys.argv) > 5 else None, sys.argv[6] if len(sys.argv) > 6 else '{}')
     except Exception as e:
         print('cdp falló:', e)

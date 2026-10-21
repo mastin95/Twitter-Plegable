@@ -34,7 +34,10 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.webkit.WebViewCompat
+import androidx.webkit.WebViewFeature
 import io.github.mastin95.pliegue.model.Cleanup
+import java.util.concurrent.Executors
 
 /** WebView de un panel. No acepta arrastres: así caen en la zona de soltar de Compose que hay encima. */
 class PaneWebView(context: Context) : WebView(context) {
@@ -76,6 +79,12 @@ class WebPanes(
     private val requested = HashMap<String, String>()
     private val main = Handler(Looper.getMainLooper())
 
+    /** Los posts que las webs se han descargado, para la interfaz propia. */
+    val store = XStore()
+
+    // Las respuestas de X pesan cientos de KB: se leen fuera del hilo principal, de una en una.
+    private val parser = Executors.newSingleThreadExecutor()
+
     /** Dirección actual y progreso de carga de cada ranura. */
     val urls = mutableStateMapOf<String, String>()
 
@@ -95,6 +104,19 @@ class WebPanes(
     /** Presentarse como Chrome de escritorio en todas las webs (recurso si X no carga como móvil). */
     var desktop by mutableStateOf(false)
         private set
+
+    /**
+     * Solo pruebas en el Android virtual: las webs no salen a internet; cada página es un documento vacío en
+     * la dirección pedida (así la app, el puente y el escucha funcionan igual, y las cookies de la sesión de
+     * prueba no las borra X). Las peticiones se interceptan fuera del hilo principal.
+     */
+    @Volatile var simulatedNet = false
+        private set
+
+    fun simulateNetwork() {
+        simulatedNet = true
+        log("red simulada: las webs no salen a internet (solo pruebas)")
+    }
 
     /** Limpieza de X elegida en Ajustes; se aplica a todas las webs sin recargarlas. */
     var cleanup by mutableStateOf(Cleanup())
@@ -141,6 +163,8 @@ class WebPanes(
     companion object {
         /** Archivo donde MainActivity apunta el último cierre inesperado. */
         const val CRASH_FILE = "ultimo-cierre.txt"
+        /** La página vacía de la red simulada (pruebas). */
+        private const val BLANK_PAGE = "<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>X</title></head><body></body></html>"
     }
 
     private fun cookies(): String? = runCatching { CookieManager.getInstance().getCookie("https://x.com") }.getOrNull()
@@ -200,7 +224,24 @@ class WebPanes(
         val v = slots[slot] ?: return
         requested[slot] = url
         urls[slot] = url
+        store.clear(slot)
         v.loadUrl(url)
+    }
+
+    /**
+     * La interfaz propia llegó al final de lo que tiene: se baja la web escondida hasta el final para
+     * que X cargue la página siguiente (llega por el puente). No más de una vez cada pocos segundos.
+     */
+    fun loadMore(slot: String) {
+        val now = System.currentTimeMillis()
+        if (now - (store.asked[slot] ?: 0L) < 2500) return
+        store.asked[slot] = now
+        slots[slot]?.evaluateJavascript("window.__pliegue&&window.__pliegue.more&&window.__pliegue.more()", null)
+    }
+
+    /** Pestaña de Inicio de la web (0 "Para ti", 1 "Siguiendo"), para que cargue ese feed. */
+    fun homeTab(slot: String, index: Int) {
+        slots[slot]?.evaluateJavascript("window.__pliegue&&window.__pliegue.tab&&window.__pliegue.tab($index)", null)
     }
 
     fun configure(slot: String, opts: PaneOptions) {
@@ -284,6 +325,7 @@ class WebPanes(
             (it.parent as? ViewGroup)?.removeView(it)
             it.destroy()
         }
+        store.clear(slot)
         options.remove(slot)
         requested.remove(slot)
         urls.remove(slot)
@@ -466,9 +508,21 @@ class WebPanes(
         return true
     }
 
+    private var startScriptLogged = false
+
     private fun setUp(v: PaneWebView, slot: String) {
         applySettings(v, popupWindow = false)
         v.addJavascriptInterface(Bridge(slot), "Pliegue")
+        // El escucha de la API de X tiene que estar antes de que corra el código de la web, que es quien pide
+        // los posts; si el motor no lo permite, se pone al cargar (puede perderse la primera petición).
+        val supported = runCatching { WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT) }.getOrDefault(false)
+        val ok = supported && runCatching {
+            WebViewCompat.addDocumentStartJavaScript(v, XWeb.listenScript(), setOf("https://x.com", "https://*.x.com", "https://twitter.com", "https://*.twitter.com"))
+        }.isSuccess
+        if (!startScriptLogged) {
+            startScriptLogged = true
+            log(if (ok) "escucha de X puesto al arrancar cada página" else "el motor no admite scripts de arranque: el escucha se pone al cargar")
+        }
         v.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
                 // Los marcos internos (captchas, inicio de sesión con Google) se quedan donde están.
@@ -494,6 +548,12 @@ class WebPanes(
                 inject(view, slot)
                 checkLogin()
                 log("[$slot] cargada ${short(url)}" + if (loggedIn) " · con sesión" else " · sin sesión")
+            }
+
+            override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
+                if (!simulatedNet) return null
+                return if (request.isForMainFrame) WebResourceResponse("text/html", "utf-8", 200, "OK", emptyMap(), BLANK_PAGE.byteInputStream())
+                else WebResourceResponse("text/plain", "utf-8", 204, "No Content", emptyMap(), ByteArray(0).inputStream())
             }
 
             override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
@@ -552,6 +612,7 @@ class WebPanes(
     private fun inject(view: WebView, slot: String) {
         val o = options[slot] ?: PaneOptions()
         if (o.external) return
+        view.evaluateJavascript(XWeb.listenScript(), null)
         view.evaluateJavascript(XWeb.bridgeScript(o.interceptPosts, o.hideChrome, cleanup), null)
         if (o.debugLogin) view.evaluateJavascript(XWeb.loginHookScript(), null)
     }
@@ -585,6 +646,26 @@ class WebPanes(
             main.post {
                 if (notifications >= 0) unread["notifications"] = notifications
                 if (messages >= 0) unread["messages"] = messages
+            }
+        }
+
+        /**
+         * Una respuesta de la API interna de X que la web acaba de recibir (nombre de la consulta,
+         * dirección con sus variables y el JSON). Se lee aparte y se guarda en el hilo principal.
+         */
+        @JavascriptInterface
+        fun data(name: String, url: String, body: String) {
+            val req = XParse.request(url)
+            if (req.name.isEmpty()) return
+            parser.execute {
+                val parsed = runCatching { XStore.parse(req, body) }.getOrNull()
+                main.post {
+                    if (parsed == null) {
+                        if (req.name in XParse.FEEDS || req.name == XParse.THREAD) log("[$slot] ${req.name}: no entendí la respuesta (${body.length} caracteres)")
+                    } else {
+                        log("[$slot] " + store.put(slot, req, parsed, System.currentTimeMillis()))
+                    }
+                }
             }
         }
 

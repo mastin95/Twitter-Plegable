@@ -62,5 +62,9 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.ui.tooling.preview)
     debugImplementation(libs.androidx.compose.ui.tooling)
+    // Fotos y avatares de X en la interfaz propia.
+    implementation(libs.coil.compose)
     testImplementation(libs.junit)
+    // En las pruebas de JVM el org.json de Android es solo un esqueleto; este es el de verdad.
+    testImplementation(libs.org.json)
 }

@@ -50,6 +50,7 @@ object XIcons {
     val Note = stroke("note", "M5 4h14v16H5zM8.5 9h7M8.5 13h7M8.5 17h4")
     val Logout = stroke("logout", "M10 4H5v16h5M14 8l4 4-4 4M18 12H9")
     val Grid = stroke("grid", "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z")
+    val Play = fill("play", "M8 5v14l11-7z")
     val Book = stroke("book", "M12 6c-2-1.5-5-1.5-8-1v14c3-.5 6-.5 8 1 2-1.5 5-1.5 8-1V5c-3-.5-6-.5-8 1zM12 6v14")
 }
 

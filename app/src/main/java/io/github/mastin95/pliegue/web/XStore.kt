@@ -1,0 +1,105 @@
+package io.github.mastin95.pliegue.web
+
+import androidx.compose.runtime.mutableStateMapOf
+import io.github.mastin95.pliegue.model.XFeed
+import io.github.mastin95.pliegue.model.XThread
+import io.github.mastin95.pliegue.model.XTimeline
+import io.github.mastin95.pliegue.model.XUser
+
+/**
+ * Lo que la app sabe de X por haber escuchado a sus webs: un feed por ranura y consulta
+ * (pane0/HomeTimeline…), la conversación abierta en cada ranura y las cuentas vistas.
+ * Todo son estados de Compose: la interfaz propia se repinta sola cuando llega algo.
+ */
+class XStore {
+    val feeds = mutableStateMapOf<String, XFeed>()
+    val threads = mutableStateMapOf<String, XThread>()
+
+    /** Cuentas por @usuario en minúsculas. */
+    val users = mutableStateMapOf<String, XUser>()
+
+    /** Cuándo se pidió la página siguiente a cada ranura; se borra al llegar algo. */
+    val asked = mutableStateMapOf<String, Long>()
+
+    /** Cuándo llegó lo último de cada ranura. */
+    val lastSeen = mutableStateMapOf<String, Long>()
+
+    fun feed(slot: String, name: String): XFeed? = feeds["$slot/$name"]
+
+    fun thread(slot: String): XThread? = threads[slot]
+
+    fun user(handle: String?): XUser? = handle?.let { users[it.lowercase()] }
+
+    private val handles = HashMap<String, String>()
+
+    /** Una cuenta por su id numérico (el tuyo sale de la cookie twid). */
+    fun byId(id: String?): XUser? = id?.let { handles[it] }?.let { users[it] }
+
+    /** La ranura carga otra dirección: lo que tenía ya no vale. */
+    fun clear(slot: String) {
+        feeds.keys.filter { it.startsWith("$slot/") }.forEach { feeds.remove(it) }
+        threads.remove(slot)
+        asked.remove(slot)
+        lastSeen.remove(slot)
+    }
+
+    sealed class Parsed {
+        data class Feed(val timeline: XTimeline) : Parsed()
+        data class Thread(val page: XParse.ThreadPage) : Parsed()
+        data class User(val user: XUser) : Parsed()
+    }
+
+    companion object {
+        /** Lee una respuesta (en cualquier hilo). Nulo si no es de las que entendemos. */
+        fun parse(req: XParse.Request, body: String): Parsed? = when {
+            req.name in XParse.FEEDS -> XParse.timeline(body)?.let { Parsed.Feed(it) }
+            req.name == XParse.THREAD -> XParse.thread(body, req.focalTweetId)?.let { Parsed.Thread(it) }
+            req.name in XParse.USERS -> XParse.user(body)?.let { Parsed.User(it) }
+            else -> null
+        }
+    }
+
+    /** Guarda lo leído (en el hilo principal) y devuelve una línea para el registro. */
+    fun put(slot: String, req: XParse.Request, parsed: Parsed, now: Long): String {
+        lastSeen[slot] = now
+        asked.remove(slot)
+        return when (parsed) {
+            is Parsed.Feed -> {
+                val key = "$slot/${req.name}"
+                val f = (feeds[key] ?: XFeed()).merge(parsed.timeline, req.cursor, now)
+                feeds[key] = f
+                parsed.timeline.tweets.forEach { remember(it.author) }
+                "${req.name}: ${parsed.timeline.tweets.size} posts (${if (req.cursor == null) "carga" else "página ${f.pages}"}), ${f.tweets.size} en total"
+            }
+            is Parsed.Thread -> {
+                val p = parsed.page
+                val current = threads[slot]
+                val next = when {
+                    p.focal != null -> {
+                        val fresh = XThread(p.focal, p.ancestors, p.replies, p.cursorBottom, now)
+                        if (current != null && current.focal.id == fresh.focal.id && req.cursor != null) current.merge(fresh, req.cursor, now) else fresh
+                    }
+                    current != null && req.cursor != null -> current.merge(XThread(current.focal, replies = p.replies, cursorBottom = p.cursorBottom), req.cursor, now)
+                    else -> null
+                }
+                if (next != null) {
+                    threads[slot] = next
+                    (next.ancestors + next.focal).forEach { remember(it.author) }
+                }
+                "TweetDetail: " + (if (p.focal != null) "post ${p.focal.id} con ${p.ancestors.size} encima y " else "") + "${p.replies.sumOf { it.tweets.size }} respuestas" + (if (next == null) " (sin post abierto, se ignora)" else "")
+            }
+            is Parsed.User -> {
+                remember(parsed.user)
+                "cuenta @${parsed.user.handle}"
+            }
+        }
+    }
+
+    private fun remember(u: XUser) {
+        val k = u.handle.lowercase()
+        if (u.id.isNotEmpty()) handles[u.id] = k
+        val old = users[k]
+        // Un post trae la cuenta sin biografía ni cifras: no pisa lo que ya se sabía por el perfil.
+        users[k] = if (old != null && u.bio.isEmpty() && u.followers == 0 && old.followers > 0) old.copy(name = u.name, avatar = u.avatar.ifEmpty { old.avatar }, verified = u.verified) else u
+    }
+}
