@@ -91,10 +91,12 @@ plegar() { adb shell wm size reset; sleep 12; }
 
 adb logcat -c
 adb install -r "$APK"
+# Sin los avisos de "no responde" del sistema (el Android virtual va lento y el del lanzador tapa la app).
+adb shell settings put global hide_error_dialogs 1
 adb shell am start -W -n "$PKG/.MainActivity" --ez depurar_web true --ez red_simulada true
 sleep 8
 sin_avisos
-toca '^Iniciar sesión en X$'
+for _ in 1 2 3 4 5; do toca '^Iniciar sesión en X$' && break; sleep 5; done
 sleep 12
 sesion_falsa
 sleep 10

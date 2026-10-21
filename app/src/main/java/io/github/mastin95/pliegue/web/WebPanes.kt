@@ -164,7 +164,7 @@ class WebPanes(
         /** Archivo donde MainActivity apunta el último cierre inesperado. */
         const val CRASH_FILE = "ultimo-cierre.txt"
         /** La página vacía de la red simulada (pruebas). */
-        private const val BLANK_PAGE = "<!doctype html><html><head><meta charset=\"utf-8\"><title>X</title></head><body></body></html>"
+        private const val BLANK_PAGE = "<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>X</title></head><body></body></html>"
     }
 
     private fun cookies(): String? = runCatching { CookieManager.getInstance().getCookie("https://x.com") }.getOrNull()
@@ -553,7 +553,7 @@ class WebPanes(
             override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
                 if (!simulatedNet) return null
                 return if (request.isForMainFrame) WebResourceResponse("text/html", "utf-8", 200, "OK", emptyMap(), BLANK_PAGE.byteInputStream())
-                else WebResourceResponse("text/plain", "utf-8", 404, "Not Found", emptyMap(), ByteArray(0).inputStream())
+                else WebResourceResponse("text/plain", "utf-8", 204, "No Content", emptyMap(), ByteArray(0).inputStream())
             }
 
             override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
