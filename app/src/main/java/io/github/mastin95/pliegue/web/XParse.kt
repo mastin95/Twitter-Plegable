@@ -40,10 +40,15 @@ object XParse {
     /** Una página de una conversación: el post principal (si viene), lo de encima y las respuestas. */
     data class ThreadPage(val focal: XTweet? = null, val ancestors: List<XTweet> = emptyList(), val replies: List<XEntry> = emptyList(), val cursorBottom: String? = null)
 
-    fun request(url: String): Request {
+    /**
+     * Qué consulta es y sus variables. Las consultas GET las llevan en la dirección (`?variables=…`); las
+     * POST (Inicio, por ejemplo) en el cuerpo JSON de la petición (`{"variables":{…},"features":{…}}`).
+     */
+    fun request(url: String, requestBody: String? = null): Request {
         val name = Regex("/i/api/graphql/[^/]+/([A-Za-z0-9_]+)").find(url)?.groupValues?.get(1) ?: ""
         val vars = Regex("[?&]variables=([^&#]*)").find(url)?.groupValues?.get(1)
             ?.let { runCatching { JSONObject(URLDecoder.decode(it, "UTF-8")) }.getOrNull() }
+            ?: requestBody?.takeIf { it.isNotBlank() }?.let { runCatching { JSONObject(it).optJSONObject("variables") }.getOrNull() }
         fun s(k: String) = vars?.optString(k)?.takeIf { it.isNotEmpty() }
         return Request(name, s("cursor"), s("focalTweetId"), s("userId"), s("rawQuery"), s("screen_name"))
     }
