@@ -5,6 +5,8 @@ import io.github.mastin95.pliegue.model.XEntry
 import io.github.mastin95.pliegue.model.XLink
 import io.github.mastin95.pliegue.model.XMedia
 import io.github.mastin95.pliegue.model.XMediaKind
+import io.github.mastin95.pliegue.model.XNoteKind
+import io.github.mastin95.pliegue.model.XNotification
 import io.github.mastin95.pliegue.model.XTimeline
 import io.github.mastin95.pliegue.model.XTweet
 import io.github.mastin95.pliegue.model.XUser
@@ -30,10 +32,12 @@ object XParse {
         val userId: String? = null,
         val query: String? = null,
         val screenName: String? = null,
+        /** Pestaña de Notificaciones: All, Verified o Mentions. */
+        val timelineType: String? = null,
     )
 
     /** Consultas de las que la app saca posts. */
-    val FEEDS = setOf("HomeTimeline", "HomeLatestTimeline", "SearchTimeline", "UserTweets", "UserTweetsAndReplies", "UserMedia", "Likes", "Bookmarks", "ListLatestTweetsTimeline", "ListRankedTweetsTimeline")
+    val FEEDS = setOf("HomeTimeline", "HomeLatestTimeline", "SearchTimeline", "UserTweets", "UserTweetsAndReplies", "UserMedia", "Likes", "Bookmarks", "ListLatestTweetsTimeline", "ListRankedTweetsTimeline", "NotificationsTimeline")
     const val THREAD = "TweetDetail"
     val USERS = setOf("UserByScreenName", "UserByRestId")
 
@@ -50,7 +54,7 @@ object XParse {
             ?.let { runCatching { JSONObject(URLDecoder.decode(it, "UTF-8")) }.getOrNull() }
             ?: requestBody?.takeIf { it.isNotBlank() }?.let { runCatching { JSONObject(it).optJSONObject("variables") }.getOrNull() }
         fun s(k: String) = vars?.optString(k)?.takeIf { it.isNotEmpty() }
-        return Request(name, s("cursor"), s("focalTweetId"), s("userId"), s("rawQuery"), s("screen_name"))
+        return Request(name, s("cursor"), s("focalTweetId"), s("userId"), s("rawQuery"), s("screen_name"), s("timeline_type"))
     }
 
     // ---- Feeds ----
@@ -122,7 +126,11 @@ object XParse {
             val c = e?.optJSONObject("content") ?: return
             val id = e.optString("entryId")
             when (c.optString("entryType").ifEmpty { c.optString("__typename") }) {
-                "TimelineTimelineItem" -> itemTweet(c.optJSONObject("itemContent"))?.let { entries += XEntry(id, listOf(it)) }
+                "TimelineTimelineItem" -> {
+                    val ic = c.optJSONObject("itemContent")
+                    if (ic?.optString("itemType") == "TimelineNotification") notification(ic, id)?.let { entries += it }
+                    else itemTweet(ic)?.let { entries += XEntry(id, listOf(it)) }
+                }
                 "TimelineTimelineModule" -> module(id, c.optJSONArray("items"))
                 "TimelineTimelineCursor" -> cursor(c, id)
             }
@@ -152,6 +160,52 @@ object XParse {
         if (ic == null || ic.optString("itemType") != "TimelineTweet") return null
         if (ic.has("promotedMetadata")) return null
         return tweet(ic.optJSONObject("tweet_results")?.optJSONObject("result"))
+    }
+
+    /**
+     * Un aviso de Notificaciones (TimelineNotification): el texto con sus tramos en negrita, las cuentas
+     * que lo provocan (template.from_users o las referencias del texto), el post al que se refiere
+     * (template.target_objects) y el tipo por el icono (heart_icon, retweet_icon, person_icon…).
+     */
+    private fun notification(ic: JSONObject, entryId: String): XEntry? {
+        val msg = ic.optJSONObject("rich_message") ?: ic.optJSONObject("message") ?: return null
+        val text = unescape(msg.optString("text"))
+        if (text.isEmpty()) return null
+        val bold = ArrayList<IntRange>()
+        val users = ArrayList<XUser>()
+        fun add(u: XUser?) {
+            if (u != null && users.none { it.handle.equals(u.handle, ignoreCase = true) }) users += u
+        }
+        val template = ic.optJSONObject("template")
+        template?.optJSONArray("from_users")?.let { arr ->
+            for (i in 0 until arr.length()) add(user(arr.optJSONObject(i)?.optJSONObject("user_results")?.optJSONObject("result")))
+        }
+        msg.optJSONArray("entities")?.let { arr ->
+            for (i in 0 until arr.length()) {
+                val e = arr.optJSONObject(i) ?: continue
+                val from = e.optInt("fromIndex", -1)
+                val to = e.optInt("toIndex", -1)
+                if (from >= 0 && to > from) bold += from until to
+                add(user(e.optJSONObject("ref")?.optJSONObject("user_results")?.optJSONObject("result")))
+            }
+        }
+        var target: XTweet? = null
+        template?.optJSONArray("target_objects")?.let { arr ->
+            for (i in 0 until arr.length()) {
+                if (target == null) target = tweet(arr.optJSONObject(i)?.optJSONObject("tweet_results")?.optJSONObject("result"))
+            }
+        }
+        val icon = ic.optString("notification_icon")
+        val kind = when {
+            icon.contains("heart") -> XNoteKind.Like
+            icon.contains("retweet") || icon.contains("repost") -> XNoteKind.Repost
+            icon.contains("person") || icon.contains("follow") -> XNoteKind.Follow
+            else -> XNoteKind.Other
+        }
+        val url = (ic.optJSONObject("notification_url") ?: ic.optJSONObject("url"))?.optString("url")?.takeIf { it.isNotEmpty() }
+        val at = ic.optString("timestamp_ms").toLongOrNull() ?: 0L
+        val id = ic.optString("id").ifEmpty { entryId }
+        return XEntry(entryId.ifEmpty { "notification-$id" }, listOfNotNull(target), XNotification(id, kind, text, bold, users, url, at))
     }
 
     private fun firstTweet(entry: JSONObject): XTweet? {

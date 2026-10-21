@@ -118,6 +118,7 @@ object XWeb {
             p == "/home" || (p.isEmpty() && source == Source.Inicio) -> XView.Home
             p == "/search" -> queryOf(url)?.let { XView.Search(it) }
             p == "/i/bookmarks" -> XView.Bookmarks
+            p == "/notifications" || p.startsWith("/notifications/") -> XView.Notifications
             p.startsWith("/i/user/") -> XView.Profile(null, p.removePrefix("/i/user/").substringBefore('/'))
             else -> handleOf(url)?.let { XView.Profile(it, null) }
         }

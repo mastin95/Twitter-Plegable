@@ -132,6 +132,13 @@ evaluar /i/status/ post-falso
 sleep 5
 paso propia-me-gusta
 
+# Fase 3: Notificaciones pintadas por la app, con avisos de ejemplo inyectados en su web escondida.
+adb shell input keyevent 4
+sleep 3
+toca 'Notificaciones' && sleep 6
+inyectar notifications NotificationsTimeline /notifications '{"timeline_type":"All"}'
+paso propia-notificaciones
+
 # Enlaces que llegan de fuera, con la app ya abierta: un post de X, un enlace corto t.co (web ajena) y
 # algo compartido con Pliegue (va al redactor). Se manda a la actividad para que no salga el selector.
 adb shell am start -W -n "$PKG/.MainActivity" -a android.intent.action.VIEW -d "https://x.com/XDevelopers/status/1" >/dev/null

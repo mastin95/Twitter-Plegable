@@ -1,0 +1,832 @@
+{
+ "data": {
+  "viewer_v2": {
+   "user_results": {
+    "result": {
+     "__typename": "User",
+     "rest_id": "11",
+     "notification_timeline": {
+      "id": "VGltZWxpbmU6",
+      "timeline": {
+       "instructions": [
+        {
+         "type": "TimelineClearCache"
+        },
+        {
+         "type": "TimelineAddEntries",
+         "entries": [
+          {
+           "entryId": "cursor-top-1",
+           "sortIndex": "0",
+           "content": {
+            "entryType": "TimelineTimelineCursor",
+            "__typename": "TimelineTimelineCursor",
+            "value": "NT-1",
+            "cursorType": "Top"
+           }
+          },
+          {
+           "entryId": "notification-n1",
+           "sortIndex": "1760954100000",
+           "content": {
+            "entryType": "TimelineTimelineItem",
+            "__typename": "TimelineTimelineItem",
+            "itemContent": {
+             "itemType": "TimelineNotification",
+             "__typename": "TimelineNotification",
+             "id": "n1",
+             "notification_icon": "heart_icon",
+             "rich_message": {
+              "rtl": false,
+              "text": "A Nerea A. y a Pablo M. les gustó tu post",
+              "entities": [
+               {
+                "fromIndex": 2,
+                "toIndex": 10,
+                "ref": {
+                 "type": "TimelineRichTextUser",
+                 "user_results": {
+                  "result": {
+                   "__typename": "User",
+                   "id": "VXNlcjo13",
+                   "rest_id": "13",
+                   "is_blue_verified": false,
+                   "legacy": {
+                    "description": "",
+                    "followers_count": 10,
+                    "friends_count": 5,
+                    "statuses_count": 321,
+                    "location": "Valencia",
+                    "profile_banner_url": "https://pbs.twimg.com/profile_banners/13/1",
+                    "verified": false,
+                    "entities": {
+                     "url": {
+                      "urls": [
+                       {
+                        "expanded_url": "https://example.org/perfil",
+                        "url": "https://t.co/perfil"
+                       }
+                      ]
+                     }
+                    }
+                   },
+                   "core": {
+                    "created_at": "Mon Jan 01 00:00:00 +0000 2018",
+                    "name": "Nerea A.",
+                    "screen_name": "nerea_a"
+                   },
+                   "avatar": {
+                    "image_url": "https://pbs.twimg.com/profile_images/13/foto_normal.jpg"
+                   },
+                   "verification": {
+                    "verified": false
+                   },
+                   "location": {
+                    "location": "Valencia"
+                   }
+                  }
+                 }
+                }
+               },
+               {
+                "fromIndex": 15,
+                "toIndex": 23,
+                "ref": {
+                 "type": "TimelineRichTextUser",
+                 "user_results": {
+                  "result": {
+                   "__typename": "User",
+                   "id": "VXNlcjo14",
+                   "rest_id": "14",
+                   "is_blue_verified": false,
+                   "legacy": {
+                    "description": "",
+                    "followers_count": 10,
+                    "friends_count": 5,
+                    "statuses_count": 321,
+                    "location": "Valencia",
+                    "profile_banner_url": "https://pbs.twimg.com/profile_banners/14/1",
+                    "verified": false,
+                    "entities": {
+                     "url": {
+                      "urls": [
+                       {
+                        "expanded_url": "https://example.org/perfil",
+                        "url": "https://t.co/perfil"
+                       }
+                      ]
+                     }
+                    },
+                    "name": "Pablo M.",
+                    "screen_name": "pablom",
+                    "profile_image_url_https": "https://pbs.twimg.com/profile_images/14/foto_normal.jpg"
+                   }
+                  }
+                 }
+                }
+               }
+              ]
+             },
+             "template": {
+              "__typename": "TimelineNotificationAggregateUserActions",
+              "from_users": [
+               {
+                "user_results": {
+                 "result": {
+                  "__typename": "User",
+                  "id": "VXNlcjo13",
+                  "rest_id": "13",
+                  "is_blue_verified": false,
+                  "legacy": {
+                   "description": "",
+                   "followers_count": 10,
+                   "friends_count": 5,
+                   "statuses_count": 321,
+                   "location": "Valencia",
+                   "profile_banner_url": "https://pbs.twimg.com/profile_banners/13/1",
+                   "verified": false,
+                   "entities": {
+                    "url": {
+                     "urls": [
+                      {
+                       "expanded_url": "https://example.org/perfil",
+                       "url": "https://t.co/perfil"
+                      }
+                     ]
+                    }
+                   }
+                  },
+                  "core": {
+                   "created_at": "Mon Jan 01 00:00:00 +0000 2018",
+                   "name": "Nerea A.",
+                   "screen_name": "nerea_a"
+                  },
+                  "avatar": {
+                   "image_url": "https://pbs.twimg.com/profile_images/13/foto_normal.jpg"
+                  },
+                  "verification": {
+                   "verified": false
+                  },
+                  "location": {
+                   "location": "Valencia"
+                  }
+                 }
+                }
+               },
+               {
+                "user_results": {
+                 "result": {
+                  "__typename": "User",
+                  "id": "VXNlcjo14",
+                  "rest_id": "14",
+                  "is_blue_verified": false,
+                  "legacy": {
+                   "description": "",
+                   "followers_count": 10,
+                   "friends_count": 5,
+                   "statuses_count": 321,
+                   "location": "Valencia",
+                   "profile_banner_url": "https://pbs.twimg.com/profile_banners/14/1",
+                   "verified": false,
+                   "entities": {
+                    "url": {
+                     "urls": [
+                      {
+                       "expanded_url": "https://example.org/perfil",
+                       "url": "https://t.co/perfil"
+                      }
+                     ]
+                    }
+                   },
+                   "name": "Pablo M.",
+                   "screen_name": "pablom",
+                   "profile_image_url_https": "https://pbs.twimg.com/profile_images/14/foto_normal.jpg"
+                  }
+                 }
+                }
+               }
+              ],
+              "target_objects": [
+               {
+                "tweet_results": {
+                 "result": {
+                  "__typename": "Tweet",
+                  "rest_id": "1001",
+                  "core": {
+                   "user_results": {
+                    "result": {
+                     "__typename": "User",
+                     "id": "VXNlcjo11",
+                     "rest_id": "11",
+                     "is_blue_verified": true,
+                     "legacy": {
+                      "description": "Diseño producto para pantallas raras &amp; hilos.",
+                      "followers_count": 10,
+                      "friends_count": 5,
+                      "statuses_count": 321,
+                      "location": "Valencia",
+                      "profile_banner_url": "https://pbs.twimg.com/profile_banners/11/1",
+                      "verified": false,
+                      "entities": {
+                       "url": {
+                        "urls": [
+                         {
+                          "expanded_url": "https://example.org/perfil",
+                          "url": "https://t.co/perfil"
+                         }
+                        ]
+                       }
+                      }
+                     },
+                     "core": {
+                      "created_at": "Mon Jan 01 00:00:00 +0000 2018",
+                      "name": "Lucía R.",
+                      "screen_name": "lucia"
+                     },
+                     "avatar": {
+                      "image_url": "https://pbs.twimg.com/profile_images/11/foto_normal.jpg"
+                     },
+                     "verification": {
+                      "verified": true
+                     },
+                     "location": {
+                      "location": "Valencia"
+                     }
+                    }
+                   }
+                  },
+                  "views": {
+                   "count": "34000",
+                   "state": "EnabledWithCount"
+                  },
+                  "legacy": {
+                   "bookmark_count": 2,
+                   "bookmarked": false,
+                   "created_at": "Tue Oct 20 10:15:00 +0000 2026",
+                   "conversation_id_str": "1001",
+                   "display_text_range": [
+                    0,
+                    87
+                   ],
+                   "entities": {
+                    "hashtags": [],
+                    "symbols": [],
+                    "urls": [
+                     {
+                      "display_url": "elpais.com/plegables",
+                      "expanded_url": "https://www.elpais.com/plegables",
+                      "url": "https://t.co/enl",
+                      "indices": [
+                       55,
+                       78
+                      ]
+                     }
+                    ],
+                    "user_mentions": []
+                   },
+                   "favorite_count": 1200,
+                   "favorited": false,
+                   "full_text": "Hilo: lo que aprendí diseñando para pantallas que se doblan &amp; más. https://t.co/enl",
+                   "is_quote_status": false,
+                   "lang": "es",
+                   "quote_count": 10,
+                   "reply_count": 48,
+                   "retweet_count": 120,
+                   "retweeted": false,
+                   "user_id_str": "11",
+                   "id_str": "1001"
+                  },
+                  "source": "<a href=\"x\">Twitter Web App</a>",
+                  "card": {
+                   "rest_id": "https://t.co/enl",
+                   "legacy": {
+                    "name": "summary_large_image",
+                    "url": "https://t.co/enl",
+                    "binding_values": [
+                     {
+                      "key": "title",
+                      "value": {
+                       "string_value": "Diseñar para plegables: guía &amp; trucos",
+                       "type": "STRING"
+                      }
+                     },
+                     {
+                      "key": "domain",
+                      "value": {
+                       "string_value": "www.elpais.com",
+                       "type": "STRING"
+                      }
+                     },
+                     {
+                      "key": "vanity_url",
+                      "value": {
+                       "string_value": "elpais.com",
+                       "type": "STRING"
+                      }
+                     },
+                     {
+                      "key": "card_url",
+                      "value": {
+                       "string_value": "https://t.co/enl",
+                       "type": "STRING"
+                      }
+                     },
+                     {
+                      "key": "summary_photo_image_large",
+                      "value": {
+                       "image_value": {
+                        "height": 419,
+                        "width": 800,
+                        "url": "https://pbs.twimg.com/card_img/1/abc?format=jpg&name=800x419"
+                       },
+                       "type": "IMAGE"
+                      }
+                     }
+                    ]
+                   }
+                  }
+                 }
+                }
+               }
+              ]
+             },
+             "timestamp_ms": "1760954100000",
+             "notification_url": {
+              "url": "https://x.com/i/status/1001",
+              "urlType": "ExternalUrl"
+             }
+            },
+            "clientEventInfo": {
+             "component": "urt"
+            }
+           }
+          },
+          {
+           "entryId": "notification-n2",
+           "sortIndex": "1760950500000",
+           "content": {
+            "entryType": "TimelineTimelineItem",
+            "__typename": "TimelineTimelineItem",
+            "itemContent": {
+             "itemType": "TimelineNotification",
+             "__typename": "TimelineNotification",
+             "id": "n2",
+             "notification_icon": "retweet_icon",
+             "rich_message": {
+              "rtl": false,
+              "text": "Diego G. reposteó tu post",
+              "entities": [
+               {
+                "fromIndex": 0,
+                "toIndex": 8,
+                "ref": {
+                 "type": "TimelineRichTextUser",
+                 "user_results": {
+                  "result": {
+                   "__typename": "User",
+                   "id": "VXNlcjo12",
+                   "rest_id": "12",
+                   "is_blue_verified": false,
+                   "legacy": {
+                    "description": "",
+                    "followers_count": 10,
+                    "friends_count": 5,
+                    "statuses_count": 321,
+                    "location": "Valencia",
+                    "profile_banner_url": "https://pbs.twimg.com/profile_banners/12/1",
+                    "verified": false,
+                    "entities": {
+                     "url": {
+                      "urls": [
+                       {
+                        "expanded_url": "https://example.org/perfil",
+                        "url": "https://t.co/perfil"
+                       }
+                      ]
+                     }
+                    },
+                    "name": "Diego G.",
+                    "screen_name": "dgarcia",
+                    "profile_image_url_https": "https://pbs.twimg.com/profile_images/12/foto_normal.jpg"
+                   }
+                  }
+                 }
+                }
+               }
+              ]
+             },
+             "template": {
+              "__typename": "TimelineNotificationAggregateUserActions",
+              "from_users": [
+               {
+                "user_results": {
+                 "result": {
+                  "__typename": "User",
+                  "id": "VXNlcjo12",
+                  "rest_id": "12",
+                  "is_blue_verified": false,
+                  "legacy": {
+                   "description": "",
+                   "followers_count": 10,
+                   "friends_count": 5,
+                   "statuses_count": 321,
+                   "location": "Valencia",
+                   "profile_banner_url": "https://pbs.twimg.com/profile_banners/12/1",
+                   "verified": false,
+                   "entities": {
+                    "url": {
+                     "urls": [
+                      {
+                       "expanded_url": "https://example.org/perfil",
+                       "url": "https://t.co/perfil"
+                      }
+                     ]
+                    }
+                   },
+                   "name": "Diego G.",
+                   "screen_name": "dgarcia",
+                   "profile_image_url_https": "https://pbs.twimg.com/profile_images/12/foto_normal.jpg"
+                  }
+                 }
+                }
+               }
+              ],
+              "target_objects": [
+               {
+                "tweet_results": {
+                 "result": {
+                  "__typename": "Tweet",
+                  "rest_id": "1001",
+                  "core": {
+                   "user_results": {
+                    "result": {
+                     "__typename": "User",
+                     "id": "VXNlcjo11",
+                     "rest_id": "11",
+                     "is_blue_verified": true,
+                     "legacy": {
+                      "description": "Diseño producto para pantallas raras &amp; hilos.",
+                      "followers_count": 10,
+                      "friends_count": 5,
+                      "statuses_count": 321,
+                      "location": "Valencia",
+                      "profile_banner_url": "https://pbs.twimg.com/profile_banners/11/1",
+                      "verified": false,
+                      "entities": {
+                       "url": {
+                        "urls": [
+                         {
+                          "expanded_url": "https://example.org/perfil",
+                          "url": "https://t.co/perfil"
+                         }
+                        ]
+                       }
+                      }
+                     },
+                     "core": {
+                      "created_at": "Mon Jan 01 00:00:00 +0000 2018",
+                      "name": "Lucía R.",
+                      "screen_name": "lucia"
+                     },
+                     "avatar": {
+                      "image_url": "https://pbs.twimg.com/profile_images/11/foto_normal.jpg"
+                     },
+                     "verification": {
+                      "verified": true
+                     },
+                     "location": {
+                      "location": "Valencia"
+                     }
+                    }
+                   }
+                  },
+                  "views": {
+                   "count": "34000",
+                   "state": "EnabledWithCount"
+                  },
+                  "legacy": {
+                   "bookmark_count": 2,
+                   "bookmarked": false,
+                   "created_at": "Tue Oct 20 10:15:00 +0000 2026",
+                   "conversation_id_str": "1001",
+                   "display_text_range": [
+                    0,
+                    87
+                   ],
+                   "entities": {
+                    "hashtags": [],
+                    "symbols": [],
+                    "urls": [
+                     {
+                      "display_url": "elpais.com/plegables",
+                      "expanded_url": "https://www.elpais.com/plegables",
+                      "url": "https://t.co/enl",
+                      "indices": [
+                       55,
+                       78
+                      ]
+                     }
+                    ],
+                    "user_mentions": []
+                   },
+                   "favorite_count": 1200,
+                   "favorited": false,
+                   "full_text": "Hilo: lo que aprendí diseñando para pantallas que se doblan &amp; más. https://t.co/enl",
+                   "is_quote_status": false,
+                   "lang": "es",
+                   "quote_count": 10,
+                   "reply_count": 48,
+                   "retweet_count": 120,
+                   "retweeted": false,
+                   "user_id_str": "11",
+                   "id_str": "1001"
+                  },
+                  "source": "<a href=\"x\">Twitter Web App</a>",
+                  "card": {
+                   "rest_id": "https://t.co/enl",
+                   "legacy": {
+                    "name": "summary_large_image",
+                    "url": "https://t.co/enl",
+                    "binding_values": [
+                     {
+                      "key": "title",
+                      "value": {
+                       "string_value": "Diseñar para plegables: guía &amp; trucos",
+                       "type": "STRING"
+                      }
+                     },
+                     {
+                      "key": "domain",
+                      "value": {
+                       "string_value": "www.elpais.com",
+                       "type": "STRING"
+                      }
+                     },
+                     {
+                      "key": "vanity_url",
+                      "value": {
+                       "string_value": "elpais.com",
+                       "type": "STRING"
+                      }
+                     },
+                     {
+                      "key": "card_url",
+                      "value": {
+                       "string_value": "https://t.co/enl",
+                       "type": "STRING"
+                      }
+                     },
+                     {
+                      "key": "summary_photo_image_large",
+                      "value": {
+                       "image_value": {
+                        "height": 419,
+                        "width": 800,
+                        "url": "https://pbs.twimg.com/card_img/1/abc?format=jpg&name=800x419"
+                       },
+                       "type": "IMAGE"
+                      }
+                     }
+                    ]
+                   }
+                  }
+                 }
+                }
+               }
+              ]
+             },
+             "timestamp_ms": "1760950500000",
+             "notification_url": {
+              "url": "https://x.com/i/status/1001",
+              "urlType": "ExternalUrl"
+             }
+            },
+            "clientEventInfo": {
+             "component": "urt"
+            }
+           }
+          },
+          {
+           "entryId": "notification-n3",
+           "sortIndex": "1760947000000",
+           "content": {
+            "entryType": "TimelineTimelineItem",
+            "__typename": "TimelineTimelineItem",
+            "itemContent": {
+             "itemType": "TimelineNotification",
+             "__typename": "TimelineNotification",
+             "id": "n3",
+             "notification_icon": "person_icon",
+             "rich_message": {
+              "rtl": false,
+              "text": "Tecnología Hoy te siguió",
+              "entities": [
+               {
+                "fromIndex": 0,
+                "toIndex": 14,
+                "ref": {
+                 "type": "TimelineRichTextUser",
+                 "user_results": {
+                  "result": {
+                   "__typename": "User",
+                   "id": "VXNlcjo15",
+                   "rest_id": "15",
+                   "is_blue_verified": true,
+                   "legacy": {
+                    "description": "",
+                    "followers_count": 10,
+                    "friends_count": 5,
+                    "statuses_count": 321,
+                    "location": "Valencia",
+                    "profile_banner_url": "https://pbs.twimg.com/profile_banners/15/1",
+                    "verified": false,
+                    "entities": {
+                     "url": {
+                      "urls": [
+                       {
+                        "expanded_url": "https://example.org/perfil",
+                        "url": "https://t.co/perfil"
+                       }
+                      ]
+                     }
+                    },
+                    "name": "Tecnología Hoy",
+                    "screen_name": "tecnohoy",
+                    "profile_image_url_https": "https://pbs.twimg.com/profile_images/15/foto_normal.jpg"
+                   }
+                  }
+                 }
+                }
+               }
+              ]
+             },
+             "template": {
+              "__typename": "TimelineNotificationAggregateUserActions",
+              "from_users": [
+               {
+                "user_results": {
+                 "result": {
+                  "__typename": "User",
+                  "id": "VXNlcjo15",
+                  "rest_id": "15",
+                  "is_blue_verified": true,
+                  "legacy": {
+                   "description": "",
+                   "followers_count": 10,
+                   "friends_count": 5,
+                   "statuses_count": 321,
+                   "location": "Valencia",
+                   "profile_banner_url": "https://pbs.twimg.com/profile_banners/15/1",
+                   "verified": false,
+                   "entities": {
+                    "url": {
+                     "urls": [
+                      {
+                       "expanded_url": "https://example.org/perfil",
+                       "url": "https://t.co/perfil"
+                      }
+                     ]
+                    }
+                   },
+                   "name": "Tecnología Hoy",
+                   "screen_name": "tecnohoy",
+                   "profile_image_url_https": "https://pbs.twimg.com/profile_images/15/foto_normal.jpg"
+                  }
+                 }
+                }
+               }
+              ],
+              "target_objects": []
+             },
+             "timestamp_ms": "1760947000000",
+             "notification_url": {
+              "url": "https://x.com/tecnohoy",
+              "urlType": "ExternalUrl"
+             }
+            },
+            "clientEventInfo": {
+             "component": "urt"
+            }
+           }
+          },
+          {
+           "entryId": "tweet-1030",
+           "sortIndex": "1",
+           "content": {
+            "entryType": "TimelineTimelineItem",
+            "__typename": "TimelineTimelineItem",
+            "itemContent": {
+             "itemType": "TimelineTweet",
+             "__typename": "TimelineTweet",
+             "tweet_results": {
+              "result": {
+               "__typename": "Tweet",
+               "rest_id": "1030",
+               "core": {
+                "user_results": {
+                 "result": {
+                  "__typename": "User",
+                  "id": "VXNlcjo13",
+                  "rest_id": "13",
+                  "is_blue_verified": false,
+                  "legacy": {
+                   "description": "",
+                   "followers_count": 10,
+                   "friends_count": 5,
+                   "statuses_count": 321,
+                   "location": "Valencia",
+                   "profile_banner_url": "https://pbs.twimg.com/profile_banners/13/1",
+                   "verified": false,
+                   "entities": {
+                    "url": {
+                     "urls": [
+                      {
+                       "expanded_url": "https://example.org/perfil",
+                       "url": "https://t.co/perfil"
+                      }
+                     ]
+                    }
+                   }
+                  },
+                  "core": {
+                   "created_at": "Mon Jan 01 00:00:00 +0000 2018",
+                   "name": "Nerea A.",
+                   "screen_name": "nerea_a"
+                  },
+                  "avatar": {
+                   "image_url": "https://pbs.twimg.com/profile_images/13/foto_normal.jpg"
+                  },
+                  "verification": {
+                   "verified": false
+                  },
+                  "location": {
+                   "location": "Valencia"
+                  }
+                 }
+                }
+               },
+               "views": {
+                "count": "18000",
+                "state": "EnabledWithCount"
+               },
+               "legacy": {
+                "bookmark_count": 0,
+                "bookmarked": false,
+                "created_at": "Tue Oct 20 10:15:00 +0000 2026",
+                "conversation_id_str": "1001",
+                "display_text_range": [
+                 0,
+                 43
+                ],
+                "entities": {
+                 "user_mentions": [
+                  {
+                   "screen_name": "lucia",
+                   "indices": [
+                    0,
+                    6
+                   ]
+                  }
+                 ],
+                 "urls": []
+                },
+                "favorite_count": 2,
+                "favorited": false,
+                "full_text": "@lucia ¿has visto esto? Te va a interesar.",
+                "is_quote_status": false,
+                "lang": "es",
+                "quote_count": 0,
+                "reply_count": 1,
+                "retweet_count": 0,
+                "retweeted": false,
+                "user_id_str": "13",
+                "id_str": "1030",
+                "in_reply_to_screen_name": "lucia"
+               },
+               "source": "<a href=\"x\">Twitter Web App</a>"
+              }
+             },
+             "tweetDisplayType": "Tweet"
+            }
+           }
+          },
+          {
+           "entryId": "cursor-bottom-1",
+           "sortIndex": "0",
+           "content": {
+            "entryType": "TimelineTimelineCursor",
+            "__typename": "TimelineTimelineCursor",
+            "value": "NB-1",
+            "cursorType": "Bottom"
+           }
+          }
+         ]
+        }
+       ]
+      }
+     }
+    }
+   }
+  }
+ }
+}
