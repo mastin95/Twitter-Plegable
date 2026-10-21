@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import io.github.mastin95.pliegue.AppViewModel
+import io.github.mastin95.pliegue.BuildConfig
 import io.github.mastin95.pliegue.model.AppMode
 import io.github.mastin95.pliegue.ui.XIcons
 import io.github.mastin95.pliegue.ui.components.Logo
@@ -343,6 +344,15 @@ fun SettingsDialog(vm: AppViewModel) {
                         content = X.Text,
                         border = X.OutlineButton,
                         height = 32.dp,
+                    )
+                }
+                item {
+                    Section("Esta versión")
+                    Text(
+                        "Pliegue ${BuildConfig.VERSION_NAME} · compilación ${BuildConfig.BUILD}" +
+                            (if (BuildConfig.COMMIT.isNotEmpty()) " (${BuildConfig.COMMIT})" else "") +
+                            " · ${BuildConfig.BUILT}",
+                        style = XType.small,
                     )
                 }
                 item { Section("Registro de la web") }
