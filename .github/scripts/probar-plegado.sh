@@ -76,6 +76,15 @@ abrir() { adb shell wm size 2208x1840; sleep 12; }
 # pruebas, como si la hubiera recibido, y la app la pinta (en el Android virtual X no deja entrar).
 EJ=app/src/test/resources/x
 inyectar() { devtools && python3 .github/scripts/cdp.py inyectar 9222 "$EJ/$1.json" "$2" "${3:-}" "${4:-"{}"}"; sleep 4; }
+desliza() { adb shell input swipe "$1" "$2" "$1" "$3" 400; sleep 2; }   # x, y de salida, y de llegada
+busca_y_toca() {  # baja por la lista (en x=$2, de y=$3 a y=$4) hasta ver el texto y lo toca
+  local i
+  for i in 1 2 3 4 5 6 7 8; do
+    toca "$1" && return 0
+    desliza "${2:-500}" "${3:-1400}" "${4:-500}"
+  done
+  return 1
+}
 plegar() { adb shell wm size reset; sleep 12; }
 
 adb logcat -c
@@ -104,7 +113,7 @@ paso propia-plegado
 abrir
 inyectar home2 HomeTimeline /home '{"cursor":"CURSOR-BOTTOM-1"}'
 paso propia-abierto
-toca 'Para quien preguntaba' && sleep 8
+busca_y_toca 'Para quien preguntaba' 500 1400 500 && sleep 8
 inyectar detail TweetDetail /status/ '{"focalTweetId":"1008"}'
 paso propia-post-al-lado
 plegar
