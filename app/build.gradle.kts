@@ -64,6 +64,10 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
     // Fotos y avatares de X en la interfaz propia.
     implementation(libs.coil.compose)
+    // Vídeos y GIF de X con reproductor propio (ExoPlayer; HLS para las listas .m3u8 que manda X).
+    implementation(libs.media3.exoplayer)
+    implementation(libs.media3.exoplayer.hls)
+    implementation(libs.media3.ui)
     testImplementation(libs.junit)
     // En las pruebas de JVM el org.json de Android es solo un esqueleto; este es el de verdad.
     testImplementation(libs.org.json)

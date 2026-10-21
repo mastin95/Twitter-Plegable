@@ -30,6 +30,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -66,13 +67,14 @@ import io.github.mastin95.pliegue.ui.components.endBorder
 import io.github.mastin95.pliegue.ui.components.startBorder
 import io.github.mastin95.pliegue.ui.components.NavIcon
 import io.github.mastin95.pliegue.ui.components.topBorder
+import io.github.mastin95.pliegue.ui.x.LocalTabsEndInset
+import io.github.mastin95.pliegue.ui.x.MediaOrWeb
 import io.github.mastin95.pliegue.ui.x.NativeOrWeb
 import io.github.mastin95.pliegue.ui.theme.X
 import io.github.mastin95.pliegue.ui.theme.XType
 import io.github.mastin95.pliegue.ui.web.EmptyMyFeed
 import io.github.mastin95.pliegue.ui.web.LocalWebPanes
 import io.github.mastin95.pliegue.ui.web.UserDropTarget
-import io.github.mastin95.pliegue.ui.web.WebPane
 import io.github.mastin95.pliegue.web.PaneOptions
 import io.github.mastin95.pliegue.web.XWeb
 
@@ -105,7 +107,9 @@ fun RealFolded(vm: AppViewModel) {
     val native = vm.nativeUi
     val external = url != null && (XWeb.isExternal(url) || XWeb.isMedia(url) || XWeb.isVideo(url))
     // Con la interfaz propia, atrás no deshace la web escondida (la app no se enteraría): cierra lo abierto.
-    val ownPage = native && url != null && !external && XWeb.view(url, source) != null
+    // Una foto o un vídeo en el visor propio tampoco tienen web detrás que deshacer.
+    val media = url != null && (XWeb.isMedia(url) || XWeb.isVideo(url))
+    val ownPage = url != null && (media || (native && !external && XWeb.view(url, source) != null))
     BackHandler {
         when {
             !ownPage && web.canGoBack(slot) -> web.goBack(slot)
@@ -118,8 +122,11 @@ fun RealFolded(vm: AppViewModel) {
             if (focused != null) WebPostHeader(vm, focused, compact = true)
             when {
                 url == null -> EmptyMyFeed(Modifier.weight(1f))
-                external -> WebPane(slot, url, Modifier.weight(1f), PaneOptions.EXTERNAL)
-                else -> NativeOrWeb(vm, slot, url, PaneOptions(interceptPosts = native, hideChrome = native), Modifier.weight(1f), source)
+                external -> MediaOrWeb(slot, url, Modifier.weight(1f))
+                // Con el botón de Pliegue flotando arriba a la derecha, las pestañas le dejan hueco.
+                else -> CompositionLocalProvider(LocalTabsEndInset provides if (focused == null) 52.dp else 0.dp) {
+                    NativeOrWeb(vm, slot, url, PaneOptions(interceptPosts = native, hideChrome = native), Modifier.weight(1f), source)
+                }
             }
             if (native && focused == null) FoldedNav(vm)
         }
@@ -307,7 +314,7 @@ fun WebHalf(vm: AppViewModel, index: Int, modifier: Modifier) {
                 index == 1 && (vm.mode == OpenMode.Uno || vm.mode == OpenMode.Libro) && open == null -> EmptyDetail(libro = vm.mode == OpenMode.Libro)
                 panel.source == Source.Fijados && open == null -> PinnedList(vm, onOpen = { vm.openWebPost(index, it) }, modifier = Modifier.weight(1f))
                 url == null -> EmptyMyFeed(Modifier.weight(1f))
-                external -> WebPane("pane$index", url, Modifier.weight(1f), PaneOptions.EXTERNAL)
+                external -> MediaOrWeb("pane$index", url, Modifier.weight(1f))
                 // El post abierto al otro lado se marca en este feed.
                 else -> NativeOrWeb(vm, "pane$index", url, PaneOptions(interceptPosts = true, hideChrome = true), Modifier.weight(1f), if (open == null) panel.source else null, textZoom = if (reading) 118 else 100, selectedUrl = other.openUrl)
             }
@@ -407,6 +414,7 @@ fun WebPostHeader(vm: AppViewModel, index: Int, compact: Boolean = false) {
     val title = when {
         composing -> "Redactar"
         XWeb.isMedia(url) -> "Foto"
+        XWeb.isGif(url) -> "GIF"
         XWeb.isVideo(url) -> "Vídeo"
         external -> XWeb.siteLabel(current)
         XWeb.isStatus(url) -> "Post"
@@ -427,7 +435,7 @@ fun WebPostHeader(vm: AppViewModel, index: Int, compact: Boolean = false) {
         Spacer(Modifier.width(8.dp))
         Text(title, style = XType.title, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
         if (external) {
-            IconButton(onClick = { web.openInBrowser(current) }) {
+            IconButton(onClick = { web.openInBrowser(XWeb.mediaUrl(current)) }) {
                 Icon(XIcons.Globe, contentDescription = "Abrir en el navegador", tint = X.Text, modifier = Modifier.size(20.dp))
             }
         }

@@ -56,8 +56,14 @@ fun NativeLayer(vm: AppViewModel, slot: String, view: XView, selectedUrl: String
                 }
             },
             onMedia = { _, m ->
-                val target = if (m.kind == XMediaKind.Photo) XWeb.largeImage(m.url) else m.video ?: m.url
-                if (!vm.onWebLink(slot, target)) web.openInBrowser(target)
+                // Las fotos van al visor propio a tamaño grande; los vídeos y GIF al reproductor propio,
+                // marcados para que sepa qué son (un vídeo sin dirección de vídeo enseña su imagen).
+                val target = when (m.kind) {
+                    XMediaKind.Photo -> XWeb.largeImage(m.url)
+                    XMediaKind.Gif -> m.video?.let { it + XWeb.GIF } ?: XWeb.largeImage(m.url)
+                    XMediaKind.Video -> m.video?.let { it + XWeb.VIDEO } ?: XWeb.largeImage(m.url)
+                }
+                if (!vm.onWebLink(slot, target)) web.openInBrowser(XWeb.mediaUrl(target))
             },
             onReply = { vm.replyFromNative(slot, it.id) },
             onRepost = actor::repost,

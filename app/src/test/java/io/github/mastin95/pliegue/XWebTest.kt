@@ -107,6 +107,19 @@ class XWebTest {
     }
 
     @Test
+    fun `los vídeos y GIF se reconocen con la marca de la app y se limpian para el reproductor`() {
+        assertTrue(XWeb.isVideo("https://video.twimg.com/v/1.mp4"))
+        assertTrue(XWeb.isVideo("https://cdn.example.com/a.mp4#video"))
+        assertTrue(XWeb.isGif("https://video.twimg.com/tweet_video/a.mp4#gif"))
+        assertTrue(XWeb.isVideo("https://video.twimg.com/tweet_video/a.mp4#gif"))
+        assertFalse(XWeb.isGif("https://video.twimg.com/v/1.mp4"))
+        assertFalse(XWeb.isVideo("https://x.com/a/status/1"))
+        assertEquals("https://video.twimg.com/tweet_video/a.mp4", XWeb.mediaUrl("https://video.twimg.com/tweet_video/a.mp4#gif"))
+        assertEquals("https://video.twimg.com/v/1.mp4", XWeb.mediaUrl("https://video.twimg.com/v/1.mp4#video"))
+        assertEquals("https://video.twimg.com/v/1.mp4", XWeb.mediaUrl("https://video.twimg.com/v/1.mp4"))
+    }
+
+    @Test
     fun `la limpieza del feed entra en el script y se guarda por nombres`() {
         val none = XWeb.bridgeScript(interceptPosts = true, hideChrome = true)
         assertTrue(none.contains("clean: {ads:false,sug:false,premium:false,following:false}"))

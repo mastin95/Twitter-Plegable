@@ -139,6 +139,21 @@ toca 'Notificaciones' && sleep 6
 inyectar notifications NotificationsTimeline /notifications '{"timeline_type":"All"}'
 paso propia-notificaciones
 
+# Fase 4: la caché de Inicio y el visor de fotos. Se cierra la app del todo y se vuelve a abrir: Inicio
+# tiene que salir del disco al momento, sin inyectar nada (en el registro, "de la caché"). Si la sesión
+# falsa no sobrevivió al cierre, se vuelve a poner. Luego una foto tocada se abre en el visor propio
+# (con la red simulada las imágenes son cuadros de color con su nombre).
+adb shell am force-stop "$PKG"
+sleep 2
+adb shell am start -W -n "$PKG/.MainActivity" --ez depurar_web true --ez red_simulada true
+sleep 10
+sin_avisos
+if toca '^Iniciar sesión en X$'; then sleep 12; sesion_falsa; sleep 10; fi
+sleep 6
+paso propia-cache
+busca_y_toca 'Imagen' 500 1400 500 && sleep 6
+paso propia-foto
+
 # Enlaces que llegan de fuera, con la app ya abierta: un post de X, un enlace corto t.co (web ajena) y
 # algo compartido con Pliegue (va al redactor). Se manda a la actividad para que no salga el selector.
 adb shell am start -W -n "$PKG/.MainActivity" -a android.intent.action.VIEW -d "https://x.com/XDevelopers/status/1" >/dev/null

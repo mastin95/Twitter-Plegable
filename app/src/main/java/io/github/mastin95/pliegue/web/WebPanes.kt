@@ -37,6 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
 import io.github.mastin95.pliegue.model.Cleanup
+import io.github.mastin95.pliegue.model.XView
 import java.util.concurrent.Executors
 
 /** WebView de un panel. No acepta arrastres: así caen en la zona de soltar de Compose que hay encima. */
@@ -88,6 +89,9 @@ class WebPanes(
     // Las respuestas de X pesan cientos de KB: se leen fuera del hilo principal, de una en una.
     private val parser = Executors.newSingleThreadExecutor()
 
+    /** La última carga de Inicio, para pintarla al abrir la app antes de que X mande nada. */
+    val cache = XCache(java.io.File(activity.filesDir, "x-cache"), parser) { main.post(it) }
+
     /** Dirección actual y progreso de carga de cada ranura. */
     val urls = mutableStateMapOf<String, String>()
 
@@ -118,6 +122,7 @@ class WebPanes(
 
     fun simulateNetwork() {
         simulatedNet = true
+        FakeImages.install(activity)
         log("red simulada: las webs no salen a internet (solo pruebas)")
     }
 
@@ -214,6 +219,7 @@ class WebPanes(
         requested[slot] = url
         urls[slot] = url
         v.loadUrl(url)
+        seed(slot, url)
         return v
     }
 
@@ -229,6 +235,18 @@ class WebPanes(
         urls[slot] = url
         store.clear(slot)
         v.loadUrl(url)
+        seed(slot, url)
+    }
+
+    /** Inicio recién pedido en una ranura: mientras X manda lo suyo se pinta lo último guardado (ver XCache). */
+    private fun seed(slot: String, url: String) {
+        if (XWeb.view(url) != XView.Home) return
+        for (name in XCache.NAMES) {
+            if (store.feed(slot, name) != null) continue
+            cache.get(name) { e ->
+                if (requested[slot] == url && store.feed(slot, name) == null) log("[$slot] de la caché: " + store.put(slot, XParse.Request(name), XStore.Parsed.Feed(e.timeline), e.time))
+            }
+        }
     }
 
     /**
@@ -367,6 +385,7 @@ class WebPanes(
             slots.values.forEach { it.clearCache(true) }
             cm.setCookie("https://x.com", "night_mode=2; Domain=.x.com; Path=/; Secure")
             cm.flush()
+            cache.clear()
             checkLogin()
             log("datos de las webs borrados")
             done()
@@ -376,6 +395,7 @@ class WebPanes(
     /** Borra la sesión de X (cookies y almacenamiento) y cierra todas las webs. */
     fun logout(done: () -> Unit) {
         destroyAll()
+        cache.clear()
         val cm = CookieManager.getInstance()
         cm.removeAllCookies {
             WebStorage.getInstance().deleteAllData()
@@ -677,7 +697,9 @@ class WebPanes(
                     if (parsed == null) {
                         if (req.name in XParse.FEEDS || req.name == XParse.THREAD) log("[$slot] ${req.name}: no entendí la respuesta (${body.length} caracteres)")
                     } else {
-                        log("[$slot] " + store.put(slot, req, parsed, System.currentTimeMillis()))
+                        val now = System.currentTimeMillis()
+                        log("[$slot] " + store.put(slot, req, parsed, now))
+                        if (parsed is XStore.Parsed.Feed && req.cursor == null) cache.keep(req.name, body, parsed.timeline, now)
                     }
                 }
             }

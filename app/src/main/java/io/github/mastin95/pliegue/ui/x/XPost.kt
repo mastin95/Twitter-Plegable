@@ -139,7 +139,7 @@ private fun MediaBox(m: XMedia, modifier: Modifier, name: String, onOpen: () -> 
             .background(X.Card)
             .clickable(onClickLabel = if (m.kind == XMediaKind.Photo) "Ver la foto" else "Ver el vídeo", onClick = onOpen),
     ) {
-        AsyncImage(model = sized(m.url, name), contentDescription = m.alt.ifEmpty { null }, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+        AsyncImage(model = sized(m.url, name), contentDescription = m.alt.ifEmpty { if (m.kind == XMediaKind.Photo) "Imagen" else "Vídeo" }, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
         if (m.kind != XMediaKind.Photo) {
             Box(
                 Modifier

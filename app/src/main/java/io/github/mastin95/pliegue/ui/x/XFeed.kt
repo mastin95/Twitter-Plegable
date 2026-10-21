@@ -28,6 +28,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -192,7 +193,7 @@ fun XFeedList(
 /** Pestañas como las de X (Inicio: Para ti y Siguiendo; Notificaciones: Todas, Verificadas, Menciones), a ancho completo. */
 @Composable
 fun XTabs(labels: List<String>, selected: Int, onSelect: (Int) -> Unit) {
-    Row(Modifier.fillMaxWidth().height(48.dp).bottomBorder()) {
+    Row(Modifier.fillMaxWidth().height(48.dp).bottomBorder().padding(end = LocalTabsEndInset.current)) {
         labels.forEachIndexed { i, label ->
             val active = i == selected
             Column(
@@ -210,6 +211,9 @@ fun XTabs(labels: List<String>, selected: Int, onSelect: (Int) -> Unit) {
         }
     }
 }
+
+/** Hueco al final de la fila de pestañas: en plegado, el botón de Pliegue flota arriba a la derecha y pisaba la tercera. */
+val LocalTabsEndInset = compositionLocalOf { 0.dp }
 
 /** Cabecera de un perfil: portada, foto, nombre, biografía y cifras, como en X. */
 @Composable

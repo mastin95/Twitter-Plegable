@@ -336,21 +336,30 @@ object XParse {
         return out
     }
 
-    /** El mp4 de más calidad (X manda varias versiones y una lista HLS, que la app no reproduce). */
+    /**
+     * El mp4 de más calidad (X manda varias versiones). Si solo viene la lista HLS (.m3u8), esa: el
+     * reproductor propio también la entiende.
+     */
     private fun bestVideo(variants: JSONArray?): String? {
         variants ?: return null
         var best: String? = null
+        var hls: String? = null
         var bitrate = -1
         for (i in 0 until variants.length()) {
             val v = variants.optJSONObject(i) ?: continue
-            if (v.optString("content_type") != "video/mp4") continue
+            val type = v.optString("content_type")
+            if (type == "application/x-mpegURL") {
+                if (hls == null) hls = v.optString("url").ifEmpty { null }
+                continue
+            }
+            if (type != "video/mp4") continue
             val b = v.optInt("bitrate", 0)
             if (b > bitrate) {
                 bitrate = b
                 best = v.optString("url")
             }
         }
-        return best
+        return best ?: hls
     }
 
     private fun card(c: JSONObject?, urls: List<Pair<String, XLink>>): XCard? {

@@ -100,6 +100,13 @@ class XParseTest {
     }
 
     @Test
+    fun `sin mp4 el vídeo es la lista HLS`() {
+        val body = fixture("home").replace(Regex(""", \{"bitrate": \d+, "content_type": "video/mp4", "url": "[^"]*"\}"""), "")
+        val t = XParse.timeline(body)!!
+        assertEquals("https://video.twimg.com/v.m3u8", t.entries[4].tweets[0].media[0].video)
+    }
+
+    @Test
     fun `las páginas siguientes se añaden sin repetir y las de arriba van delante`() {
         val now = 1_000L
         var feed = XFeed().merge(XParse.timeline(fixture("home"))!!, null, now)
