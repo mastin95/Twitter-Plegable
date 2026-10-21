@@ -1,5 +1,7 @@
 package io.github.mastin95.pliegue.ui.x
 
+import android.content.Context
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
@@ -13,10 +15,12 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,6 +47,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import coil.compose.AsyncImage
+import io.github.mastin95.pliegue.AppViewModel
 import io.github.mastin95.pliegue.ui.components.PillButton
 import io.github.mastin95.pliegue.ui.theme.X
 import io.github.mastin95.pliegue.ui.theme.XType
@@ -50,15 +55,18 @@ import io.github.mastin95.pliegue.ui.web.LocalWebPanes
 import io.github.mastin95.pliegue.ui.web.WebPane
 import io.github.mastin95.pliegue.web.PaneOptions
 import io.github.mastin95.pliegue.web.XWeb
+import java.io.File
 
 /**
  * Lo que se abre en una mitad al tocar algo que no es una página de X: una foto de X en el visor
- * propio (con zoom), un vídeo o GIF en el reproductor propio, y cualquier otra web tal cual.
+ * propio (con zoom), los vídeos en vertical (el tocado y los demás del feed, deslizando), un vídeo
+ * o GIF suelto en el reproductor propio, y cualquier otra web tal cual.
  */
 @Composable
-fun MediaOrWeb(slot: String, url: String, modifier: Modifier = Modifier) {
+fun MediaOrWeb(vm: AppViewModel, slot: String, url: String, modifier: Modifier = Modifier) {
     when {
         XWeb.isMedia(url) -> PhotoViewer(url, modifier)
+        XWeb.isVideos(url) -> XVideosScreen(vm, slot, url, modifier)
         XWeb.isVideo(url) -> VideoPlayer(url, modifier)
         else -> WebPane(slot, url, modifier, PaneOptions.EXTERNAL)
     }
@@ -122,27 +130,31 @@ fun PhotoViewer(url: String, modifier: Modifier = Modifier) {
     }
 }
 
-/** Vídeos y GIF de X con reproductor propio (ExoPlayer): los GIF van en bucle, sin sonido ni controles. */
+/**
+ * Vídeos y GIF de X con reproductor propio (ExoPlayer): los GIF van en bucle, sin sonido ni controles.
+ * `play` lo arranca y lo para desde fuera (la pantalla de vídeos para el que no está a la vista);
+ * `loop` y `controls` cambian lo que toca por defecto según sea vídeo o GIF.
+ */
 @androidx.annotation.OptIn(UnstableApi::class)
 @Composable
-fun VideoPlayer(url: String, modifier: Modifier = Modifier) {
+fun VideoPlayer(url: String, modifier: Modifier = Modifier, play: Boolean = true, loop: Boolean = XWeb.isGif(url), controls: Boolean = !XWeb.isGif(url)) {
     val context = LocalContext.current
+    val web = LocalWebPanes.current
     val gif = XWeb.isGif(url)
-    val src = XWeb.mediaUrl(url)
+    val src = remember(url, web.simulatedNet) { (if (web.simulatedNet) sampleVideo(context) else null) ?: XWeb.mediaUrl(url) }
     var error by remember(src) { mutableStateOf<String?>(null) }
     val player = remember(src) {
         ExoPlayer.Builder(context).build().apply {
             // Con sonido se pide el foco de audio (para la música); un GIF ni suena ni lo pide.
             setAudioAttributes(AudioAttributes.DEFAULT, !gif)
-            if (gif) {
-                volume = 0f
-                repeatMode = Player.REPEAT_MODE_ONE
-            }
+            if (gif) volume = 0f
+            if (loop) repeatMode = Player.REPEAT_MODE_ONE
             setMediaItem(MediaItem.fromUri(src))
             prepare()
-            playWhenReady = true
+            playWhenReady = play
         }
     }
+    LaunchedEffect(player, play) { player.playWhenReady = play }
     DisposableEffect(player) {
         val listener = object : Player.Listener {
             override fun onPlayerError(e: PlaybackException) {
@@ -155,10 +167,17 @@ fun VideoPlayer(url: String, modifier: Modifier = Modifier) {
             player.release()
         }
     }
-    // Al irse la app detrás (o apagarse la pantalla) el vídeo se para; se le da al play para seguir.
+    // Al irse la app detrás (o apagarse la pantalla) el vídeo se para; al volver sigue si tocaba seguir.
     val lifecycle = LocalLifecycleOwner.current.lifecycle
+    val wanted by rememberUpdatedState(play)
     DisposableEffect(lifecycle, player) {
-        val observer = LifecycleEventObserver { _, event -> if (event == Lifecycle.Event.ON_STOP) player.pause() }
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_STOP -> player.pause()
+                Lifecycle.Event.ON_START -> player.playWhenReady = wanted
+                else -> {}
+            }
+        }
         lifecycle.addObserver(observer)
         onDispose { lifecycle.removeObserver(observer) }
     }
@@ -166,7 +185,7 @@ fun VideoPlayer(url: String, modifier: Modifier = Modifier) {
         AndroidView(
             factory = { ctx ->
                 PlayerView(ctx).apply {
-                    useController = !gif
+                    useController = controls
                     controllerShowTimeoutMs = 2500
                     setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING)
                     resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
@@ -175,11 +194,22 @@ fun VideoPlayer(url: String, modifier: Modifier = Modifier) {
             },
             modifier = Modifier.fillMaxSize(),
             onRelease = { it.player = null },
-            update = { it.player = player },
+            update = {
+                it.useController = controls
+                it.player = player
+            },
         )
         error?.let { MediaProblem(if (gif) "No se pudo reproducir el GIF ($it)." else "No se pudo reproducir el vídeo ($it).", src) }
     }
 }
+
+/**
+ * En las pruebas del Android virtual no hay vídeos de X: si las pruebas dejaron un vídeo de muestra
+ * (muestra.mp4) en la carpeta de la app, la externa (Android/data/…/files) o la privada, con la red
+ * simulada se reproduce ese. Nulo si no está.
+ */
+private fun sampleVideo(context: Context): String? =
+    listOfNotNull(context.filesDir, context.getExternalFilesDir(null)).map { File(it, "muestra.mp4") }.firstOrNull { it.canRead() }?.let { Uri.fromFile(it).toString() }
 
 @Composable
 private fun MediaProblem(text: String, url: String) {

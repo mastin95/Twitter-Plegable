@@ -78,6 +78,19 @@ data class XTweet(
     val long: Boolean = false,
 ) {
     val url: String get() = "https://x.com/${author.handle}/status/$id"
+
+    /** El vídeo o GIF del post, si trae alguno con dirección para reproducirlo. */
+    val video: XMedia? get() = media.firstOrNull { it.kind != XMediaKind.Photo && it.video != null }
+}
+
+/**
+ * Los posts con vídeo o GIF de una lista, para verlos en vertical uno tras otro: un post que cita a
+ * otro con vídeo cuenta por el citado, y ninguno se repite (en Inicio un post puede salir dos veces).
+ */
+fun videoPosts(tweets: List<XTweet>): List<XTweet> {
+    val out = LinkedHashMap<String, XTweet>()
+    for (t in tweets) for (c in listOfNotNull(t, t.quoted)) if (c.video != null && c.id !in out) out[c.id] = c
+    return out.values.toList()
 }
 
 /**

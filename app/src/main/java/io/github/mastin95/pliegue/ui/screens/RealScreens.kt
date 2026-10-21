@@ -105,10 +105,10 @@ fun RealFolded(vm: AppViewModel) {
     val url = vm.paneUrl(panel, web.userId)
     val source = vm.webPanels[panel].source
     val native = vm.nativeUi
-    val external = url != null && (XWeb.isExternal(url) || XWeb.isMedia(url) || XWeb.isVideo(url))
+    val external = url != null && (XWeb.isExternal(url) || XWeb.isViewer(url))
     // Con la interfaz propia, atrás no deshace la web escondida (la app no se enteraría): cierra lo abierto.
-    // Una foto o un vídeo en el visor propio tampoco tienen web detrás que deshacer.
-    val media = url != null && (XWeb.isMedia(url) || XWeb.isVideo(url))
+    // Una foto, un vídeo o la pantalla de vídeos en el visor propio tampoco tienen web detrás que deshacer.
+    val media = url != null && XWeb.isViewer(url)
     val ownPage = url != null && (media || (native && !external && XWeb.view(url, source) != null))
     BackHandler {
         when {
@@ -122,7 +122,7 @@ fun RealFolded(vm: AppViewModel) {
             if (focused != null) WebPostHeader(vm, focused, compact = true)
             when {
                 url == null -> EmptyMyFeed(Modifier.weight(1f))
-                external -> MediaOrWeb(slot, url, Modifier.weight(1f))
+                external -> MediaOrWeb(vm, slot, url, Modifier.weight(1f))
                 // Con el botón de Pliegue flotando arriba a la derecha, las pestañas le dejan hueco.
                 else -> CompositionLocalProvider(LocalTabsEndInset provides if (focused == null) 52.dp else 0.dp) {
                     NativeOrWeb(vm, slot, url, PaneOptions(interceptPosts = native, hideChrome = native), Modifier.weight(1f), source)
@@ -305,7 +305,7 @@ fun WebHalf(vm: AppViewModel, index: Int, modifier: Modifier) {
     val open = panel.openUrl
     val url = vm.paneUrl(index, web.userId)
     val other = vm.webPanels[1 - index]
-    val external = open != null && (XWeb.isExternal(open) || XWeb.isMedia(open) || XWeb.isVideo(open))
+    val external = open != null && (XWeb.isExternal(open) || XWeb.isViewer(open))
     val reading = vm.mode == OpenMode.Libro && open != null && !external
     UserDropTarget(vm, fromLabel = other.source.label, modifier) {
         Column(Modifier.fillMaxSize()) {
@@ -314,7 +314,7 @@ fun WebHalf(vm: AppViewModel, index: Int, modifier: Modifier) {
                 index == 1 && (vm.mode == OpenMode.Uno || vm.mode == OpenMode.Libro) && open == null -> EmptyDetail(libro = vm.mode == OpenMode.Libro)
                 panel.source == Source.Fijados && open == null -> PinnedList(vm, onOpen = { vm.openWebPost(index, it) }, modifier = Modifier.weight(1f))
                 url == null -> EmptyMyFeed(Modifier.weight(1f))
-                external -> MediaOrWeb("pane$index", url, Modifier.weight(1f))
+                external -> MediaOrWeb(vm, "pane$index", url, Modifier.weight(1f))
                 // El post abierto al otro lado se marca en este feed.
                 else -> NativeOrWeb(vm, "pane$index", url, PaneOptions(interceptPosts = true, hideChrome = true), Modifier.weight(1f), if (open == null) panel.source else null, textZoom = if (reading) 118 else 100, selectedUrl = other.openUrl)
             }
@@ -408,12 +408,13 @@ fun WebPostHeader(vm: AppViewModel, index: Int, compact: Boolean = false) {
     val panel = vm.webPanels[index]
     val url = panel.openUrl ?: return
     val composing = panel.fromLabel == "Redactar"
-    val external = XWeb.isExternal(url) || XWeb.isMedia(url) || XWeb.isVideo(url)
+    val external = XWeb.isExternal(url) || XWeb.isViewer(url)
     // Una web ajena se llama por su dominio, el de la página de ahora (los enlaces de X pasan por t.co).
     val current = web.urls["pane$index"]?.takeIf { XWeb.isExternal(it) } ?: url
     val title = when {
         composing -> "Redactar"
         XWeb.isMedia(url) -> "Foto"
+        XWeb.isVideos(url) -> "Vídeos"
         XWeb.isGif(url) -> "GIF"
         XWeb.isVideo(url) -> "Vídeo"
         external -> XWeb.siteLabel(current)
@@ -440,7 +441,7 @@ fun WebPostHeader(vm: AppViewModel, index: Int, compact: Boolean = false) {
             }
         }
         if (!composing && !compact) {
-            IconButton(onClick = { vm.composeWeb(1 - index, quoting = current) }) {
+            IconButton(onClick = { vm.composeWeb(1 - index, quoting = XWeb.mediaUrl(current)) }) {
                 Icon(XIcons.Compose, contentDescription = "Citar en un post", tint = X.Text, modifier = Modifier.size(20.dp))
             }
             if (!external) {

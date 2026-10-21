@@ -92,6 +92,18 @@ plegar() { adb shell wm size reset; sleep 12; }
 
 adb logcat -c
 adb install -r "$APK"
+# Un vídeo de muestra para el reproductor propio (en el Android virtual no hay vídeos de X): seis
+# segundos de barras de prueba con un tono (muestra.mp4, hecho con ffmpeg), que se copian a la carpeta
+# externa de la app; con la red simulada la app lo reproduce en vez del de X. Los vídeos públicos de
+# muestra de internet no valen (el de Google devolvía 403), el ejecutor no trae ffmpeg, lo que grababa
+# screenrecord no lo entendía el reproductor y run-as no puede leer /data/local/tmp. El archivo lo
+# escribe shell con permisos 600, y la app no lo leía: se abre al grupo, del que la app forma parte.
+video_muestra() {
+  local ext="/sdcard/Android/data/$PKG/files"
+  adb push .github/scripts/muestra.mp4 /data/local/tmp/muestra.mp4 >/dev/null || return 1
+  adb shell "mkdir -p $ext && cp /data/local/tmp/muestra.mp4 $ext/muestra.mp4 && chmod 664 $ext/muestra.mp4 && ls -l $ext/muestra.mp4"
+}
+if video_muestra; then echo "vídeo de muestra en la carpeta de la app"; else echo "sin vídeo de muestra (el reproductor dará error en las capturas)"; fi
 # Sin los avisos de "no responde" del sistema (el Android virtual va lento y el del lanzador tapa la app).
 adb shell settings put global hide_error_dialogs 1
 adb shell am start -W -n "$PKG/.MainActivity" --ez depurar_web true --ez red_simulada true
@@ -153,6 +165,19 @@ sleep 6
 paso propia-cache
 busca_y_toca 'Imagen' 500 1400 500 && sleep 6
 paso propia-foto
+
+# Vídeos en vertical: al tocar un vídeo se abre a pantalla completa con quién lo publicó y las acciones,
+# y deslizando hacia arriba viene el siguiente con vídeo del mismo feed (aquí, el GIF del post de ejemplo;
+# con la red simulada todos reproducen un vídeo de muestra). Atrás cierra la foto primero y los vídeos después.
+adb shell input keyevent 4
+sleep 3
+busca_y_toca '^Vídeo$' 500 1400 500 && sleep 12
+paso propia-videos
+desliza 500 1500 300
+sleep 8
+paso propia-videos-2
+adb shell input keyevent 4
+sleep 3
 
 # Enlaces que llegan de fuera, con la app ya abierta: un post de X, un enlace corto t.co (web ajena) y
 # algo compartido con Pliegue (va al redactor). Se manda a la actividad para que no salga el selector.
