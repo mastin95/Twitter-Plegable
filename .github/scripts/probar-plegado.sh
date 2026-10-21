@@ -92,20 +92,16 @@ plegar() { adb shell wm size reset; sleep 12; }
 
 adb logcat -c
 adb install -r "$APK"
-# Un vídeo de muestra para el reproductor propio (en el Android virtual no hay vídeos de X): se graba la
-# pantalla del propio Android virtual unos segundos (screenrecord; el ejecutor no trae ffmpeg) y se deja
-# en la carpeta privada de la app, que con la red simulada lo reproduce en vez del de X. Los vídeos
-# públicos de muestra de internet no valen: el de Google devolvía 403.
+# Un vídeo de muestra para el reproductor propio (en el Android virtual no hay vídeos de X): seis
+# segundos de barras de prueba con un tono (muestra.mp4, hecho con ffmpeg), que se copian a la carpeta
+# externa de la app; con la red simulada la app lo reproduce en vez del de X. Los vídeos públicos de
+# muestra de internet no valen (el de Google devolvía 403), el ejecutor no trae ffmpeg, lo que grababa
+# screenrecord no lo entendía el reproductor y run-as no puede leer /data/local/tmp. El archivo lo
+# escribe shell con permisos 600, y la app no lo leía: se abre al grupo, del que la app forma parte.
 video_muestra() {
-  adb shell screenrecord --time-limit 6 --size 640x360 --bit-rate 1500000 /data/local/tmp/muestra.mp4 || return 1
-  sleep 2
-  # Por dos caminos, que la app mira los dos: la carpeta privada con run-as (como la app misma; cp daba
-  # "Permission denied", se prueba con cat) y la externa (adb escribe ahí, pero el archivo queda de shell
-  # con permisos 600 y la app no lo podía leer: se abre al grupo, del que la app forma parte).
-  local ext="/sdcard/Android/data/$PKG/files" ok=1
-  adb shell "run-as $PKG sh -c 'mkdir -p files && cat /data/local/tmp/muestra.mp4 > files/muestra.mp4 && chmod 644 files/muestra.mp4 && ls -l files/muestra.mp4'" && ok=0
-  adb shell "mkdir -p $ext && cp /data/local/tmp/muestra.mp4 $ext/muestra.mp4 && chmod 664 $ext/muestra.mp4 && ls -l $ext/muestra.mp4" && ok=0
-  return $ok
+  local ext="/sdcard/Android/data/$PKG/files"
+  adb push .github/scripts/muestra.mp4 /data/local/tmp/muestra.mp4 >/dev/null || return 1
+  adb shell "mkdir -p $ext && cp /data/local/tmp/muestra.mp4 $ext/muestra.mp4 && chmod 664 $ext/muestra.mp4 && ls -l $ext/muestra.mp4"
 }
 if video_muestra; then echo "vídeo de muestra en la carpeta de la app"; else echo "sin vídeo de muestra (el reproductor dará error en las capturas)"; fi
 # Sin los avisos de "no responde" del sistema (el Android virtual va lento y el del lanzador tapa la app).
