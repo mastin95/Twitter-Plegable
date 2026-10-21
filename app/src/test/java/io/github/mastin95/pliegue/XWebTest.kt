@@ -120,6 +120,25 @@ class XWebTest {
     }
 
     @Test
+    fun `la pantalla de vídeos lleva el post tocado y de qué feed salen los demás`() {
+        val u = XWeb.videosUrl("123", "pane0/HomeTimeline")
+        assertEquals("https://x.com/i/status/123#videos=pane0/HomeTimeline", u)
+        assertTrue(XWeb.isVideos(u))
+        assertTrue(XWeb.isViewer(u))
+        assertFalse(XWeb.isVideo(u))
+        assertFalse(XWeb.isMedia(u))
+        assertFalse(XWeb.isVideos("https://x.com/a/status/123"))
+        assertFalse(XWeb.isVideos("https://example.com/#videos=pane0/HomeTimeline"))
+        assertEquals("pane0/HomeTimeline", XWeb.videosSource(u))
+        assertEquals("pane1/TweetDetail", XWeb.videosSource(XWeb.videosUrl("9", "pane1/TweetDetail")))
+        assertEquals("123", XWeb.statusId(u))
+        assertEquals("https://x.com/i/status/123", XWeb.mediaUrl(u))
+        assertTrue(XWeb.isViewer("https://pbs.twimg.com/media/a.jpg?name=large"))
+        assertTrue(XWeb.isViewer("https://video.twimg.com/v/1.mp4#video"))
+        assertFalse(XWeb.isViewer("https://x.com/home"))
+    }
+
+    @Test
     fun `el puente sabe pedir más, mide la web y pasa el aviso de perfil sensible`() {
         val s = XWeb.bridgeScript(interceptPosts = true, hideChrome = true)
         assertTrue(s.contains("P.more = function()"))

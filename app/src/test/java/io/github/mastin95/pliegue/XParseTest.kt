@@ -2,6 +2,7 @@ package io.github.mastin95.pliegue
 
 import io.github.mastin95.pliegue.model.XFeed
 import io.github.mastin95.pliegue.model.XMediaKind
+import io.github.mastin95.pliegue.model.videoPosts
 import io.github.mastin95.pliegue.model.XThread
 import io.github.mastin95.pliegue.model.XTime
 import io.github.mastin95.pliegue.web.XParse
@@ -97,6 +98,16 @@ class XParseTest {
         assertTrue(largo.text.startsWith("Este es un post largo"))
         assertTrue(largo.text.contains("enlace a example.com/largo y"))
         assertEquals("https://example.com/largo", largo.links[0].url)
+    }
+
+    @Test
+    fun `los posts con vídeo o GIF de un feed, sin repetir, para verlos en vertical`() {
+        val t = XParse.timeline(fixture("home"))!!
+        // El 1005 sale suelto y citado por el 1009: una sola vez. El 1006 lleva un GIF.
+        assertEquals(listOf("1005", "1006"), videoPosts(t.tweets).map { it.id })
+        assertEquals(XMediaKind.Gif, videoPosts(t.tweets)[1].video!!.kind)
+        assertEquals("https://video.twimg.com/tweet_video/G1.mp4", videoPosts(t.tweets)[1].video!!.video)
+        assertNull(t.tweets.first { it.id == "1002" }.video)
     }
 
     @Test

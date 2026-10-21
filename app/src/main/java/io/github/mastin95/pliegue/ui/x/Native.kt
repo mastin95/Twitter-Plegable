@@ -42,39 +42,9 @@ fun NativeOrWeb(vm: AppViewModel, slot: String, url: String, options: PaneOption
 @Composable
 fun NativeLayer(vm: AppViewModel, slot: String, view: XView, selectedUrl: String? = null) {
     val web = LocalWebPanes.current
-    val clipboard = LocalClipboardManager.current
     val actor = remember(web, vm) { XActor(web, vm) }
-    val taps = remember(slot, vm) {
-        PostTaps(
-            onOpen = { vm.onWebPost(slot, it.url) },
-            onUser = { vm.onWebPost(slot, "https://x.com/$it") },
-            onLink = { url ->
-                when {
-                    XWeb.isMedia(url) || XWeb.isVideo(url) || XWeb.isExternal(url) -> if (!vm.onWebLink(slot, url)) web.openInBrowser(url)
-                    XWeb.isX(url) -> vm.onWebPost(slot, url)
-                    else -> web.openInBrowser(url)
-                }
-            },
-            onMedia = { _, m ->
-                // Las fotos van al visor propio a tamaño grande; los vídeos y GIF al reproductor propio,
-                // marcados para que sepa qué son (un vídeo sin dirección de vídeo enseña su imagen).
-                val target = when (m.kind) {
-                    XMediaKind.Photo -> XWeb.largeImage(m.url)
-                    XMediaKind.Gif -> m.video?.let { it + XWeb.GIF } ?: XWeb.largeImage(m.url)
-                    XMediaKind.Video -> m.video?.let { it + XWeb.VIDEO } ?: XWeb.largeImage(m.url)
-                }
-                if (!vm.onWebLink(slot, target)) web.openInBrowser(XWeb.mediaUrl(target))
-            },
-            onReply = { vm.replyFromNative(slot, it.id) },
-            onRepost = actor::repost,
-            onLike = actor::like,
-            onBookmark = actor::bookmark,
-            onShare = {
-                clipboard.setText(AnnotatedString(it.url))
-                vm.showToast("Enlace copiado.")
-            },
-        )
-    }
+    val tab = if (view == XView.Notifications) vm.notifTab(slot) else vm.homeTab(slot)
+    val taps = rememberPostTaps(vm, slot, "$slot/" + feedName(view, tab))
     val selectedId = selectedUrl?.let(XWeb::statusId)
     Box(
         Modifier
@@ -87,6 +57,50 @@ fun NativeLayer(vm: AppViewModel, slot: String, view: XView, selectedUrl: String
             is XView.Thread -> XThreadScreen(vm, slot, view.statusId, taps)
             else -> XFeedScreen(vm, slot, view, taps, selectedId, onFollow = actor::follow)
         }
+    }
+}
+
+/**
+ * Qué hace la app al tocar cada parte de un post pintado por ella: el post o la cuenta se abren en
+ * la otra mitad; las fotos, en el visor propio a tamaño grande; los vídeos y GIF, en la pantalla de
+ * vídeos en vertical junto con los demás de `videosFrom` ("ranura/consulta", el feed donde está el
+ * post); y las acciones (me gusta, repost, guardar) se hacen pulsando el botón de X en la web escondida.
+ */
+@Composable
+fun rememberPostTaps(vm: AppViewModel, slot: String, videosFrom: String): PostTaps {
+    val web = LocalWebPanes.current
+    val clipboard = LocalClipboardManager.current
+    val actor = remember(web, vm) { XActor(web, vm) }
+    return remember(slot, vm, videosFrom) {
+        PostTaps(
+            onOpen = { vm.onWebPost(slot, it.url) },
+            onUser = { vm.onWebPost(slot, "https://x.com/$it") },
+            onLink = { url ->
+                when {
+                    XWeb.isViewer(url) || XWeb.isExternal(url) -> if (!vm.onWebLink(slot, url)) web.openInBrowser(url)
+                    XWeb.isX(url) -> vm.onWebPost(slot, url)
+                    else -> web.openInBrowser(url)
+                }
+            },
+            onMedia = { t, m ->
+                if (m.kind != XMediaKind.Photo && m.video != null) {
+                    // Donde no hay otra mitad (post ampliado, la mesa), el vídeo va al navegador.
+                    if (!vm.onWebLink(slot, XWeb.videosUrl(t.id, videosFrom))) web.openInBrowser(m.video)
+                } else {
+                    // Un vídeo sin dirección de vídeo enseña su imagen.
+                    val target = XWeb.largeImage(m.url)
+                    if (!vm.onWebLink(slot, target)) web.openInBrowser(target)
+                }
+            },
+            onReply = { vm.replyFromNative(slot, it.id) },
+            onRepost = actor::repost,
+            onLike = actor::like,
+            onBookmark = actor::bookmark,
+            onShare = {
+                clipboard.setText(AnnotatedString(it.url))
+                vm.showToast("Enlace copiado.")
+            },
+        )
     }
 }
 

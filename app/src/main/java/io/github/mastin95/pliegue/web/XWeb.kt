@@ -109,11 +109,28 @@ object XWeb {
 
     fun isGif(url: String): Boolean = url.endsWith(GIF)
 
-    /** La dirección del vídeo sin la marca de la app, para el reproductor o el navegador. */
-    fun mediaUrl(url: String): String = url.removeSuffix(VIDEO).removeSuffix(GIF)
+    /** La dirección del vídeo (o del post, en la pantalla de vídeos) sin la marca de la app, para el reproductor o el navegador. */
+    fun mediaUrl(url: String): String = url.removeSuffix(VIDEO).removeSuffix(GIF).substringBefore(VIDEOS)
 
     const val VIDEO = "#video"
     const val GIF = "#gif"
+
+    /**
+     * La pantalla de vídeos en vertical (uno por pantalla, deslizando al siguiente): la dirección del
+     * post tocado con la marca de la app y de qué feed salen los vídeos, "ranura/consulta"
+     * (pane0/HomeTimeline, pane1/TweetDetail…). Se abre en una mitad como una foto, sin web detrás.
+     */
+    const val VIDEOS = "#videos="
+
+    fun videosUrl(statusId: String, source: String): String = "https://x.com/i/status/$statusId$VIDEOS$source"
+
+    fun isVideos(url: String): Boolean = isX(url) && url.contains(VIDEOS)
+
+    /** De qué feed salen los vídeos de una dirección de la pantalla de vídeos: "pane0/HomeTimeline". */
+    fun videosSource(url: String): String = url.substringAfter(VIDEOS)
+
+    /** Lo que se abre en un visor propio de la app, sin web detrás: una foto, un vídeo o la pantalla de vídeos. */
+    fun isViewer(url: String): Boolean = isMedia(url) || isVideo(url) || isVideos(url)
 
     /** La búsqueda de una dirección /search?q=…, ya legible. */
     fun queryOf(url: String): String? = Regex("[?&]q=([^&#]*)").find(url)?.groupValues?.get(1)?.let { runCatching { URLDecoder.decode(it, "UTF-8") }.getOrNull() }

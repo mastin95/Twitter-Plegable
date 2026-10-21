@@ -154,6 +154,19 @@ paso propia-cache
 busca_y_toca 'Imagen' 500 1400 500 && sleep 6
 paso propia-foto
 
+# Vídeos en vertical: al tocar un vídeo se abre a pantalla completa con quién lo publicó y las acciones,
+# y deslizando hacia arriba viene el siguiente con vídeo del mismo feed (aquí, el GIF del post de ejemplo;
+# con la red simulada todos reproducen un vídeo de muestra). Atrás cierra la foto primero y los vídeos después.
+adb shell input keyevent 4
+sleep 3
+busca_y_toca '^Vídeo$' 500 1400 500 && sleep 12
+paso propia-videos
+desliza 500 1500 300
+sleep 8
+paso propia-videos-2
+adb shell input keyevent 4
+sleep 3
+
 # Enlaces que llegan de fuera, con la app ya abierta: un post de X, un enlace corto t.co (web ajena) y
 # algo compartido con Pliegue (va al redactor). Se manda a la actividad para que no salga el selector.
 adb shell am start -W -n "$PKG/.MainActivity" -a android.intent.action.VIEW -d "https://x.com/XDevelopers/status/1" >/dev/null

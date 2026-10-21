@@ -173,7 +173,7 @@ fun WebColumnsBoard(vm: AppViewModel, leftWidth: Dp, gap: Dp, modifier: Modifier
 @Composable
 private fun ColumnPost(vm: AppViewModel, url: String, modifier: Modifier) {
     val web = LocalWebPanes.current
-    val external = XWeb.isExternal(url) || XWeb.isMedia(url) || XWeb.isVideo(url)
+    val external = XWeb.isExternal(url) || XWeb.isViewer(url)
     val current = web.urls["colpost"]?.takeIf { XWeb.isExternal(it) } ?: url
     Column(modifier.background(X.Bg)) {
         Row(
@@ -188,7 +188,7 @@ private fun ColumnPost(vm: AppViewModel, url: String, modifier: Modifier) {
                 Icon(XIcons.Back, contentDescription = "Atrás", tint = X.Text, modifier = Modifier.size(20.dp))
             }
             Spacer(Modifier.width(8.dp))
-            Text(if (XWeb.isMedia(url)) "Foto" else if (XWeb.isGif(url)) "GIF" else if (XWeb.isVideo(url)) "Vídeo" else if (external) XWeb.siteLabel(current) else "Post", style = XType.title, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+            Text(if (XWeb.isMedia(url)) "Foto" else if (XWeb.isVideos(url)) "Vídeos" else if (XWeb.isGif(url)) "GIF" else if (XWeb.isVideo(url)) "Vídeo" else if (external) XWeb.siteLabel(current) else "Post", style = XType.title, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
             if (external) {
                 IconButton(onClick = { web.openInBrowser(XWeb.mediaUrl(current)) }) {
                     Icon(XIcons.Globe, contentDescription = "Abrir en el navegador", tint = X.Text, modifier = Modifier.size(20.dp))
@@ -200,7 +200,7 @@ private fun ColumnPost(vm: AppViewModel, url: String, modifier: Modifier) {
             }
             PillButton("Columnas", onClick = vm::closeWebColumnPost, background = X.Bg, content = X.Text, border = X.OutlineButton, height = 32.dp, icon = XIcons.Stack)
         }
-        if (external) MediaOrWeb("colpost", url, Modifier.weight(1f)) else NativeOrWeb(vm, "colpost", url, PaneOptions(), Modifier.weight(1f))
+        if (external) MediaOrWeb(vm, "colpost", url, Modifier.weight(1f)) else NativeOrWeb(vm, "colpost", url, PaneOptions(), Modifier.weight(1f))
     }
 }
 

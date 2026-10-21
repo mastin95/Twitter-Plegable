@@ -6,6 +6,7 @@ import io.github.mastin95.pliegue.model.XThread
 import io.github.mastin95.pliegue.model.XTimeline
 import io.github.mastin95.pliegue.model.XTweet
 import io.github.mastin95.pliegue.model.XUser
+import io.github.mastin95.pliegue.model.videoPosts
 import io.github.mastin95.pliegue.model.withTweet
 
 /**
@@ -31,6 +32,22 @@ class XStore {
     fun thread(slot: String): XThread? = threads[slot]
 
     fun user(handle: String?): XUser? = handle?.let { users[it.lowercase()] }
+
+    /**
+     * Los posts con vídeo o GIF de un feed o conversación ya cargado, para la pantalla de vídeos en
+     * vertical: `source` es "ranura/consulta" (pane0/HomeTimeline, pane0/NotificationsTimeline/All,
+     * pane1/TweetDetail…). Según llegan páginas nuevas, la lista crece.
+     */
+    fun videos(source: String): List<XTweet> {
+        val slot = source.substringBefore('/')
+        val name = source.substringAfter('/')
+        val tweets = if (name == XParse.THREAD) {
+            threads[slot]?.let { it.ancestors + it.focal + it.replies.flatMap { e -> e.tweets } } ?: emptyList()
+        } else {
+            (feeds[source] ?: feeds[source.substringBeforeLast('/')])?.let { listOfNotNull(it.pinned) + it.tweets } ?: emptyList()
+        }
+        return videoPosts(tweets)
+    }
 
     private val handles = HashMap<String, String>()
 
