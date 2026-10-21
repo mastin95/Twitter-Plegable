@@ -209,7 +209,7 @@ fun VideoPlayer(url: String, modifier: Modifier = Modifier, play: Boolean = true
  * simulada se reproduce ese. Nulo si no está.
  */
 private fun sampleVideo(context: Context): String? =
-    listOfNotNull(context.getExternalFilesDir(null), context.filesDir).map { File(it, "muestra.mp4") }.firstOrNull { it.exists() }?.let { Uri.fromFile(it).toString() }
+    listOfNotNull(context.filesDir, context.getExternalFilesDir(null)).map { File(it, "muestra.mp4") }.firstOrNull { it.canRead() }?.let { Uri.fromFile(it).toString() }
 
 @Composable
 private fun MediaProblem(text: String, url: String) {
