@@ -176,7 +176,13 @@ fun XFeedList(
         }
     }
     LaunchedEffect(nearEnd, feed.pages, feed.exhausted) {
-        if (nearEnd && !feed.exhausted) onEnd()
+        if (!nearEnd || feed.exhausted) return@LaunchedEffect
+        // X no siempre carga más a la primera (la web escondida aún se está pintando): se insiste cada
+        // pocos segundos mientras se siga al final y no llegue la página siguiente (que reinicia esto).
+        repeat(6) {
+            onEnd()
+            delay(4000)
+        }
     }
     LazyColumn(state = state, modifier = Modifier.fillMaxSize()) {
         header()

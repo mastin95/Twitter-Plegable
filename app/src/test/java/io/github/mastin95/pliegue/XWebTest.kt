@@ -120,6 +120,15 @@ class XWebTest {
     }
 
     @Test
+    fun `el puente sabe pedir más, mide la web y pasa el aviso de perfil sensible`() {
+        val s = XWeb.bridgeScript(interceptPosts = true, hideChrome = true)
+        assertTrue(s.contains("P.more = function()"))
+        assertTrue(s.contains("return h;"))
+        assertTrue(s.contains("Yes, view profile"))
+        assertTrue(s.contains("ver perfil"))
+    }
+
+    @Test
     fun `la limpieza del feed entra en el script y se guarda por nombres`() {
         val none = XWeb.bridgeScript(interceptPosts = true, hideChrome = true)
         assertTrue(none.contains("clean: {ads:false,sug:false,premium:false,following:false}"))

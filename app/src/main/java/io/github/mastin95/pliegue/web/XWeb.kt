@@ -502,7 +502,27 @@ object XWeb {
           P.followSoon = function(){ [800, 2000, 4000].forEach(function(ms){ setTimeout(P.follow, ms); }); };
           // Para la interfaz propia, que lee lo que la web se descarga: pedir la página siguiente es bajar
           // la web hasta el final (X carga más sola), y las pestañas de Inicio se tocan en la web.
-          P.more = function(){ try { window.scrollTo(0, Math.max(document.documentElement.scrollHeight, document.body.scrollHeight)); } catch(e){} };
+          P.height = function(){ var se = document.scrollingElement || document.documentElement; return Math.max(se.scrollHeight, document.body ? document.body.scrollHeight : 0); };
+          P.more = function(){
+            try {
+              var h = P.height();
+              window.scrollTo(0, h);
+              window.dispatchEvent(new Event('scroll'));
+              // La lista de X se pinta por trozos: tras el salto crece un poco y hay que volver a bajar.
+              setTimeout(function(){ try { window.scrollTo(0, P.height()); window.dispatchEvent(new Event('scroll')); } catch(e){} }, 700);
+              return h;
+            } catch(e){ return -1; }
+          };
+          // Un perfil marcado como sensible se tapa con "Sí, ver perfil": el usuario ya pidió verlo al tocarlo, así que se pasa solo.
+          P.sensitive = function(){
+            if (P.sensitiveDone) return;
+            var els = document.querySelectorAll('[role="button"], button');
+            for (var i = 0; i < els.length; i++) {
+              var t = (els[i].innerText || '').trim();
+              if (/^(S[ií], ver perfil|Yes, view profile)$/i.test(t)) { P.sensitiveDone = true; els[i].click(); console.log('[pliegue] perfil sensible: lo abro'); return; }
+            }
+          };
+          [1500, 3000, 5000, 8000, 12000, 20000].forEach(function(ms){ setTimeout(P.sensitive, ms); });
           P.tab = function(i){
             var tabs = document.querySelectorAll('[role="tablist"] [role="tab"]');
             if (!tabs[i]) return false;

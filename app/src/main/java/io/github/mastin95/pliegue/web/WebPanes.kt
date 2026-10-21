@@ -89,6 +89,9 @@ class WebPanes(
     // Las respuestas de X pesan cientos de KB: se leen fuera del hilo principal, de una en una.
     private val parser = Executors.newSingleThreadExecutor()
 
+    /** Consultas de X que la app no usa, ya apuntadas en el registro (ranura/nombre). */
+    private val seenNames = HashSet<String>()
+
     /** La última carga de Inicio, para pintarla al abrir la app antes de que X mande nada. */
     val cache = XCache(java.io.File(activity.filesDir, "x-cache"), parser) { main.post(it) }
 
@@ -257,7 +260,8 @@ class WebPanes(
         val now = System.currentTimeMillis()
         if (now - (store.asked[slot] ?: 0L) < 2500) return
         store.asked[slot] = now
-        slots[slot]?.evaluateJavascript("window.__pliegue&&window.__pliegue.more&&window.__pliegue.more()", null)
+        // Queda en el registro si la web tenía el puente y cuánto medía (si X no manda la página siguiente, se ve aquí).
+        slots[slot]?.evaluateJavascript("window.__pliegue&&window.__pliegue.more?window.__pliegue.more():'sin puente'") { v -> log("[$slot] pido la página siguiente: web de ${v ?: "?"} px") }
     }
 
     /** Pestaña de Inicio de la web (0 "Para ti", 1 "Siguiendo"), para que cargue ese feed. */
@@ -695,7 +699,12 @@ class WebPanes(
                 val parsed = runCatching { XStore.parse(req, body) }.getOrNull()
                 main.post {
                     if (parsed == null) {
-                        if (req.name in XParse.FEEDS || req.name == XParse.THREAD) log("[$slot] ${req.name}: no entendí la respuesta (${body.length} caracteres)")
+                        when {
+                            req.name in XParse.FEEDS || req.name == XParse.THREAD -> log("[$slot] ${req.name}: no entendí la respuesta (${body.length} caracteres)")
+                            req.name in XParse.USERS -> log("[$slot] ${req.name}: no entendí la cuenta (${body.length} caracteres)")
+                            // Una consulta que la app no conoce: se apunta una vez por ranura, por si X cambió los nombres.
+                            seenNames.add("$slot/${req.name}") -> log("[$slot] X manda ${req.name} (${body.length / 1024} KB); la app no la usa")
+                        }
                     } else {
                         val now = System.currentTimeMillis()
                         log("[$slot] " + store.put(slot, req, parsed, now))
