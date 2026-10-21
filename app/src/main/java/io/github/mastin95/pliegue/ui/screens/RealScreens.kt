@@ -107,7 +107,9 @@ fun RealFolded(vm: AppViewModel) {
     val native = vm.nativeUi
     val external = url != null && (XWeb.isExternal(url) || XWeb.isMedia(url) || XWeb.isVideo(url))
     // Con la interfaz propia, atrás no deshace la web escondida (la app no se enteraría): cierra lo abierto.
-    val ownPage = native && url != null && !external && XWeb.view(url, source) != null
+    // Una foto o un vídeo en el visor propio tampoco tienen web detrás que deshacer.
+    val media = url != null && (XWeb.isMedia(url) || XWeb.isVideo(url))
+    val ownPage = url != null && (media || (native && !external && XWeb.view(url, source) != null))
     BackHandler {
         when {
             !ownPage && web.canGoBack(slot) -> web.goBack(slot)
