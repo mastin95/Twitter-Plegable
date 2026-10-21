@@ -1,5 +1,7 @@
 package io.github.mastin95.pliegue.ui.x
 
+import android.content.Context
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
@@ -53,6 +55,7 @@ import io.github.mastin95.pliegue.ui.web.LocalWebPanes
 import io.github.mastin95.pliegue.ui.web.WebPane
 import io.github.mastin95.pliegue.web.PaneOptions
 import io.github.mastin95.pliegue.web.XWeb
+import java.io.File
 
 /**
  * Lo que se abre en una mitad al tocar algo que no es una página de X: una foto de X en el visor
@@ -136,9 +139,9 @@ fun PhotoViewer(url: String, modifier: Modifier = Modifier) {
 @Composable
 fun VideoPlayer(url: String, modifier: Modifier = Modifier, play: Boolean = true, loop: Boolean = XWeb.isGif(url), controls: Boolean = !XWeb.isGif(url)) {
     val context = LocalContext.current
+    val web = LocalWebPanes.current
     val gif = XWeb.isGif(url)
-    // En las pruebas del Android virtual no hay vídeos de X: se reproduce uno de muestra para ver el reproductor.
-    val src = if (LocalWebPanes.current.simulatedNet) SAMPLE_VIDEO else XWeb.mediaUrl(url)
+    val src = remember(url, web.simulatedNet) { (if (web.simulatedNet) sampleVideo(context) else null) ?: XWeb.mediaUrl(url) }
     var error by remember(src) { mutableStateOf<String?>(null) }
     val player = remember(src) {
         ExoPlayer.Builder(context).build().apply {
@@ -200,8 +203,11 @@ fun VideoPlayer(url: String, modifier: Modifier = Modifier, play: Boolean = true
     }
 }
 
-/** Vídeo público de muestra para las pruebas con la red simulada. */
-const val SAMPLE_VIDEO = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4"
+/**
+ * En las pruebas del Android virtual no hay vídeos de X: si las pruebas dejaron un vídeo de muestra en
+ * la carpeta privada de la app (files/muestra.mp4), con la red simulada se reproduce ese. Nulo si no está.
+ */
+private fun sampleVideo(context: Context): String? = File(context.filesDir, "muestra.mp4").takeIf { it.exists() }?.let { Uri.fromFile(it).toString() }
 
 @Composable
 private fun MediaProblem(text: String, url: String) {
