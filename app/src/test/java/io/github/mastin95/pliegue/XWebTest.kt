@@ -193,7 +193,8 @@ class XWebTest {
     fun `el escucha de la API de X va en todas las páginas y no se duplica`() {
         val js = XWeb.listenScript()
         assertTrue(js.contains("window.__pliegueNet"))
-        assertTrue(js.contains("window.Pliegue.data(m[1], String(url), String(text))"))
+        assertTrue(js.contains("window.Pliegue.data(m[1], String(url), String(text), String(req || ''))"))
+        assertTrue(js.contains("req = body(init && init.body)"))
         assertTrue(js.contains("/i\\/api\\/graphql"))
         assertTrue(XWeb.bridgeScript(true, true).contains("P.more = function"))
     }

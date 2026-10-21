@@ -654,8 +654,11 @@ class WebPanes(
          * dirección con sus variables y el JSON). Se lee aparte y se guarda en el hilo principal.
          */
         @JavascriptInterface
-        fun data(name: String, url: String, body: String) {
-            val req = XParse.request(url)
+        fun data(name: String, url: String, body: String) = data(name, url, body, "")
+
+        @JavascriptInterface
+        fun data(name: String, url: String, body: String, request: String) {
+            val req = XParse.request(url, request)
             if (req.name.isEmpty()) return
             parser.execute {
                 val parsed = runCatching { XStore.parse(req, body) }.getOrNull()

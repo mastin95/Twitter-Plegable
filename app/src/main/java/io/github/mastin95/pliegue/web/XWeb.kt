@@ -354,18 +354,20 @@ object XWeb {
         (function(){
           if (window.__pliegueNet) return; window.__pliegueNet = true;
           var RE = /\/i\/api\/graphql\/[^\/?]+\/([A-Za-z0-9_]+)/;
-          function report(url, text){
+          // Las consultas POST (Inicio) llevan las variables (el cursor) en el cuerpo de la petición, no en la dirección.
+          function body(b){ try { return typeof b === 'string' ? b.slice(0, 20000) : ''; } catch(e){ return ''; } }
+          function report(url, text, req){
             try {
               var m = RE.exec(url || ''); if (!m) return;
-              if (window.Pliegue && window.Pliegue.data) window.Pliegue.data(m[1], String(url), String(text));
+              if (window.Pliegue && window.Pliegue.data) window.Pliegue.data(m[1], String(url), String(text), String(req || ''));
             } catch(e){}
           }
           var of = window.fetch;
           if (typeof of === 'function') {
-            window.fetch = function(input){
-              var url = ''; try { url = typeof input === 'string' ? input : (input && input.url) || ''; } catch(e){}
+            window.fetch = function(input, init){
+              var url = '', req = ''; try { url = typeof input === 'string' ? input : (input && input.url) || ''; req = body(init && init.body); } catch(e){}
               var p = of.apply(this, arguments);
-              if (RE.test(url)) p.then(function(r){ try { if (r && r.ok) r.clone().text().then(function(t){ report(r.url || url, t); }); } catch(e){} }, function(){});
+              if (RE.test(url)) p.then(function(r){ try { if (r && r.ok) r.clone().text().then(function(t){ report(r.url || url, t, req); }); } catch(e){} }, function(){});
               return p;
             };
           }
@@ -373,9 +375,9 @@ object XWeb {
           if (XP && XP.open && XP.send) {
             var oo = XP.open, os = XP.send;
             XP.open = function(m, u){ try { this.__plUrl = String(u); } catch(e){} return oo.apply(this, arguments); };
-            XP.send = function(){
-              var x = this;
-              try { if (x.__plUrl && RE.test(x.__plUrl)) x.addEventListener('load', function(){ try { if (x.status === 200) report(x.responseURL || x.__plUrl, x.responseText); } catch(e){} }); } catch(e){}
+            XP.send = function(b){
+              var x = this, req = body(b);
+              try { if (x.__plUrl && RE.test(x.__plUrl)) x.addEventListener('load', function(){ try { if (x.status === 200) report(x.responseURL || x.__plUrl, x.responseText, req); } catch(e){} }); } catch(e){}
               return os.apply(this, arguments);
             };
           }

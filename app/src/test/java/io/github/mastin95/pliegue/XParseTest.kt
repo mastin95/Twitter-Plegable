@@ -26,6 +26,12 @@ class XParseTest {
         assertEquals("SearchTimeline", s.name)
         assertEquals("(from:lucia)", s.query)
         assertNull(s.cursor)
+        // Inicio va por POST: las variables están en el cuerpo de la petición, no en la dirección.
+        val h = XParse.request("https://x.com/i/api/graphql/h1/HomeTimeline", """{"variables":{"count":20,"cursor":"DAABCgABG","includePromotedContent":true},"features":{"x":true},"queryId":"h1"}""")
+        assertEquals("HomeTimeline", h.name)
+        assertEquals("DAABCgABG", h.cursor)
+        assertNull(XParse.request("https://x.com/i/api/graphql/h1/HomeTimeline", "").cursor)
+        assertNull(XParse.request("https://x.com/i/api/graphql/h1/HomeTimeline", "esto no es json").cursor)
     }
 
     @Test
