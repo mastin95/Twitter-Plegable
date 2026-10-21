@@ -54,6 +54,7 @@ import io.github.mastin95.pliegue.ui.theme.XType
 import io.github.mastin95.pliegue.ui.web.EmptyMyFeed
 import io.github.mastin95.pliegue.ui.web.LocalWebPanes
 import io.github.mastin95.pliegue.ui.web.WebPane
+import io.github.mastin95.pliegue.ui.x.MediaOrWeb
 import io.github.mastin95.pliegue.ui.x.NativeOrWeb
 import io.github.mastin95.pliegue.web.PaneOptions
 import io.github.mastin95.pliegue.web.XWeb
@@ -187,9 +188,9 @@ private fun ColumnPost(vm: AppViewModel, url: String, modifier: Modifier) {
                 Icon(XIcons.Back, contentDescription = "Atrás", tint = X.Text, modifier = Modifier.size(20.dp))
             }
             Spacer(Modifier.width(8.dp))
-            Text(if (XWeb.isMedia(url)) "Foto" else if (XWeb.isVideo(url)) "Vídeo" else if (external) XWeb.siteLabel(current) else "Post", style = XType.title, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+            Text(if (XWeb.isMedia(url)) "Foto" else if (XWeb.isGif(url)) "GIF" else if (XWeb.isVideo(url)) "Vídeo" else if (external) XWeb.siteLabel(current) else "Post", style = XType.title, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
             if (external) {
-                IconButton(onClick = { web.openInBrowser(current) }) {
+                IconButton(onClick = { web.openInBrowser(XWeb.mediaUrl(current)) }) {
                     Icon(XIcons.Globe, contentDescription = "Abrir en el navegador", tint = X.Text, modifier = Modifier.size(20.dp))
                 }
             } else {
@@ -199,7 +200,7 @@ private fun ColumnPost(vm: AppViewModel, url: String, modifier: Modifier) {
             }
             PillButton("Columnas", onClick = vm::closeWebColumnPost, background = X.Bg, content = X.Text, border = X.OutlineButton, height = 32.dp, icon = XIcons.Stack)
         }
-        if (external) WebPane("colpost", url, Modifier.weight(1f), PaneOptions.EXTERNAL) else NativeOrWeb(vm, "colpost", url, PaneOptions(), Modifier.weight(1f))
+        if (external) MediaOrWeb("colpost", url, Modifier.weight(1f)) else NativeOrWeb(vm, "colpost", url, PaneOptions(), Modifier.weight(1f))
     }
 }
 

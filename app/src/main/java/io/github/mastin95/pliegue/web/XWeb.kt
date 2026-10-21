@@ -100,8 +100,20 @@ object XWeb {
         else -> "$url?name=large"
     }
 
-    /** Un vídeo de X (video.twimg.com): se abre solo en una mitad, con el reproductor del navegador. */
-    fun isVideo(url: String): Boolean = host(url) == "video.twimg.com"
+    /**
+     * Un vídeo o GIF de X: va a video.twimg.com, o la app lo marcó con #video o #gif al tocarlo en un
+     * post (así el reproductor propio sabe que es un vídeo venga de donde venga, y si es un GIF, que
+     * va en bucle y sin sonido). Se abre solo en una mitad, con el reproductor propio.
+     */
+    fun isVideo(url: String): Boolean = host(url) == "video.twimg.com" || url.endsWith(VIDEO) || url.endsWith(GIF)
+
+    fun isGif(url: String): Boolean = url.endsWith(GIF)
+
+    /** La dirección del vídeo sin la marca de la app, para el reproductor o el navegador. */
+    fun mediaUrl(url: String): String = url.removeSuffix(VIDEO).removeSuffix(GIF)
+
+    const val VIDEO = "#video"
+    const val GIF = "#gif"
 
     /** La búsqueda de una dirección /search?q=…, ya legible. */
     fun queryOf(url: String): String? = Regex("[?&]q=([^&#]*)").find(url)?.groupValues?.get(1)?.let { runCatching { URLDecoder.decode(it, "UTF-8") }.getOrNull() }
