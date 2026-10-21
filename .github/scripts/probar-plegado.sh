@@ -99,7 +99,10 @@ adb install -r "$APK"
 video_muestra() {
   adb shell screenrecord --time-limit 6 --size 640x360 --bit-rate 1500000 /data/local/tmp/muestra.mp4 || return 1
   sleep 2
-  adb shell "run-as $PKG sh -c 'mkdir -p files && cp /data/local/tmp/muestra.mp4 files/muestra.mp4 && ls -l files/muestra.mp4'"
+  # A la carpeta externa de la app (adb puede escribir ahí); si no, a la privada con run-as (cp daba "Permission denied").
+  local ext="/sdcard/Android/data/$PKG/files"
+  adb shell "mkdir -p $ext && cp /data/local/tmp/muestra.mp4 $ext/muestra.mp4 && ls -l $ext/muestra.mp4" && return 0
+  adb shell "run-as $PKG sh -c 'mkdir -p files && cat /data/local/tmp/muestra.mp4 > files/muestra.mp4 && ls -l files/muestra.mp4'"
 }
 if video_muestra; then echo "vídeo de muestra en la carpeta de la app"; else echo "sin vídeo de muestra (el reproductor dará error en las capturas)"; fi
 # Sin los avisos de "no responde" del sistema (el Android virtual va lento y el del lanzador tapa la app).

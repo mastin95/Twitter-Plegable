@@ -204,10 +204,12 @@ fun VideoPlayer(url: String, modifier: Modifier = Modifier, play: Boolean = true
 }
 
 /**
- * En las pruebas del Android virtual no hay vídeos de X: si las pruebas dejaron un vídeo de muestra en
- * la carpeta privada de la app (files/muestra.mp4), con la red simulada se reproduce ese. Nulo si no está.
+ * En las pruebas del Android virtual no hay vídeos de X: si las pruebas dejaron un vídeo de muestra
+ * (muestra.mp4) en la carpeta de la app, la externa (Android/data/…/files) o la privada, con la red
+ * simulada se reproduce ese. Nulo si no está.
  */
-private fun sampleVideo(context: Context): String? = File(context.filesDir, "muestra.mp4").takeIf { it.exists() }?.let { Uri.fromFile(it).toString() }
+private fun sampleVideo(context: Context): String? =
+    listOfNotNull(context.getExternalFilesDir(null), context.filesDir).map { File(it, "muestra.mp4") }.firstOrNull { it.exists() }?.let { Uri.fromFile(it).toString() }
 
 @Composable
 private fun MediaProblem(text: String, url: String) {
