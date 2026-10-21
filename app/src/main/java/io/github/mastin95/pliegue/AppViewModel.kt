@@ -76,6 +76,13 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         homeTabs[slot] = tab
     }
 
+    /** Pestaña de Notificaciones de la interfaz propia: 0 Todas, 1 Verificadas, 2 Menciones. */
+    fun notifTab(slot: String): Int = homeTabs["n:$slot"] ?: 0
+
+    fun setNotifTab(slot: String, tab: Int) {
+        homeTabs["n:$slot"] = tab
+    }
+
     /** Responder desde la interfaz propia: el redactor de X, con la respuesta preparada, en la otra mitad. */
     fun replyFromNative(slot: String, tweetId: String) {
         when {

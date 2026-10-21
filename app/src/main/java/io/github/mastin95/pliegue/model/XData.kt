@@ -84,9 +84,28 @@ data class XTweet(
  * Una fila de un feed: un post suelto o una conversación de dos o tres posts enlazados
  * (X los agrupa en Inicio y en los perfiles).
  */
-data class XEntry(val id: String, val tweets: List<XTweet>) {
+data class XEntry(
+    val id: String,
+    val tweets: List<XTweet>,
+    /** En Notificaciones, el aviso (a Fulano le gustó tu post…); `tweets` lleva entonces el post al que se refiere. */
+    val note: XNotification? = null,
+) {
     constructor(tweet: XTweet) : this("tweet-" + tweet.id, listOf(tweet))
 }
+
+enum class XNoteKind { Like, Repost, Follow, Other }
+
+/** Un aviso de Notificaciones que no es un post: a quién le gustó o quién reposteó tu post, quién te siguió… */
+data class XNotification(
+    val id: String,
+    val kind: XNoteKind,
+    val text: String,
+    /** Tramos del texto en negrita (los nombres), como los marca X. */
+    val bold: List<IntRange> = emptyList(),
+    val users: List<XUser> = emptyList(),
+    val url: String? = null,
+    val createdAt: Long = 0,
+)
 
 /** Una página de un feed tal como la manda X, con sus cursores para seguir. */
 data class XTimeline(
@@ -120,8 +139,13 @@ data class XFeed(
         if (requestCursor == null || pages == 0) {
             return XFeed(page.entries, page.cursorBottom ?: cursorBottom, page.cursorTop ?: cursorTop, page.pinned ?: pinned, now, page.entries.isEmpty() && pages > 0, pages + 1)
         }
-        val known = entries.flatMap { e -> e.tweets.map { it.id } }.toHashSet()
-        val fresh = page.entries.map { e -> e.copy(tweets = e.tweets.filter { it.id !in known }) }.filter { it.tweets.isNotEmpty() }
+        // Los posts repetidos no se duplican; los avisos se reconocen por su id (dos avisos pueden hablar del mismo post).
+        val known = entries.filter { it.note == null }.flatMap { e -> e.tweets.map { it.id } }.toHashSet()
+        val knownNotes = entries.mapNotNull { it.note?.id }.toHashSet()
+        val fresh = page.entries.mapNotNull { e ->
+            if (e.note != null) e.takeIf { e.note.id !in knownNotes }
+            else e.copy(tweets = e.tweets.filter { it.id !in known }).takeIf { it.tweets.isNotEmpty() }
+        }
         return copy(
             entries = if (top) fresh + entries else entries + fresh,
             cursorBottom = if (top) cursorBottom else page.cursorBottom ?: cursorBottom,
@@ -156,6 +180,8 @@ sealed class XView {
     object Home : XView()
     data class Search(val query: String) : XView()
     object Bookmarks : XView()
+    /** Notificaciones: pestañas Todas, Verificadas y Menciones (NotificationsTimeline con timeline_type). */
+    object Notifications : XView()
     data class Profile(val handle: String?, val userId: String?) : XView()
     data class Thread(val statusId: String) : XView()
 }

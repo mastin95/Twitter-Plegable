@@ -12,6 +12,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import io.github.mastin95.pliegue.model.withTweet
+import io.github.mastin95.pliegue.model.XNoteKind
 
 /** Las respuestas de ejemplo (src/test/resources/x) imitan el formato de la API interna de la web de X. */
 class XParseTest {
@@ -162,6 +163,37 @@ class XParseTest {
         assertEquals("https://example.org/perfil", u.website)
         assertTrue(u.followed)
         assertFalse(XParse.timeline(fixture("home"))!!.tweets.first().author.followed)
+    }
+
+    @Test
+    fun `las notificaciones traen me gusta agrupado, repost, seguidor y una mención`() {
+        val t = XParse.timeline(fixture("notifications"))!!
+        assertEquals(4, t.entries.size)
+        val like = t.entries[0].note!!
+        assertEquals(XNoteKind.Like, like.kind)
+        assertEquals("A Nerea A. y a Pablo M. les gustó tu post", like.text)
+        assertEquals(listOf("nerea_a", "pablom"), like.users.map { it.handle })
+        assertEquals(listOf(2 until 10, 15 until 23), like.bold)
+        assertEquals("1001", t.entries[0].tweets.single().id)
+        assertEquals("https://x.com/i/status/1001", like.url)
+        assertEquals(1760954100000L, like.createdAt)
+        assertEquals(XNoteKind.Repost, t.entries[1].note!!.kind)
+        val follow = t.entries[2].note!!
+        assertEquals(XNoteKind.Follow, follow.kind)
+        assertTrue(t.entries[2].tweets.isEmpty())
+        assertEquals("tecnohoy", follow.users.single().handle)
+        assertNull(t.entries[3].note)
+        assertEquals("1030", t.entries[3].tweets.single().id)
+        assertEquals("NB-1", t.cursorBottom)
+        assertEquals("NT-1", t.cursorTop)
+        val r = XParse.request("https://x.com/i/api/graphql/n/NotificationsTimeline", """{"variables":{"timeline_type":"Mentions","count":40}}""")
+        assertEquals("Mentions", r.timelineType)
+        // Página 2: otro aviso sobre el mismo post no se pierde, y el mismo aviso no se repite.
+        val feed = XFeed().merge(t, null, 1L).merge(XParse.timeline(fixture("notifications2"))!!, "NB-1", 2L)
+        assertEquals(5, feed.entries.size)
+        assertEquals("NB-2", feed.cursorBottom)
+        assertEquals(3, feed.entries.count { e -> e.tweets.any { it.id == "1001" } })
+        assertEquals(5, feed.merge(XParse.timeline(fixture("notifications2"))!!, "NB-2", 3L).entries.size)
     }
 
     @Test

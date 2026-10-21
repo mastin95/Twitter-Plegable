@@ -65,10 +65,14 @@ import io.github.mastin95.pliegue.web.XParse
 import kotlinx.coroutines.delay
 
 /** Qué consulta de X llena cada vista. */
-fun feedName(view: XView, homeTab: Int): String = when (view) {
-    XView.Home -> if (homeTab == 1) "HomeLatestTimeline" else "HomeTimeline"
+/** Las pestañas de Notificaciones de X y el timeline_type con el que pide cada una. */
+val NOTIF_TABS = listOf("Todas" to "All", "Verificadas" to "Verified", "Menciones" to "Mentions")
+
+fun feedName(view: XView, tab: Int): String = when (view) {
+    XView.Home -> if (tab == 1) "HomeLatestTimeline" else "HomeTimeline"
     is XView.Search -> "SearchTimeline"
     XView.Bookmarks -> "Bookmarks"
+    XView.Notifications -> "NotificationsTimeline/" + NOTIF_TABS.getOrElse(tab) { NOTIF_TABS[0] }.second
     is XView.Profile -> "UserTweets"
     is XView.Thread -> XParse.THREAD
 }
@@ -82,9 +86,11 @@ fun feedName(view: XView, homeTab: Int): String = when (view) {
 fun XFeedScreen(vm: AppViewModel, slot: String, view: XView, taps: PostTaps, selectedId: String? = null, header: @Composable () -> Unit = {}, onFollow: (XUser) -> Unit = {}) {
     val web = LocalWebPanes.current
     val store = web.store
-    val homeTab = vm.homeTab(slot)
-    val name = feedName(view, homeTab)
-    val feed = store.feed(slot, name)
+    val tabbed = view == XView.Home || view == XView.Notifications
+    val tab = if (view == XView.Notifications) vm.notifTab(slot) else vm.homeTab(slot)
+    val name = feedName(view, tab)
+    // Si X pidiera las notificaciones sin decir la pestaña, valen igual.
+    val feed = store.feed(slot, name) ?: if (view == XView.Notifications) store.feed(slot, "NotificationsTimeline") else null
     val state = vm.feedState("$slot/$name")
     val now = System.currentTimeMillis()
     var refreshing by remember { mutableStateOf(false) }
@@ -95,18 +101,24 @@ fun XFeedScreen(vm: AppViewModel, slot: String, view: XView, taps: PostTaps, sel
             refreshing = false
         }
     }
-    // Inicio en "Siguiendo": la web tiene que estar en esa pestaña para cargar ese feed.
-    if (view == XView.Home) {
-        LaunchedEffect(slot, homeTab, web.urls[slot]) {
+    // Inicio en "Siguiendo" o Notificaciones en "Menciones": la web tiene que estar en esa pestaña para cargar ese feed.
+    if (tabbed) {
+        LaunchedEffect(slot, tab, web.urls[slot]) {
             delay(1200)
-            web.homeTab(slot, homeTab)
+            web.homeTab(slot, tab)
         }
     }
     Column(Modifier.fillMaxSize().background(X.Bg)) {
         header()
         if (view == XView.Home) {
-            HomeTabs(homeTab) { i ->
+            XTabs(listOf("Para ti", "Siguiendo"), tab) { i ->
                 vm.setHomeTab(slot, i)
+                web.homeTab(slot, i)
+            }
+        }
+        if (view == XView.Notifications) {
+            XTabs(NOTIF_TABS.map { it.first }, tab) { i ->
+                vm.setNotifTab(slot, i)
                 web.homeTab(slot, i)
             }
         }
@@ -129,7 +141,10 @@ fun XFeedScreen(vm: AppViewModel, slot: String, view: XView, taps: PostTaps, sel
                         if (view is XView.Profile) item("perfil") { ProfileHeader(profileOf(view, feed, store.user(view.handle)), onFollow) }
                         feed.pinned?.let { p -> item("pinned") { XPostCard(p, now, taps, selected = p.id == selectedId) } }
                     },
-                ) { entry -> XEntryCards(entry.tweets, now, taps, selectedId) }
+                ) { entry ->
+                    val note = entry.note
+                    if (note != null) NotificationRow(note, entry.tweets.firstOrNull(), taps) else XEntryCards(entry.tweets, now, taps, selectedId)
+                }
             }
         }
     }
@@ -174,11 +189,11 @@ fun XFeedList(
     }
 }
 
-/** Pestañas de Inicio de X: Para ti y Siguiendo, a ancho completo. */
+/** Pestañas como las de X (Inicio: Para ti y Siguiendo; Notificaciones: Todas, Verificadas, Menciones), a ancho completo. */
 @Composable
-fun HomeTabs(selected: Int, onSelect: (Int) -> Unit) {
+fun XTabs(labels: List<String>, selected: Int, onSelect: (Int) -> Unit) {
     Row(Modifier.fillMaxWidth().height(48.dp).bottomBorder()) {
-        listOf("Para ti", "Siguiendo").forEachIndexed { i, label ->
+        labels.forEachIndexed { i, label ->
             val active = i == selected
             Column(
                 Modifier
@@ -290,6 +305,7 @@ private fun Empty(view: XView) {
         Text(
             when (view) {
                 XView.Bookmarks -> "No tienes nada guardado"
+                XView.Notifications -> "Nada por aquí todavía"
                 is XView.Search -> "Sin resultados"
                 else -> "Nada por aquí"
             },
@@ -299,6 +315,7 @@ private fun Empty(view: XView) {
         Text(
             when (view) {
                 XView.Bookmarks -> "Guarda un post desde su menú y aparecerá aquí."
+                XView.Notifications -> "Cuando alguien reaccione a tus posts o te siga, saldrá aquí."
                 is XView.Search -> "X no ha encontrado posts para esta búsqueda."
                 else -> "X no ha mandado posts para esta lista."
             },

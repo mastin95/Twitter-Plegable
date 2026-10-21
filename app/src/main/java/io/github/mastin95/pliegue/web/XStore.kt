@@ -87,11 +87,12 @@ class XStore {
         asked.remove(slot)
         return when (parsed) {
             is Parsed.Feed -> {
-                val key = "$slot/${req.name}"
+                val key = "$slot/${req.name}" + (req.timelineType?.let { "/$it" } ?: "")
                 val f = (feeds[key] ?: XFeed()).merge(parsed.timeline, req.cursor, now)
                 feeds[key] = f
                 parsed.timeline.tweets.forEach { remember(it.author) }
-                "${req.name}: ${parsed.timeline.tweets.size} posts (${if (req.cursor == null) "carga" else "página ${f.pages}"}), ${f.tweets.size} en total"
+                val what = if (parsed.timeline.entries.any { it.note != null }) "${parsed.timeline.entries.size} avisos" else "${parsed.timeline.tweets.size} posts"
+                "${key.substringAfter('/')}: $what (${if (req.cursor == null) "carga" else "página ${f.pages}"}), ${f.entries.size} en total"
             }
             is Parsed.Thread -> {
                 val p = parsed.page
