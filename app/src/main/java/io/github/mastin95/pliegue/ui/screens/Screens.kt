@@ -71,6 +71,7 @@ import io.github.mastin95.pliegue.ui.components.topBorder
 import io.github.mastin95.pliegue.ui.theme.X
 import io.github.mastin95.pliegue.ui.theme.XType
 import io.github.mastin95.pliegue.ui.web.LocalWebPanes
+import io.github.mastin95.pliegue.ui.x.ActionsPane
 import io.github.mastin95.pliegue.ui.web.PopupSheet
 import androidx.compose.ui.graphics.Color
 
@@ -96,6 +97,8 @@ fun PliegueApp(screen: ScreenInfo, vm: AppViewModel = viewModel()) {
             .background(X.Bg)
             .safeDrawingPadding(),
     ) {
+        // La web escondida de las acciones de la interfaz propia (no mide nada; va debajo de todo).
+        if (real && web.loggedIn && vm.nativeUi) ActionsPane()
         when {
             vm.loggingIn -> LoginScreen(vm)
             vm.appMode == AppMode.Elegir -> WelcomeScreen(vm)

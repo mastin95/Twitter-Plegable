@@ -341,6 +341,7 @@ object XParse {
             location = (u.optJSONObject("location")?.optString("location") ?: "").ifEmpty { legacy.optString("location") },
             website = legacy.optJSONObject("entities")?.optJSONObject("url")?.optJSONArray("urls")?.optJSONObject(0)?.optString("expanded_url") ?: "",
             posts = legacy.optInt("statuses_count"),
+            followed = legacy.optBoolean("following") || u.optJSONObject("relationship_perspectives")?.optBoolean("following") == true,
         )
     }
 }

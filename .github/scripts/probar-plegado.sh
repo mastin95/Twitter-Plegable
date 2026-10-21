@@ -78,6 +78,7 @@ abrir() { adb shell wm size 2208x1840; sleep 12; }
 # pruebas, como si la hubiera recibido, y la app la pinta (en el Android virtual X no deja entrar).
 EJ=app/src/test/resources/x
 inyectar() { devtools && python3 .github/scripts/cdp.py inyectar 9222 "$EJ/$1.json" "$2" "${3:-}" "${4:-"{}"}"; sleep 4; }
+evaluar() { devtools && python3 .github/scripts/cdp.py evaluar 9222 "$1" ".github/scripts/$2.js"; }
 desliza() { adb shell input swipe "$1" "$2" "$1" "$3" 400; sleep 2; }   # x, y de salida, y de llegada
 busca_y_toca() {  # baja por la lista (en x=$2, de y=$3 a y=$4) hasta ver el texto y lo toca
   local i
@@ -122,6 +123,14 @@ inyectar detail TweetDetail /status/ '{"focalTweetId":"1008"}'
 paso propia-post-al-lado
 plegar
 paso propia-post-plegado
+
+# Fase 2: un me gusta desde la tarjeta. La tarjeta cambia al momento y la web escondida de acciones abre
+# el post; como aquí no hay X, se le monta un post falso con los botones de X y se comprueba que el
+# guion lo toca y la app lo da por hecho (el corazón sigue lleno y no sale el aviso de "no aceptado").
+toca 'Me gusta' && sleep 3
+evaluar /i/status/ post-falso
+sleep 5
+paso propia-me-gusta
 
 # Enlaces que llegan de fuera, con la app ya abierta: un post de X, un enlace corto t.co (web ajena) y
 # algo compartido con Pliegue (va al redactor). Se manda a la actividad para que no salga el selector.

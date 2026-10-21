@@ -79,7 +79,7 @@ fun feedName(view: XView, homeTab: Int): String = when (view) {
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun XFeedScreen(vm: AppViewModel, slot: String, view: XView, taps: PostTaps, selectedId: String? = null, header: @Composable () -> Unit = {}) {
+fun XFeedScreen(vm: AppViewModel, slot: String, view: XView, taps: PostTaps, selectedId: String? = null, header: @Composable () -> Unit = {}, onFollow: (XUser) -> Unit = {}) {
     val web = LocalWebPanes.current
     val store = web.store
     val homeTab = vm.homeTab(slot)
@@ -126,7 +126,7 @@ fun XFeedScreen(vm: AppViewModel, slot: String, view: XView, taps: PostTaps, sel
                     state,
                     onEnd = { web.loadMore(slot) },
                     header = {
-                        if (view is XView.Profile) item("perfil") { ProfileHeader(profileOf(view, feed, store.user(view.handle)), vm) }
+                        if (view is XView.Profile) item("perfil") { ProfileHeader(profileOf(view, feed, store.user(view.handle)), onFollow) }
                         feed.pinned?.let { p -> item("pinned") { XPostCard(p, now, taps, selected = p.id == selectedId) } }
                     },
                 ) { entry -> XEntryCards(entry.tweets, now, taps, selectedId) }
@@ -198,7 +198,7 @@ fun HomeTabs(selected: Int, onSelect: (Int) -> Unit) {
 
 /** Cabecera de un perfil: portada, foto, nombre, biografía y cifras, como en X. */
 @Composable
-fun ProfileHeader(u: XUser?, vm: AppViewModel) {
+fun ProfileHeader(u: XUser?, onFollow: (XUser) -> Unit) {
     u ?: return
     Column(Modifier.fillMaxWidth().bottomBorder()) {
         Box(Modifier.fillMaxWidth().aspectRatio(3f).background(X.Card)) {
@@ -209,7 +209,11 @@ fun ProfileHeader(u: XUser?, vm: AppViewModel) {
                 XAvatar(u.avatar.replace("_bigger.", "_200x200."), 68.dp)
             }
             Spacer(Modifier.weight(1f))
-            PillButton("Seguir", onClick = { vm.showToast("Seguir desde aquí llega en la siguiente versión.") }, height = 32.dp, modifier = Modifier.padding(top = 12.dp))
+            if (u.followed) {
+                PillButton("Siguiendo", onClick = { onFollow(u) }, height = 32.dp, modifier = Modifier.padding(top = 12.dp), background = Color.Transparent, content = X.Text, border = X.Border)
+            } else {
+                PillButton("Seguir", onClick = { onFollow(u) }, height = 32.dp, modifier = Modifier.padding(top = 12.dp))
+            }
         }
         Column(Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp).offset(y = (-24).dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {

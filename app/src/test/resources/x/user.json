@@ -1,1 +1,49 @@
-{"data": {"user": {"result": {"__typename": "User", "id": "VXNlcjo11", "rest_id": "11", "is_blue_verified": true, "legacy": {"description": "Diseño producto", "followers_count": 1200, "friends_count": 300, "statuses_count": 321, "location": "Valencia", "profile_banner_url": "https://pbs.twimg.com/profile_banners/11/1", "verified": false, "entities": {"url": {"urls": [{"expanded_url": "https://example.org/perfil", "url": "https://t.co/perfil"}]}}}, "core": {"created_at": "Mon Jan 01 00:00:00 +0000 2018", "name": "Lucía R.", "screen_name": "lucia"}, "avatar": {"image_url": "https://pbs.twimg.com/profile_images/11/foto_normal.jpg"}, "verification": {"verified": true}, "location": {"location": "Valencia"}}}}}
+{
+ "data": {
+  "user": {
+   "result": {
+    "__typename": "User",
+    "id": "VXNlcjo11",
+    "rest_id": "11",
+    "is_blue_verified": true,
+    "legacy": {
+     "description": "Diseño producto",
+     "followers_count": 1200,
+     "friends_count": 300,
+     "statuses_count": 321,
+     "location": "Valencia",
+     "profile_banner_url": "https://pbs.twimg.com/profile_banners/11/1",
+     "verified": false,
+     "entities": {
+      "url": {
+       "urls": [
+        {
+         "expanded_url": "https://example.org/perfil",
+         "url": "https://t.co/perfil"
+        }
+       ]
+      }
+     }
+    },
+    "core": {
+     "created_at": "Mon Jan 01 00:00:00 +0000 2018",
+     "name": "Lucía R.",
+     "screen_name": "lucia"
+    },
+    "avatar": {
+     "image_url": "https://pbs.twimg.com/profile_images/11/foto_normal.jpg"
+    },
+    "verification": {
+     "verified": true
+    },
+    "location": {
+     "location": "Valencia"
+    },
+    "relationship_perspectives": {
+     "following": true,
+     "followed_by": false
+    }
+   }
+  }
+ }
+}

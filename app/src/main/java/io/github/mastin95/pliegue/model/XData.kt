@@ -21,6 +21,8 @@ data class XUser(
     val location: String = "",
     val website: String = "",
     val posts: Int = 0,
+    /** Tú sigues a esta cuenta. */
+    val followed: Boolean = false,
 ) {
     val url: String get() = "https://x.com/$handle"
 }
@@ -186,4 +188,32 @@ object XTime {
         val ampm = if (h < 12) "a. m." else "p. m."
         return "$hour12:$m $ampm · ${c.get(Calendar.DAY_OF_MONTH)} ${months[c.get(Calendar.MONTH)]}. ${c.get(Calendar.YEAR)}"
     }
+}
+
+// ---- Cambiar un post allá donde esté (me gusta, repost, guardado), sin tocar el resto ----
+
+/** `f` sobre este post y sobre el que cita. */
+fun XTweet.mapDeep(f: (XTweet) -> XTweet): XTweet {
+    val t = f(this)
+    val q = t.quoted ?: return t
+    val q2 = f(q)
+    return if (q2 === q) t else t.copy(quoted = q2)
+}
+
+fun XTweet.mentions(id: String): Boolean = this.id == id || quoted?.id == id
+
+fun XEntry.mapTweets(f: (XTweet) -> XTweet): XEntry = copy(tweets = tweets.map { it.mapDeep(f) })
+
+/** El feed con `f` aplicada a cada post; el mismo feed si ningún post es `id`. */
+fun XFeed.withTweet(id: String, f: (XTweet) -> XTweet): XFeed {
+    if (pinned?.mentions(id) != true && entries.none { e -> e.tweets.any { it.mentions(id) } }) return this
+    val g: (XTweet) -> XTweet = { if (it.id == id) f(it) else it }
+    return copy(entries = entries.map { it.mapTweets(g) }, pinned = pinned?.mapDeep(g))
+}
+
+/** La conversación con `f` aplicada a cada post; la misma si ningún post es `id`. */
+fun XThread.withTweet(id: String, f: (XTweet) -> XTweet): XThread {
+    if (!focal.mentions(id) && ancestors.none { it.mentions(id) } && replies.none { e -> e.tweets.any { it.mentions(id) } }) return this
+    val g: (XTweet) -> XTweet = { if (it.id == id) f(it) else it }
+    return copy(focal = focal.mapDeep(g), ancestors = ancestors.map { it.mapDeep(g) }, replies = replies.map { it.mapTweets(g) })
 }

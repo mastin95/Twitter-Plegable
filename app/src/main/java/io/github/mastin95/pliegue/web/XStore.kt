@@ -4,7 +4,9 @@ import androidx.compose.runtime.mutableStateMapOf
 import io.github.mastin95.pliegue.model.XFeed
 import io.github.mastin95.pliegue.model.XThread
 import io.github.mastin95.pliegue.model.XTimeline
+import io.github.mastin95.pliegue.model.XTweet
 import io.github.mastin95.pliegue.model.XUser
+import io.github.mastin95.pliegue.model.withTweet
 
 /**
  * Lo que la app sabe de X por haber escuchado a sus webs: un feed por ranura y consulta
@@ -34,6 +36,26 @@ class XStore {
 
     /** Una cuenta por su id numérico (el tuyo sale de la cookie twid). */
     fun byId(id: String?): XUser? = id?.let { handles[it] }?.let { users[it] }
+
+    /** Cambia un post en todos los feeds y conversaciones donde esté (me gusta, repost, guardado). */
+    fun updateTweet(id: String, f: (XTweet) -> XTweet) {
+        for (k in feeds.keys.toList()) {
+            val old = feeds[k] ?: continue
+            val new = old.withTweet(id, f)
+            if (new !== old) feeds[k] = new
+        }
+        for (k in threads.keys.toList()) {
+            val old = threads[k] ?: continue
+            val new = old.withTweet(id, f)
+            if (new !== old) threads[k] = new
+        }
+    }
+
+    /** Cambia una cuenta (seguir, dejar de seguir). */
+    fun updateUser(handle: String, f: (XUser) -> XUser) {
+        val k = handle.lowercase()
+        users[k]?.let { users[k] = f(it) }
+    }
 
     /** La ranura carga otra dirección: lo que tenía ya no vale. */
     fun clear(slot: String) {
