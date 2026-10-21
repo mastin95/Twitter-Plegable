@@ -106,6 +106,16 @@ def inject(port, path, name, part=None, variables='{}'):
     print('inyectado', name, '→', r.get('result', {}).get('value'), r.get('exceptionDetails', {}).get('text', ''))
 
 
+def evaluate_in(port, part, path):
+    """Ejecuta un archivo JS en la web cuya dirección contiene `part` (pruebas: montar un post falso
+    con los botones de X en la web escondida de acciones, donde X no deja entrar)."""
+    c = CDP(port, part)
+    with open(path, encoding='utf-8') as f:
+        expr = f.read()
+    r = c.call('Runtime.evaluate', expression=expr, returnByValue=True)
+    print('evaluado en', part, '→', r.get('result', {}).get('value'), r.get('exceptionDetails', {}).get('text', ''))
+
+
 def watch(port, seconds, out):
     c = CDP(port)
     c.call('Network.enable')
@@ -173,6 +183,8 @@ if __name__ == '__main__':
             fake_session(sys.argv[2])
         elif cmd == 'watch':
             watch(sys.argv[2], sys.argv[3], sys.argv[4])
+        elif cmd == 'evaluar':
+            evaluate_in(sys.argv[2], sys.argv[3], sys.argv[4])
         elif cmd == 'inyectar':
             inject(sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5] if len(sys.argv) > 5 else None, sys.argv[6] if len(sys.argv) > 6 else '{}')
     except Exception as e:

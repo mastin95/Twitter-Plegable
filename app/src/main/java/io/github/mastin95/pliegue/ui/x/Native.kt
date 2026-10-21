@@ -3,9 +3,12 @@ package io.github.mastin95.pliegue.ui.x
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
@@ -16,7 +19,9 @@ import io.github.mastin95.pliegue.model.XView
 import io.github.mastin95.pliegue.ui.theme.X
 import io.github.mastin95.pliegue.ui.web.LocalWebPanes
 import io.github.mastin95.pliegue.ui.web.WebPane
+import androidx.compose.ui.unit.dp
 import io.github.mastin95.pliegue.web.PaneOptions
+import io.github.mastin95.pliegue.web.XActions
 import io.github.mastin95.pliegue.web.XWeb
 
 /**
@@ -38,6 +43,7 @@ fun NativeOrWeb(vm: AppViewModel, slot: String, url: String, options: PaneOption
 fun NativeLayer(vm: AppViewModel, slot: String, view: XView, selectedUrl: String? = null) {
     val web = LocalWebPanes.current
     val clipboard = LocalClipboardManager.current
+    val actor = remember(web, vm) { XActor(web, vm) }
     val taps = remember(slot, vm) {
         PostTaps(
             onOpen = { vm.onWebPost(slot, it.url) },
@@ -54,9 +60,9 @@ fun NativeLayer(vm: AppViewModel, slot: String, view: XView, selectedUrl: String
                 if (!vm.onWebLink(slot, target)) web.openInBrowser(target)
             },
             onReply = { vm.replyFromNative(slot, it.id) },
-            onRepost = { vm.showToast("Repostear desde aquí llega en la siguiente versión.") },
-            onLike = { vm.showToast("Me gusta desde aquí llega en la siguiente versión.") },
-            onBookmark = { vm.showToast("Guardar desde aquí llega en la siguiente versión.") },
+            onRepost = actor::repost,
+            onLike = actor::like,
+            onBookmark = actor::bookmark,
             onShare = {
                 clipboard.setText(AnnotatedString(it.url))
                 vm.showToast("Enlace copiado.")
@@ -73,7 +79,21 @@ fun NativeLayer(vm: AppViewModel, slot: String, view: XView, selectedUrl: String
     ) {
         when (view) {
             is XView.Thread -> XThreadScreen(vm, slot, view.statusId, taps)
-            else -> XFeedScreen(vm, slot, view, taps, selectedId)
+            else -> XFeedScreen(vm, slot, view, taps, selectedId, onFollow = actor::follow)
+        }
+    }
+}
+
+/**
+ * La web escondida donde se hacen las acciones (me gusta, repost, guardar, seguir): existe y mide como
+ * la pantalla de un móvil para que X pinte su página entera, pero no se ve ni se puede tocar.
+ */
+@Composable
+fun ActionsPane() {
+    val web = LocalWebPanes.current
+    Box(Modifier.size(0.dp).clipToBounds()) {
+        Box(Modifier.requiredSize(412.dp, 915.dp)) {
+            WebPane(XActions.SLOT, web.actions.url, Modifier.fillMaxSize(), PaneOptions(interceptPosts = false, hideChrome = false, keepInside = true))
         }
     }
 }

@@ -82,6 +82,9 @@ class WebPanes(
     /** Los posts que las webs se han descargado, para la interfaz propia. */
     val store = XStore()
 
+    /** Me gusta, repost, guardar y seguir, hechos en la web escondida de acciones. */
+    val actions = XActions(this)
+
     // Las respuestas de X pesan cientos de KB: se leen fuera del hilo principal, de una en una.
     private val parser = Executors.newSingleThreadExecutor()
 
@@ -296,6 +299,12 @@ class WebPanes(
 
     private fun short(url: String) = url.removePrefix("https://").take(160)
 
+    fun evaluate(slot: String, js: String) {
+        slots[slot]?.evaluateJavascript(js, null)
+    }
+
+    internal fun note(line: String) = log(line)
+
     fun reload(slot: String) {
         slots[slot]?.reload()
     }
@@ -335,6 +344,7 @@ class WebPanes(
     fun destroyAll() {
         exitFullscreen()
         closePopup()
+        actions.reset()
         slots.keys.toList().forEach(::drop)
     }
 
@@ -537,7 +547,7 @@ class WebPanes(
             override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) {
                 urls[slot] = url
                 progress[slot] = 5
-                lastActive = slot
+                if (slot != XActions.SLOT) lastActive = slot
                 log("[$slot] carga ${short(url)}")
                 if (options[slot]?.debugLogin == true) view.evaluateJavascript(XWeb.loginHookScript(), null)
             }
@@ -548,6 +558,7 @@ class WebPanes(
                 inject(view, slot)
                 checkLogin()
                 log("[$slot] cargada ${short(url)}" + if (loggedIn) " · con sesión" else " · sin sesión")
+                if (slot == XActions.SLOT) actions.pageReady()
             }
 
             override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
@@ -570,7 +581,7 @@ class WebPanes(
 
             override fun doUpdateVisitedHistory(view: WebView, url: String, isReload: Boolean) {
                 urls[slot] = url
-                lastActive = slot
+                if (slot != XActions.SLOT) lastActive = slot
                 inject(view, slot)
                 checkLogin()
             }
@@ -670,6 +681,12 @@ class WebPanes(
                     }
                 }
             }
+        }
+
+        /** El guion de la web de acciones dice si X aceptó la acción `token` (ver XWeb.actScript). */
+        @JavascriptInterface
+        fun acted(token: Int, ok: Boolean, why: String) {
+            if (slot == XActions.SLOT) main.post { actions.acted(token, ok, why) }
         }
 
         /** La foto de un post: la app la abre en la otra mitad; donde no hay otra, en el navegador. */

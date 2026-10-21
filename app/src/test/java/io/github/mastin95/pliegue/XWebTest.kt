@@ -198,4 +198,14 @@ class XWebTest {
         assertTrue(js.contains("/i\\/api\\/graphql"))
         assertTrue(XWeb.bridgeScript(true, true).contains("P.more = function"))
     }
+
+    @Test
+    fun `el guion de acciones conoce los botones de X y avisa con el token`() {
+        val js = XWeb.actScript("repost", "1008", 7)
+        assertTrue(js.contains("[data-testid=\"retweetConfirm\"]"))
+        assertTrue(js.contains("[data-testid$=\"-unfollow\"]"))
+        assertTrue(js.contains("a[href$=\"/status/' + id + '\"]"))
+        assertTrue(js.contains("window.Pliegue.acted(token"))
+        assertTrue(js.trimEnd().endsWith("})(\"repost\", \"1008\", 7);"))
+    }
 }

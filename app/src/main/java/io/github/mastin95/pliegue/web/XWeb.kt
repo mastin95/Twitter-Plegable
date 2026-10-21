@@ -385,6 +385,62 @@ object XWeb {
     """.trimIndent()
 
     /**
+     * Guion para la web escondida de acciones: en la página del post (o del perfil) busca el botón de X
+     * que corresponde a la acción, lo toca, y cuando X cambia el botón al contrario (me gusta → ya no me
+     * gusta) avisa con `Pliegue.acted(token, true, …)`. Si en 20 s no encuentra el botón o X no cambia,
+     * avisa con false y el motivo. Repostear y dejar de seguir piden una confirmación: la toca también.
+     * Los botones se reconocen por los `data-testid` de la web de X; en el perfil se salta los de las
+     * sugerencias ("A quién seguir") y los de los posts.
+     */
+    fun actScript(kind: String, target: String, token: Int): String = """
+        (function(kind, id, token){
+          var P = window.__pliegueAct = window.__pliegueAct || {};
+          if (P.timer) { clearInterval(P.timer); P.timer = null; }
+          var plan = {
+            like:       {steps: [['art', '[data-testid="like"]']], done: ['art', '[data-testid="unlike"]']},
+            unlike:     {steps: [['art', '[data-testid="unlike"]']], done: ['art', '[data-testid="like"]']},
+            bookmark:   {steps: [['art', '[data-testid="bookmark"]']], done: ['art', '[data-testid="removeBookmark"]']},
+            unbookmark: {steps: [['art', '[data-testid="removeBookmark"]']], done: ['art', '[data-testid="bookmark"]']},
+            repost:     {steps: [['art', '[data-testid="retweet"]'], ['doc', '[data-testid="retweetConfirm"]']], done: ['art', '[data-testid="unretweet"]']},
+            unrepost:   {steps: [['art', '[data-testid="unretweet"]'], ['doc', '[data-testid="unretweetConfirm"]']], done: ['art', '[data-testid="retweet"]']},
+            follow:     {steps: [['head', '[data-testid${'$'}="-follow"]']], done: ['head', '[data-testid${'$'}="-unfollow"]']},
+            unfollow:   {steps: [['head', '[data-testid${'$'}="-unfollow"]'], ['doc', '[data-testid="confirmationSheetConfirm"]']], done: ['head', '[data-testid${'$'}="-follow"]']}
+          }[kind];
+          function tell(ok, why){
+            if (P.timer) { clearInterval(P.timer); P.timer = null; }
+            try { if (window.Pliegue && window.Pliegue.acted) window.Pliegue.acted(token, !!ok, String(why || '')); } catch(e){}
+          }
+          if (!plan) { tell(false, 'acción desconocida'); return; }
+          function article(){
+            var as = document.querySelectorAll('article');
+            for (var i = 0; i < as.length; i++) if (as[i].querySelector('a[href${'$'}="/status/' + id + '"]')) return as[i];
+            return null;
+          }
+          function find(step){
+            var scope = step[0], sel = step[1];
+            if (scope === 'doc') return document.querySelector(sel);
+            if (scope === 'art') { var a = article(); return a ? a.querySelector(sel) : null; }
+            var all = document.querySelectorAll(sel);
+            for (var i = 0; i < all.length; i++) if (!all[i].closest('article') && !all[i].closest('[data-testid="UserCell"]')) return all[i];
+            return null;
+          }
+          var step = 0, clickedAt = 0, t0 = Date.now();
+          function tick(){
+            try {
+              if (step === 0 && find(plan.done)) { tell(true, 'ya estaba'); return; }
+              if (clickedAt && step >= plan.steps.length && Date.now() - clickedAt > 1200 && find(plan.done)) { tell(true, ''); return; }
+              if (step < plan.steps.length) { var el = find(plan.steps[step]); if (el) { el.click(); clickedAt = Date.now(); step++; } }
+              if (Date.now() - t0 > 20000) tell(false, step === 0 ? 'no encontré el botón' : 'X no lo confirmó');
+            } catch(e) { tell(false, String(e)); }
+          }
+          P.timer = setInterval(tick, 400);
+          tick();
+        })(${jsString(kind)}, ${jsString(target)}, $token);
+    """.trimIndent()
+
+    private fun jsString(s: String): String = "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", " ") + "\""
+
+    /**
      * Script que ponemos en cada página de X:
      * - un toque sobre un post avisa a la app (`Pliegue.openPost`) en vez de navegar, para abrirlo en la otra mitad;
      * - mantener pulsado un avatar o un nombre avisa con su usuario (`Pliegue.dragUser`) para arrastrarlo a Mi feed;

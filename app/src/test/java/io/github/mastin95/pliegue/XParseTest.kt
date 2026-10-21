@@ -11,6 +11,7 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import io.github.mastin95.pliegue.model.withTweet
 
 /** Las respuestas de ejemplo (src/test/resources/x) imitan el formato de la API interna de la web de X. */
 class XParseTest {
@@ -159,6 +160,32 @@ class XParseTest {
         assertTrue(u.verified)
         assertEquals("Diseño producto", u.bio)
         assertEquals("https://example.org/perfil", u.website)
+        assertTrue(u.followed)
+        assertFalse(XParse.timeline(fixture("home"))!!.tweets.first().author.followed)
+    }
+
+    @Test
+    fun `un me gusta cambia el post allá donde esté y deja el resto igual`() {
+        val feed = XFeed().merge(XParse.timeline(fixture("home"))!!, null, 1L)
+        assertTrue(feed.withTweet("no-existe") { it.copy(liked = true) } === feed)
+        val liked = feed.withTweet("1002") { it.copy(liked = true, likes = it.likes + 1) }
+        val t = liked.tweets.first { it.id == "1002" }
+        assertTrue(t.liked)
+        assertEquals(761, t.likes)
+        assertEquals(feed.tweets.count { it.liked } + 1, liked.tweets.count { it.liked })
+        assertEquals(feed.entries.size, liked.entries.size)
+        // El post citado dentro de otro también cambia.
+        val saved = feed.withTweet("1005") { it.copy(bookmarked = true) }
+        assertTrue(saved.tweets.first { it.id == "1006" }.quoted!!.bookmarked)
+        assertTrue(saved.tweets.first { it.id == "1005" }.bookmarked)
+        // Y en una conversación.
+        val page = XParse.thread(fixture("detail"), "1008")!!
+        val th = XThread(page.focal!!, page.ancestors, page.replies, page.cursorBottom, 1L)
+        assertTrue(th.withTweet("zzz") { it.copy(reposted = true) } === th)
+        val th2 = th.withTweet("1008") { it.copy(reposted = true, reposts = it.reposts + 1) }
+        assertTrue(th2.focal.reposted)
+        assertEquals(th.focal.reposts + 1, th2.focal.reposts)
+        assertFalse(th2.ancestors.first().reposted)
     }
 
     @Test
