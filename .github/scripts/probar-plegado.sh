@@ -195,12 +195,15 @@ paso propia-foto
 # con la red simulada todos reproducen un vídeo de muestra). Atrás cierra la foto primero y los vídeos después.
 adb shell input keyevent 4
 sleep 3
-# Vídeos que se mueven solos en el feed (Martin, 2026-10-22): el GIF que se ve se reproduce solo, sin
-# sonido, encima de su miniatura (con la red simulada, el vídeo de muestra: barras de colores). Tocarlo
-# sigue abriendo los vídeos en vertical.
-busca '^Vídeo$' 500 1400 500 && sleep 6
-paso propia-feed-gif-solo
-busca_y_toca '^Vídeo$' 500 1400 500 && sleep 12
+# Vídeos que se mueven solos en el feed (Martin, 2026-10-22): el de más arriba de los que se ven se
+# reproduce solo, sin sonido (el altavoz tachado), encima de su miniatura, con lo que le queda; los demás
+# quedan quietos. Con la red simulada es el vídeo de muestra (barras de colores). La segunda captura, dos
+# segundos después, enseña que la cuenta atrás corre. Tocarlo abre los vídeos en vertical, como antes.
+busca '^Vídeo sin sonido$' 500 1400 500 && sleep 4
+paso propia-feed-video-solo
+sleep 2
+adb exec-out screencap -p > "$OUT/propia-feed-video-solo-2.png" 2>/dev/null
+toca '^Vídeo sin sonido$' && sleep 12
 paso propia-videos
 # Controles de los vídeos (Martin, 2026-10-22): mantenido va a 2× (sale "2×" arriba), doble toque es me
 # gusta con el corazón grande (la captura -corazon se hace al momento, antes de que se vaya), el altavoz
@@ -307,11 +310,13 @@ sleep 10
 paso compartido
 
 # Ajustes: la reproducción automática de vídeos, con las tres opciones de X (por defecto, solo con wifi).
+# Abierto, porque plegado el botón de Ajustes está dentro del menú de la P.
 adb shell input keyevent 4
 sleep 3
+abrir
 if toca '^Ajustes$'; then
   sleep 4
-  busca 'Solo con wifi' 540 1800 900
+  busca 'Solo con wifi' 1100 1500 700
   paso ajustes-videos
 fi
 
