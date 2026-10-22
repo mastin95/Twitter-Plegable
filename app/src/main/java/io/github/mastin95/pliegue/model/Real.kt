@@ -26,8 +26,41 @@ enum class Source(val label: String, val url: String?) {
     Fijados("Fijados", null),
 }
 
-/** Una mitad con X real: su fuente y, encima, quizá un post abierto desde la otra mitad. */
-data class WebPanel(val source: Source, val openUrl: String? = null, val fromLabel: String = "")
+/**
+ * Una mitad con X real: su fuente y, encima, quizá algo abierto (un post, un perfil, una foto, los
+ * vídeos, el redactor). `history` es lo que había abierto antes en esta misma mitad: atrás lo recupera.
+ */
+data class WebPanel(val source: Source, val openUrl: String? = null, val fromLabel: String = "", val history: List<String> = emptyList()) {
+    /** Abre algo encima de lo que hay; atrás volverá a ello. */
+    fun push(url: String): WebPanel = copy(openUrl = url, history = history + listOfNotNull(openUrl))
+
+    /** Atrás: lo que había antes en esta mitad o, si no había nada, la mitad sin nada abierto. */
+    fun back(): WebPanel = if (history.isEmpty()) copy(openUrl = null) else copy(openUrl = history.last(), history = history.dropLast(1))
+
+    /** Sin nada abierto: la fuente de siempre. */
+    fun closed(): WebPanel = copy(openUrl = null, history = emptyList())
+
+    /** Esta mitad tiene abierta la pantalla de vídeos. */
+    val showsVideos: Boolean get() = openUrl?.let(XWeb::isVideos) == true
+}
+
+/**
+ * Algo tocado en la mitad `here` (un post, una cuenta; con `link`, una respuesta, una foto o un enlace),
+ * ¿se abre en la otra mitad (`there`)? Si no, encima en la misma, y atrás vuelve a lo de antes.
+ * - Desde un feed, al lado, como siempre.
+ * - Plegado, desde algo abierto, encima: la otra mitad no se ve.
+ * - Desde los vídeos, al lado: son el reproductor y el vídeo sigue mientras lees o escribes.
+ * - Con los vídeos al lado, encima: no se pisa el reproductor.
+ * - Si no, los posts y cuentas encima (se navega dentro de la mitad) y lo demás al lado, para seguir
+ *   viendo el post del que sale.
+ */
+fun opensBeside(here: WebPanel, there: WebPanel, folded: Boolean, link: Boolean = false): Boolean = when {
+    here.openUrl == null -> true
+    folded -> false
+    here.showsVideos -> true
+    there.showsVideos -> false
+    else -> link
+}
 
 /** Lo que añades tú a un post y solo ves tú. */
 data class Note(val text: String = "", val tags: String = "", val folder: String = "", val remind: String = "") {

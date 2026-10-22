@@ -37,8 +37,9 @@ def main():
                 extra = ' [foco]' if n.get('focused') == 'true' else ''
                 print(f"{cls} {n.get('bounds')} {t[:120]!r}{extra}")
         return 0
-    if cmd == 'find':
+    if cmd == 'find':  # find volcado.xml patrón [x-mínima]: el primer nodo que case (a la derecha de x-mínima, si se da)
         pat = sys.argv[3]
+        minx = int(sys.argv[4]) if len(sys.argv) > 4 else 0
         if pat.startswith('class='):
             cand = [n for n in ns if n.get('class') == pat[6:]]
         else:
@@ -46,7 +47,7 @@ def main():
             cand = [n for n in ns if rx.search(label(n))]
         for n in cand:
             c = center(n.get('bounds'))
-            if c:
+            if c and c[0] >= minx:
                 print(c[0], c[1])
                 return 0
         return 1

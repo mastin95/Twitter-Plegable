@@ -55,16 +55,23 @@ import io.github.mastin95.pliegue.web.XWeb
 fun XVideosScreen(vm: AppViewModel, slot: String, url: String, modifier: Modifier = Modifier) {
     val web = LocalWebPanes.current
     val source = XWeb.videosSource(url)
-    val videos = web.store.videos(source)
+    // Lo que hay ahora en el feed de origen va a la lista propia de esta pantalla, que no se vacía
+    // aunque la web de esa ranura cargue otra cosa (el post en la otra mitad, el redactor).
+    val fresh = web.store.videos(source)
+    LaunchedEffect(fresh) { web.store.keepVideos(source, fresh) }
+    val videos = web.store.videosKept(source).ifEmpty { fresh }
     val taps = rememberPostTaps(vm, slot, source)
     Box(modifier.fillMaxSize().background(Color.Black)) {
         if (videos.isEmpty()) {
             CircularProgressIndicator(color = X.Blue, strokeWidth = 3.dp, modifier = Modifier.size(32.dp).align(Alignment.Center))
         } else {
-            val start = remember(url) { videos.indexOfFirst { it.id == XWeb.statusId(url) }.coerceAtLeast(0) }
+            val start = remember(source) { videos.indexOfFirst { it.id == XWeb.statusId(url) }.coerceAtLeast(0) }
             val pager = rememberPagerState(initialPage = start) { videos.size }
             LaunchedEffect(pager.settledPage, videos.size) {
-                if (pager.settledPage >= videos.size - 2) web.loadMore(source.substringBefore('/'))
+                // Más vídeos: se le pide a la web del feed de origen, si sigue en ese feed (no si ahora enseña un post o el redactor).
+                if (pager.settledPage >= videos.size - 2 && fresh.isNotEmpty()) web.loadMore(source.substringBefore('/'))
+                // La dirección abierta sigue al vídeo que se ve: al volver de un post o del redactor se sigue por aquí.
+                videos.getOrNull(pager.settledPage)?.let { vm.moveWithin(slot, XWeb.videosUrl(it.id, source)) }
             }
             VerticalPager(pager, Modifier.fillMaxSize(), key = { videos[it].id }) { page ->
                 VideoPage(videos[page], taps, play = pager.settledPage == page)
@@ -112,7 +119,8 @@ private fun VideoPage(t: XTweet, taps: PostTaps, play: Boolean) {
                 }
             }
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                SideAction(XIcons.Reply, "Responder", t.replies, false, X.Blue) { taps.onReply(t) }
+                // Como en X: el globo abre las respuestas (el post con sus comentarios); desde ahí se responde.
+                SideAction(XIcons.Reply, "Ver respuestas", t.replies, false, X.Blue) { taps.onOpen(t) }
                 SideAction(XIcons.Repost, if (t.reposted) "Deshacer repost" else "Repostear", t.reposts + t.quotes, t.reposted, X.Green) { taps.onRepost(t) }
                 SideAction(if (t.liked) XIcons.LikeFilled else XIcons.Like, if (t.liked) "Ya no me gusta" else "Me gusta", t.likes, t.liked, X.Pink) { taps.onLike(t) }
                 SideAction(if (t.bookmarked) XIcons.BookmarkFilled else XIcons.Bookmark, "Guardar", t.bookmarks, t.bookmarked, X.Blue) { taps.onBookmark(t) }

@@ -284,6 +284,9 @@ object XWeb {
     /** El redactor de X como respuesta a un post. */
     fun replyUrl(tweetId: String) = "https://x.com/intent/post?in_reply_to=$tweetId"
 
+    /** El redactor de X (nuevo post, cita o respuesta). */
+    fun isCompose(url: String): Boolean = isX(url) && path(url).let { it == "/compose/post" || it == "/intent/post" }
+
     /** Dirección en formato corto para enseñarla: `@usuario/status/123`. */
     fun shortLabel(url: String): String {
         val m = Regex("^https?://[^/]+/([A-Za-z0-9_]+)/status/(\\d+)").find(url) ?: return url.removePrefix("https://")
