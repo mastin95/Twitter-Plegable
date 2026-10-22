@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -14,11 +15,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -33,6 +35,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -45,11 +48,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import io.github.mastin95.pliegue.AppViewModel
 import io.github.mastin95.pliegue.model.XMediaKind
-import io.github.mastin95.pliegue.model.XThread
+import io.github.mastin95.pliegue.model.XTime
 import io.github.mastin95.pliegue.model.XTweet
 import io.github.mastin95.pliegue.ui.XIcons
 import io.github.mastin95.pliegue.ui.components.PillButton
@@ -102,14 +107,15 @@ fun XVideosScreen(vm: AppViewModel, slot: String, url: String, modifier: Modifie
                 }
                 val repliesFor = if (withReplies) videos.firstOrNull { it.id == XWeb.statusId(url) } else null
                 // Con las respuestas abiertas el vídeo sube y se queda arriba, a su proporción (sin pasar de algo
-                // menos de la mitad de la pantalla, para que se lean las respuestas).
+                // menos de la mitad de la pantalla), y la hoja de respuestas sale de abajo y se monta un poco
+                // sobre él con sus esquinas redondeadas, como una sola pantalla.
                 val ratio = repliesFor?.video?.takeIf { it.width > 0 && it.height > 0 }?.let { it.height.toFloat() / it.width } ?: (9f / 16f)
                 val videoHeight by animateDpAsState(
-                    if (repliesFor != null) minOf(width * ratio, full * 0.42f) else full,
+                    if (repliesFor != null) minOf(width * ratio, full * 0.42f) + SHEET_RADIUS else full,
                     animationSpec = tween(280),
                     label = "alto del vídeo",
                 )
-                Column(Modifier.fillMaxSize()) {
+                Box(Modifier.fillMaxSize()) {
                     Box(Modifier.fillMaxWidth().height(videoHeight)) {
                         VerticalPager(pager, Modifier.fillMaxSize(), key = { videos[it].id }, userScrollEnabled = repliesFor == null) { page ->
                             VideoPage(
@@ -121,18 +127,29 @@ fun XVideosScreen(vm: AppViewModel, slot: String, url: String, modifier: Modifie
                             )
                         }
                     }
-                    if (repliesFor != null) VideoReplies(vm, slot, repliesFor, Modifier.fillMaxWidth().weight(1f))
+                    if (repliesFor != null) {
+                        VideoReplies(
+                            vm,
+                            slot,
+                            repliesFor,
+                            Modifier.align(Alignment.BottomCenter).fillMaxWidth().height((full - videoHeight + SHEET_RADIUS).coerceAtLeast(0.dp)),
+                        )
+                    }
                 }
             }
         }
     }
 }
 
+private val SHEET_RADIUS = 20.dp
+private val SHEET_BG = X.Card
 private val REPLIES_PANE = PaneOptions(interceptPosts = false, hideChrome = false, keepInside = true)
 
 /**
- * Las respuestas de un vídeo, debajo de él: las saca una web escondida que abre el post con tu
- * sesión (como la conversación de un post), con más al bajar. Abajo, la caja para responder.
+ * La hoja de respuestas de un vídeo, como la de comentarios de X o de los vídeos cortos: un asa
+ * (arrastrar hacia abajo la cierra), el número de respuestas, el texto del vídeo y debajo las
+ * respuestas en filas compactas, con "Responder" y el me gusta a la derecha. Abajo, el campo para
+ * responder. Las respuestas las saca una web escondida que abre el post con tu sesión, con más al bajar.
  */
 @Composable
 private fun VideoReplies(vm: AppViewModel, slot: String, t: XTweet, modifier: Modifier = Modifier) {
@@ -151,67 +168,201 @@ private fun VideoReplies(vm: AppViewModel, slot: String, t: XTweet, modifier: Mo
             slow = true
         }
     }
-    Column(
-        modifier
-            .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
-            .background(X.Bg)
-            .border(1.dp, X.Border, RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)),
-    ) {
-        // La web que carga la conversación: existe y mide como un móvil para que X la pinte entera, pero no se ve.
-        Box(Modifier.size(0.dp).clipToBounds()) {
-            Box(Modifier.requiredSize(412.dp, 915.dp)) {
-                WebPane(repliesSlot, t.url, Modifier.fillMaxSize(), REPLIES_PANE)
-            }
-        }
-        Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp, top = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("Respuestas", style = XType.name, modifier = Modifier.weight(1f))
-            if (t.replies > 0) Text(count(t.replies), style = XType.small, modifier = Modifier.padding(end = 4.dp))
-            IconButton(onClick = { vm.closeVideoReplies(slot) }) {
-                Icon(XIcons.Close, contentDescription = "Cerrar respuestas", tint = X.Text, modifier = Modifier.size(22.dp))
-            }
-        }
-        HorizontalDivider(color = X.Border)
-        Box(Modifier.fillMaxWidth().weight(1f)) {
-            when {
-                thread == null -> Column(
-                    Modifier.align(Alignment.Center).padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    CircularProgressIndicator(color = X.Blue, strokeWidth = 3.dp, modifier = Modifier.size(28.dp))
-                    if (slow) {
-                        Text("X no ha mandado las respuestas todavía", style = XType.name)
-                        PillButton("Recargar", onClick = { web.reload(repliesSlot) }, background = X.Blue, content = Color.White, height = 32.dp)
-                    }
-                }
-                thread.replies.isEmpty() && thread.cursorBottom == null ->
-                    Text("Aún no hay respuestas. Sé el primero.", style = XType.secondary, modifier = Modifier.align(Alignment.Center).padding(24.dp))
-                else -> RepliesList(repliesSlot, thread, state, taps, now)
-            }
-        }
-        HorizontalDivider(color = X.Border)
-        XReplyBox(t, web.store.byId(web.userId)?.avatar ?: "") { taps.onReply(t) }
-    }
-}
-
-@Composable
-private fun RepliesList(repliesSlot: String, thread: XThread, state: LazyListState, taps: PostTaps, now: Long) {
-    val web = LocalWebPanes.current
-    val nearEnd by remember(state, thread.replies.size) {
+    val nearEnd by remember(state, thread?.replies?.size) {
         derivedStateOf {
             val info = state.layoutInfo
             val last = info.visibleItemsInfo.lastOrNull()?.index ?: -1
             info.totalItemsCount > 0 && last >= info.totalItemsCount - 3
         }
     }
-    LaunchedEffect(nearEnd, thread.cursorBottom) {
-        if (nearEnd && thread.cursorBottom != null) web.loadMore(repliesSlot)
+    LaunchedEffect(nearEnd, thread?.cursorBottom) {
+        if (nearEnd && thread?.cursorBottom != null) web.loadMore(repliesSlot)
     }
-    LazyColumn(state = state, modifier = Modifier.fillMaxSize()) {
-        items(thread.replies, key = { it.id }) { e -> XEntryCards(e.tweets, now, taps) }
-        item("fin") {
-            Box(Modifier.fillMaxWidth().height(72.dp), contentAlignment = Alignment.TopCenter) {
-                if (thread.cursorBottom != null) CircularProgressIndicator(color = X.Blue, strokeWidth = 2.dp, modifier = Modifier.padding(top = 20.dp).size(24.dp))
+    val shape = RoundedCornerShape(topStart = SHEET_RADIUS, topEnd = SHEET_RADIUS)
+    Column(modifier.clip(shape).background(SHEET_BG)) {
+        // La web que carga la conversación: existe y mide como un móvil para que X la pinte entera, pero no se ve.
+        Box(Modifier.size(0.dp).clipToBounds()) {
+            Box(Modifier.requiredSize(412.dp, 915.dp)) {
+                WebPane(repliesSlot, t.url, Modifier.fillMaxSize(), REPLIES_PANE)
+            }
+        }
+        SheetHeader(t.replies, onClose = { vm.closeVideoReplies(slot) })
+        LazyColumn(state = state, modifier = Modifier.fillMaxWidth().weight(1f)) {
+            item("texto") { CaptionRow(t, now, taps) }
+            when {
+                thread == null -> item("cargando") {
+                    Column(
+                        Modifier.fillMaxWidth().padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        CircularProgressIndicator(color = X.Blue, strokeWidth = 2.dp, modifier = Modifier.size(24.dp))
+                        if (slow) {
+                            Text("X no ha mandado las respuestas todavía", style = XType.secondary)
+                            PillButton("Recargar", onClick = { web.reload(repliesSlot) }, background = X.Blue, content = Color.White, height = 32.dp)
+                        }
+                    }
+                }
+                thread.replies.isEmpty() && thread.cursorBottom == null -> item("nada") {
+                    Text("Aún no hay respuestas. Sé el primero.", style = XType.secondary, modifier = Modifier.fillMaxWidth().padding(24.dp))
+                }
+                else -> {
+                    // Cada respuesta con las que la siguen en su hilo, un poco metidas.
+                    items(thread.replies, key = { it.id }) { e ->
+                        Column { e.tweets.forEachIndexed { i, r -> ReplyRow(r, now, taps, nested = i > 0) } }
+                    }
+                    item("fin") {
+                        Box(Modifier.fillMaxWidth().height(56.dp), contentAlignment = Alignment.Center) {
+                            if (thread.cursorBottom != null) CircularProgressIndicator(color = X.Blue, strokeWidth = 2.dp, modifier = Modifier.size(20.dp))
+                        }
+                    }
+                }
+            }
+        }
+        ReplyField(web.store.byId(web.userId)?.avatar ?: "") { taps.onReply(t) }
+    }
+}
+
+/** El asa y el título de la hoja; arrastrar hacia abajo (o la equis) la cierra. */
+@Composable
+private fun SheetHeader(replies: Int, onClose: () -> Unit) {
+    var dragged by remember { mutableFloatStateOf(0f) }
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .pointerInput(Unit) {
+                detectVerticalDragGestures(
+                    onDragStart = { dragged = 0f },
+                    onDragEnd = { if (dragged > 48.dp.toPx()) onClose() },
+                ) { change, dy ->
+                    change.consume()
+                    dragged += dy
+                }
+            },
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Box(Modifier.padding(top = 8.dp).size(width = 36.dp, height = 4.dp).clip(RoundedCornerShape(2.dp)).background(X.OutlineButton))
+        Box(Modifier.fillMaxWidth().height(44.dp)) {
+            Text(
+                when {
+                    replies == 1 -> "1 respuesta"
+                    replies > 1 -> "${count(replies)} respuestas"
+                    else -> "Respuestas"
+                },
+                style = XType.name,
+                modifier = Modifier.align(Alignment.Center),
+            )
+            IconButton(onClick = onClose, modifier = Modifier.align(Alignment.CenterEnd)) {
+                Icon(XIcons.Close, contentDescription = "Cerrar respuestas", tint = X.Text, modifier = Modifier.size(20.dp))
+            }
+        }
+        HorizontalDivider(color = X.Border, thickness = 0.5.dp)
+    }
+}
+
+/** Arriba de las respuestas, de quién es el vídeo y su texto (el vídeo, encogido, ya no lo lleva encima). */
+@Composable
+private fun CaptionRow(t: XTweet, now: Long, taps: PostTaps) {
+    Column {
+        Row(
+            Modifier.fillMaxWidth().clickable(onClickLabel = "Ver el post") { taps.onOpen(t) }.padding(horizontal = 16.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            XAvatar(t.author.avatar, 32.dp, onClick = { taps.onUser(t.author.handle) })
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                ReplyAuthor(t, now)
+                if (t.text.isNotEmpty()) XText(t.text, t.links, XType.body, onLink = taps.onLink, maxLines = 4)
+            }
+        }
+        HorizontalDivider(color = X.Border, thickness = 0.5.dp)
+    }
+}
+
+@Composable
+private fun ReplyAuthor(t: XTweet, now: Long) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(t.author.name, style = XType.small.copy(color = X.Text, fontWeight = FontWeight.Bold), maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+        if (t.author.verified) VerifiedBadge(14.dp)
+        val ago = XTime.ago(t.createdAt, now)
+        Text("@${t.author.handle}" + if (ago.isNotEmpty()) " · $ago" else "", style = XType.small, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+    }
+}
+
+/**
+ * Una respuesta en una fila compacta: foto pequeña, nombre y hace cuánto, el texto, sus fotos en
+ * pequeño y debajo "Responder" (y "Ver N respuestas" si tiene); el me gusta, a la derecha. Tocarla
+ * abre su conversación encima. `nested`: sigue a la de arriba en su hilo, un poco metida.
+ */
+@Composable
+private fun ReplyRow(t: XTweet, now: Long, taps: PostTaps, nested: Boolean) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clickable(onClickLabel = "Abrir respuesta") { taps.onOpen(t) }
+            .padding(start = if (nested) 58.dp else 16.dp, end = 6.dp, top = 10.dp, bottom = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        XAvatar(t.author.avatar, if (nested) 24.dp else 32.dp, onClick = { taps.onUser(t.author.handle) })
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            ReplyAuthor(t, now)
+            if (t.text.isNotEmpty()) XText(t.text, t.links, XType.body, onLink = taps.onLink)
+            if (t.media.isNotEmpty()) {
+                XMediaGrid(t.media, Modifier.padding(top = 6.dp).widthIn(max = 220.dp).heightIn(max = 200.dp)) { taps.onMedia(t, it) }
+            }
+            t.quoted?.let { XQuoted(it, now, taps, Modifier.padding(top = 6.dp)) }
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                SmallLink("Responder") { taps.onReply(t) }
+                if (t.replies > 0) SmallLink(if (t.replies == 1) "Ver 1 respuesta" else "Ver ${count(t.replies)} respuestas") { taps.onOpen(t) }
+            }
+        }
+        val label = if (t.liked) "Ya no me gusta" else "Me gusta"
+        Column(
+            Modifier
+                .clip(RoundedCornerShape(12.dp))
+                .clickable(onClickLabel = label, role = Role.Button) { taps.onLike(t) }
+                .padding(horizontal = 10.dp, vertical = 4.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            val color = if (t.liked) X.Pink else X.Secondary
+            Icon(if (t.liked) XIcons.LikeFilled else XIcons.Like, contentDescription = label, tint = color, modifier = Modifier.size(18.dp))
+            if (t.likes > 0) Text(count(t.likes), style = XType.small.copy(fontSize = 12.sp), color = color)
+        }
+    }
+}
+
+@Composable
+private fun SmallLink(text: String, onClick: () -> Unit) {
+    Text(
+        text,
+        style = XType.small.copy(fontWeight = FontWeight.Bold),
+        modifier = Modifier.clip(RoundedCornerShape(4.dp)).clickable(onClickLabel = text, role = Role.Button, onClick = onClick).padding(vertical = 6.dp),
+    )
+}
+
+/** Abajo de la hoja, el campo para responder al vídeo (abre el redactor de X en esta mitad). */
+@Composable
+private fun ReplyField(avatar: String, onReply: () -> Unit) {
+    val pill = RoundedCornerShape(20.dp)
+    Column {
+        HorizontalDivider(color = X.Border, thickness = 0.5.dp)
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            if (avatar.isNotEmpty()) XAvatar(avatar, 32.dp)
+            Box(
+                Modifier
+                    .weight(1f)
+                    .height(40.dp)
+                    .clip(pill)
+                    .background(X.Bg)
+                    .border(1.dp, X.Border, pill)
+                    .clickable(onClickLabel = "Responder", role = Role.Button, onClick = onReply)
+                    .padding(horizontal = 16.dp),
+                contentAlignment = Alignment.CenterStart,
+            ) {
+                Text("Postea tu respuesta", style = XType.secondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
     }
