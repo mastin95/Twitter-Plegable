@@ -48,6 +48,11 @@ class Prefs(context: Context) {
         get() = sp.getBoolean("nativeUi", true)
         set(v) = sp.edit().putBoolean("nativeUi", v).apply()
 
+    /** La pantalla de vídeos sin sonido (se pone y se quita con el altavoz). */
+    var videoMuted: Boolean
+        get() = sp.getBoolean("videoMuted", false)
+        set(v) = sp.edit().putBoolean("videoMuted", v).apply()
+
     var dropHintSeen: Boolean
         get() = sp.getBoolean("dropHintSeen", false)
         set(v) = sp.edit().putBoolean("dropHintSeen", v).apply()
