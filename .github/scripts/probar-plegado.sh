@@ -177,10 +177,12 @@ paso propia-videos
 # gusta con el corazón grande (la captura -corazon se hace al momento, antes de que se vaya), el altavoz
 # quita el sonido (y sigue quitado en los vídeos siguientes, se ve abierto) y la barra de abajo salta:
 # con el vídeo parado se arrastra hasta el 80 % y el tiempo pasa a 0:04 de 0:06.
+# (Se espera a ese toque por su número: un "wait" a secas esperaría también al tee de la salida y no acabaría.)
 adb shell input swipe 540 1000 540 1000 7000 &
+largo=$!
 sleep 2
 paso propia-videos-2x
-wait
+wait "$largo"
 sleep 1
 adb shell 'input tap 540 1000; input tap 540 1000'
 adb exec-out screencap -p > "$OUT/propia-videos-corazon.png" 2>/dev/null
