@@ -584,6 +584,19 @@ object XWeb {
             if (tabs[i].getAttribute('aria-selected') !== 'true') tabs[i].click();
             return true;
           };
+          // Pestañas de un perfil: se toca la de X por su dirección (/usuario, /usuario/with_replies, /usuario/media),
+          // porque cuántas hay delante cambia de una cuenta a otra (Destacados, Artículos…).
+          P.ptab = function(k){
+            var tabs = document.querySelectorAll('[role="tablist"] a[role="tab"]');
+            for (var i = 0; i < tabs.length; i++) {
+              var h = (tabs[i].getAttribute('href') || '').replace(/\/$/, '');
+              var ok = k === 1 ? /\/with_replies$/.test(h) : k === 2 ? /\/media$/.test(h) : /^\/[A-Za-z0-9_]+$/.test(h);
+              if (!ok) continue;
+              if (tabs[i].getAttribute('aria-selected') !== 'true') tabs[i].click();
+              return true;
+            }
+            return false;
+          };
           // Posts nuevos en Inicio: cuando X avisa (su píldora azul, o "Ver N posts" encima de la lista) la app
           // pulsa el aviso, como haría quien lee, para que X los mande; la interfaz propia los pone arriba.
           P.fresh = function(){

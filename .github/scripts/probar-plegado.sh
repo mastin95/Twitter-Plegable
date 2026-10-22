@@ -175,6 +175,24 @@ toca 'Notificaciones' && sleep 6
 inyectar notifications NotificationsTimeline /notifications '{"timeline_type":"All"}'
 paso propia-notificaciones
 
+# Perfil con pestañas (Martin, 2026-10-22): Posts, Respuestas y Multimedia como en X; la cabecera y las
+# pestañas se quedan mientras X manda cada lista y Multimedia es la cuadrícula de tres en tres. El perfil
+# llega como un enlace de x.com (se abre en una mitad) y a su web se le dan la cuenta y cada lista.
+abrir
+adb shell am start -W -n "$PKG/.MainActivity" -a android.intent.action.VIEW -d "https://x.com/lucia" >/dev/null
+sleep 10
+inyectar user UserByScreenName /lucia
+inyectar profile UserTweets /lucia
+paso perfil-posts
+toca '^Multimedia$' && sleep 3
+inyectar media UserMedia /lucia
+paso perfil-multimedia
+toca '^Respuestas$' && sleep 3
+paso perfil-respuestas-cargando
+inyectar profile UserTweetsAndReplies /lucia
+paso perfil-respuestas
+plegar
+
 # Fase 4: la caché de Inicio y el visor de fotos. Se cierra la app del todo y se vuelve a abrir: Inicio
 # tiene que salir del disco al momento, sin inyectar nada (en el registro, "de la caché"). Si la sesión
 # falsa no sobrevivió al cierre, se vuelve a poner. Luego una foto tocada se abre en el visor propio

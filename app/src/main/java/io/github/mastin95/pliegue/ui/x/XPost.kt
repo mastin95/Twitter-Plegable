@@ -197,6 +197,34 @@ private fun MediaBox(m: XMedia, modifier: Modifier, name: String, onOpen: () -> 
     }
 }
 
+/** Una fila de la cuadrícula de Multimedia de un perfil: tres miniaturas cuadradas, como en X. */
+@Composable
+fun MediaGridRow(cells: List<Pair<XTweet, XMedia>>, onOpen: (XTweet, XMedia) -> Unit) {
+    Row(Modifier.fillMaxWidth().padding(bottom = 2.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+        for (i in 0 until 3) {
+            val cell = cells.getOrNull(i)
+            Box(Modifier.weight(1f).aspectRatio(1f)) {
+                if (cell != null) {
+                    val (t, m) = cell
+                    val photo = m.kind == XMediaKind.Photo
+                    Box(
+                        Modifier
+                            .fillMaxSize()
+                            .background(X.Card)
+                            .clickable(onClickLabel = if (photo) "Ver la foto" else "Ver el vídeo") { onOpen(t, m) },
+                    ) {
+                        AsyncImage(model = sized(m.url, "small"), contentDescription = m.alt.ifEmpty { if (photo) "Imagen" else "Vídeo" }, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+                        if (!photo) {
+                            val label = if (m.kind == XMediaKind.Gif) "GIF" else duration(m.durationMs)
+                            if (label.isNotEmpty()) TimeLabel(label, Modifier.align(Alignment.BottomStart))
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 /** La etiqueta de abajo a la izquierda de un vídeo: lo que dura (o lo que le queda) o "GIF". */
 @Composable
 private fun TimeLabel(label: String, modifier: Modifier) {

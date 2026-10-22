@@ -48,6 +48,15 @@ class XParseTest {
     }
 
     @Test
+    fun `la cuadrícula de Multimedia de un perfil llega como un módulo con sus posts`() {
+        val t = XParse.timeline(fixture("media"))!!
+        assertEquals(1, t.entries.size)
+        assertEquals(listOf("1002", "1005", "1006", "2100", "2101", "2102"), t.entries[0].tweets.map { it.id })
+        assertEquals(listOf(XMediaKind.Photo, XMediaKind.Video, XMediaKind.Gif), t.entries[0].tweets.take(3).map { it.media.first().kind })
+        assertEquals("CURSOR-BOTTOM-MEDIA", t.cursorBottom)
+    }
+
+    @Test
     fun `un post con enlace y tarjeta`() {
         val p = XParse.timeline(fixture("home"))!!.entries[0].tweets[0]
         assertEquals("1001", p.id)
