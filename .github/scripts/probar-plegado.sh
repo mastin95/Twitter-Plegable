@@ -46,10 +46,10 @@ paso() {
   head -c 3000 "$OUT/$base.txt"
   echo
 }
-toca() {
+toca() {  # toca TEXTO [x-mínima]: con el móvil abierto, x-mínima 1104 busca solo en la mitad derecha
   volcar /tmp/ui.xml
   local xy
-  xy=$(python3 "$UI" find /tmp/ui.xml "$1") || { echo "no encuentro: $1"; return 1; }
+  xy=$(python3 "$UI" find /tmp/ui.xml "$1" "${2:-0}") || { echo "no encuentro: $1"; return 1; }
   echo "toco '$1' en $xy"
   adb shell input tap $xy
 }
@@ -176,6 +176,23 @@ paso propia-videos
 desliza 500 1500 300
 sleep 8
 paso propia-videos-2
+# Comentarios desde los vídeos, plegado: el post se abre encima y atrás vuelve al mismo vídeo (el segundo).
+toca 'Ver respuestas' && sleep 8
+paso propia-videos-post
+adb shell input keyevent 4
+sleep 5
+paso propia-videos-vuelta
+adb shell input keyevent 4
+sleep 3
+# Abierto: la mitad de los vídeos es el reproductor y el post se abre al lado, con el vídeo siguiendo.
+abrir
+busca_y_toca '^Vídeo$' 500 1400 500 && sleep 10
+paso propia-videos-abierto
+toca 'Usaríais un plegable' 1104 && sleep 8
+paso propia-videos-al-lado
+plegar
+adb shell input keyevent 4
+sleep 3
 adb shell input keyevent 4
 sleep 3
 

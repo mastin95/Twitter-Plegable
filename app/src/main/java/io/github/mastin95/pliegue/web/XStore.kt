@@ -1,6 +1,7 @@
 package io.github.mastin95.pliegue.web
 
 import androidx.compose.runtime.mutableStateMapOf
+import io.github.mastin95.pliegue.model.XEntry
 import io.github.mastin95.pliegue.model.XFeed
 import io.github.mastin95.pliegue.model.XThread
 import io.github.mastin95.pliegue.model.XTimeline
@@ -48,6 +49,21 @@ class XStore {
         }
         return videoPosts(tweets)
     }
+
+    /**
+     * La lista de la pantalla de vídeos, aparte del feed del que salió (clave "videos/ranura/consulta"):
+     * sigue entera aunque la web de esa ranura cargue otra cosa (el post, el redactor), crece con lo
+     * que va llegando y, al estar en `feeds`, los me gusta y guardados la actualizan como a los demás.
+     */
+    fun keepVideos(source: String, fresh: List<XTweet>, reset: Boolean = false) {
+        val key = "videos/$source"
+        val old = if (reset) emptyList() else feeds[key]?.tweets ?: emptyList()
+        val known = old.map { it.id }.toHashSet()
+        val merged = old.map { o -> fresh.firstOrNull { it.id == o.id } ?: o } + fresh.filter { it.id !in known }
+        if (reset || merged != old) feeds[key] = XFeed(merged.map { XEntry(it) }, updatedAt = System.currentTimeMillis(), pages = 1)
+    }
+
+    fun videosKept(source: String): List<XTweet> = feeds["videos/$source"]?.tweets ?: emptyList()
 
     private val handles = HashMap<String, String>()
 

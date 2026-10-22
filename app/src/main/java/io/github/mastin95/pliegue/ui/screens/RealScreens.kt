@@ -82,6 +82,7 @@ import io.github.mastin95.pliegue.web.XWeb
 @Composable
 fun RealApp(screen: ScreenInfo, vm: AppViewModel) {
     val web = LocalWebPanes.current
+    LaunchedEffect(screen.posture) { vm.updatePosture(screen.posture) }
     BackHandler(enabled = web.inFullscreen) { web.exitFullscreen() }
     when (screen.posture) {
         Posture.Plegado -> RealFolded(vm)
@@ -283,7 +284,8 @@ fun RealOpen(vm: AppViewModel, screen: ScreenInfo) {
                 OpenToolbar(vm, compact = compact)
             }
         }
-        if (expanded == null) {
+        // Con los vídeos en la mitad derecha, el botón de redactar taparía sus acciones (compartir, guardar).
+        if (expanded == null && !vm.webPanels[1].showsVideos) {
             Fab(
                 onClick = { vm.composeWeb(0) },
                 modifier = Modifier
@@ -407,7 +409,7 @@ fun WebPostHeader(vm: AppViewModel, index: Int, compact: Boolean = false) {
     val web = LocalWebPanes.current
     val panel = vm.webPanels[index]
     val url = panel.openUrl ?: return
-    val composing = panel.fromLabel == "Redactar"
+    val composing = XWeb.isCompose(url)
     val external = XWeb.isExternal(url) || XWeb.isViewer(url)
     // Una web ajena se llama por su dominio, el de la página de ahora (los enlaces de X pasan por t.co).
     val current = web.urls["pane$index"]?.takeIf { XWeb.isExternal(it) } ?: url
@@ -453,7 +455,7 @@ fun WebPostHeader(vm: AppViewModel, index: Int, compact: Boolean = false) {
         if (!compact) {
             PillButton(
                 panel.source.label,
-                onClick = { vm.closeWebPost(index) },
+                onClick = { vm.closeWebPost(index, all = true) },
                 background = X.Bg,
                 content = X.Text,
                 border = X.OutlineButton,

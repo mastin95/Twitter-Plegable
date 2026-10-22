@@ -84,6 +84,8 @@ fun rememberPostTaps(vm: AppViewModel, slot: String, videosFrom: String): PostTa
             },
             onMedia = { t, m ->
                 if (m.kind != XMediaKind.Photo && m.video != null) {
+                    // La pantalla de vídeos empieza de cero con los de este feed (sigue con ellos aunque luego cargue otra cosa).
+                    web.store.keepVideos(videosFrom, web.store.videos(videosFrom), reset = true)
                     // Donde no hay otra mitad (post ampliado, la mesa), el vídeo va al navegador.
                     if (!vm.onWebLink(slot, XWeb.videosUrl(t.id, videosFrom))) web.openInBrowser(m.video)
                 } else {

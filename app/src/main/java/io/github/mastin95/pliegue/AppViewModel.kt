@@ -29,6 +29,7 @@ import io.github.mastin95.pliegue.model.myFeedPosts
 import io.github.mastin95.pliegue.model.suggestions
 import io.github.mastin95.pliegue.ui.nowLabel
 import io.github.mastin95.pliegue.web.Prefs
+import io.github.mastin95.pliegue.model.opensBeside
 import io.github.mastin95.pliegue.web.XWeb
 
 data class Toast(val text: String, val id: Long)
@@ -83,10 +84,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         homeTabs["n:$slot"] = tab
     }
 
-    /** Responder desde la interfaz propia: el redactor de X, con la respuesta preparada, en la otra mitad. */
+    /** Responder desde la interfaz propia: el redactor de X, con la respuesta preparada, al lado o encima. */
     fun replyFromNative(slot: String, tweetId: String) {
         when {
-            slot == "pane0" || slot == "pane1" -> composeWeb(if (slot == "pane0") 1 else 0, replyTo = tweetId)
+            slot == "pane0" || slot == "pane1" -> {
+                val from = if (slot == "pane0") 0 else 1
+                // Al lado, salvo plegado desde algo abierto o con los vídeos al lado: entonces encima (ver opensBeside).
+                if (beside(from, link = true)) composeWeb(1 - from, replyTo = tweetId) else pushWebPost(from, XWeb.replyUrl(tweetId))
+            }
             slot.startsWith("col:") -> {
                 val side = slot.removePrefix("col:").substringBefore(':').toIntOrNull() ?: 0
                 webColumnPost = (1 - side) to XWeb.replyUrl(tweetId)
@@ -223,11 +228,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         when {
             slot == "pane0" || slot == "pane1" -> {
                 val from = if (slot == "pane0") 0 else 1
-                if (webPanels[from].openUrl != null) {
-                    webPanels = webPanels.toMutableList().also { it[from] = it[from].copy(openUrl = url) }
-                } else {
-                    openWebPost(from, url)
-                }
+                if (beside(from)) openWebPost(from, url) else pushWebPost(from, url)
             }
             slot.startsWith("col:") -> {
                 val side = slot.removePrefix("col:").substringBefore(':').toIntOrNull() ?: 0
@@ -246,7 +247,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun onWebLink(slot: String, link: String): Boolean {
         val url = if (XWeb.isMedia(link)) XWeb.largeImage(link) else link
         when {
-            slot == "pane0" || slot == "pane1" -> openWebPost(if (slot == "pane0") 0 else 1, url)
+            slot == "pane0" || slot == "pane1" -> {
+                val from = if (slot == "pane0") 0 else 1
+                if (beside(from, link = true)) openWebPost(from, url) else pushWebPost(from, url)
+            }
             slot.startsWith("col:") -> {
                 val side = slot.removePrefix("col:").substringBefore(':').toIntOrNull() ?: 0
                 webColumnPost = (1 - side) to url
@@ -257,14 +261,46 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         return true
     }
 
+    /** Abre algo en la otra mitad, de cero (sin historial): lo tocado en un feed o desde los vídeos. */
     fun openWebPost(fromPanel: Int, url: String) {
         val to = 1 - fromPanel
-        webPanels = webPanels.toMutableList().also { it[to] = it[to].copy(openUrl = url, fromLabel = it[fromPanel].source.label) }
+        webPanels = webPanels.toMutableList().also { it[to] = it[to].copy(openUrl = url, fromLabel = it[fromPanel].source.label, history = emptyList()) }
     }
 
-    fun closeWebPost(panel: Int) {
-        webPanels = webPanels.toMutableList().also { it[panel] = it[panel].copy(openUrl = null) }
+    /** Abre algo encima de lo que hay en esa mitad; atrás vuelve a lo de antes. */
+    fun pushWebPost(panel: Int, url: String) {
+        webPanels = webPanels.toMutableList().also { it[panel] = it[panel].push(url) }
     }
+
+    /** Atrás en una mitad: lo que había antes en ella; con `all` (el botón de la fuente), o si no había nada, su fuente. */
+    fun closeWebPost(panel: Int, all: Boolean = false) {
+        webPanels = webPanels.toMutableList().also { it[panel] = if (all) it[panel].closed() else it[panel].back() }
+    }
+
+    /** La pantalla de vídeos cambia de vídeo: la dirección abierta sigue al que se ve (al volver de un post se sigue por él), sin tocar el historial. */
+    fun moveWithin(slot: String, url: String) {
+        val panel = when (slot) {
+            "pane0" -> 0
+            "pane1" -> 1
+            else -> return
+        }
+        val open = webPanels[panel].openUrl ?: return
+        if (open == url || !XWeb.isVideos(open)) return
+        webPanels = webPanels.toMutableList().also { it[panel] = it[panel].copy(openUrl = url) }
+    }
+
+    /** Postura del móvil: plegado no hay otra mitad a la vista donde abrir cosas. */
+    var posture by mutableStateOf(Posture.Abierto)
+        private set
+
+    fun updatePosture(p: Posture) {
+        posture = p
+    }
+
+    val folded: Boolean get() = posture == Posture.Plegado
+
+    /** Lo tocado en la mitad `from`, ¿a la otra mitad? Ver [opensBeside]. */
+    private fun beside(from: Int, link: Boolean = false): Boolean = opensBeside(webPanels[from], webPanels[1 - from], folded, link)
 
     /** Mitad con algo abierto encima: la que se ve plegado, y la que cierra el botón atrás. */
     fun webFocused(): Int? = when {
@@ -276,7 +312,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     /** El redactor de X en una mitad; con `quoting`, el enlace del post fuente ya va en el texto; con `replyTo`, es una respuesta. */
     fun composeWeb(panel: Int = 0, quoting: String? = null, replyTo: String? = null) {
         val url = if (replyTo != null) XWeb.replyUrl(replyTo) else XWeb.composeUrl(url = quoting)
-        webPanels = webPanels.toMutableList().also { it[panel] = it[panel].copy(openUrl = url, fromLabel = "Redactar") }
+        // Encima de lo que hubiera abierto en esa mitad: al cerrar el redactor se vuelve a ello.
+        webPanels = webPanels.toMutableList().also { it[panel] = it[panel].push(url).copy(fromLabel = "Redactar") }
     }
 
     fun closeWebColumnPost() {
