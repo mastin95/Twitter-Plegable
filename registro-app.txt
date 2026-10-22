@@ -1,0 +1,127 @@
+--------- beginning of main
+10-22 17:20:50.082  2567  2567 I Pliegue : cookies de x.com: ninguna
+10-22 17:20:50.120  2567  2567 I Pliegue : red simulada: las webs no salen a internet (solo pruebas)
+10-22 17:21:10.733  2567  2567 I Pliegue : Se presenta como Chrome 124, client hints de Chrome, sin X-Requested-With
+10-22 17:21:10.746  2567  2567 I Pliegue : escucha de X puesto al arrancar cada página
+10-22 17:21:11.393  2567  2567 I Pliegue : [login] carga x.com/i/flow/login
+10-22 17:21:11.417  2567  2567 I Pliegue : cookies de x.com: night_mode
+10-22 17:21:11.511  2567  2567 I Pliegue : [login] gancho de login puesto · FedCM no · marcas: Chromium 124, Google Chrome 124, Not=A?Brand 24
+10-22 17:21:11.663  2567  2567 I Pliegue : [login] cargada x.com/i/flow/login · sin sesión
+10-22 17:21:17.589  2567  2567 I Pliegue : [login] web de 412 px · con barras de X · columna de iconos: no está
+10-22 17:21:23.060  2567  2567 I Pliegue : [login] carga about:blank
+10-22 17:21:23.067  2567  2567 I Pliegue : cookies de x.com: auth_token, night_mode, twid
+10-22 17:21:23.072  2567  2567 I Pliegue : [login] gancho de login puesto · FedCM no · marcas: ninguna
+10-22 17:21:23.076  2567  2567 I Pliegue : [login] cargada about:blank · con sesión
+10-22 17:21:24.098  2567  2567 I Pliegue : [acciones] carga about:blank
+10-22 17:21:24.130  2567  2567 I Pliegue : [acciones] cargada about:blank · con sesión
+10-22 17:21:24.151  2567  2567 I Pliegue : [pane0] carga x.com/home
+10-22 17:21:24.182  2567  2567 I Pliegue : [pane0] cargada x.com/home · con sesión
+10-22 17:21:30.113  2567  2567 I Pliegue : [acciones] web de 980 px · con barras de X · columna de iconos: no está
+10-22 17:21:30.180  2567  2567 I Pliegue : [pane0] web de 412 px · sin barras de X · columna de iconos: no está
+10-22 17:22:53.352  2567  2567 I Pliegue : [pane0] HomeTimeline: 8 posts (carga), 7 en total
+10-22 17:23:17.168  2567  2567 I Pliegue : [pane0] HomeTimeline: 3 posts (nuevos arriba), 10 en total
+10-22 17:23:17.169  2567  2567 I Pliegue : [pane0] X avisa de posts nuevos ("New posts are available. Push the period key to go to the them."): lo pulso
+10-22 17:23:54.946  2567  2567 I Pliegue : [pane0] HomeTimeline: 2 posts (página 3), 11 en total
+10-22 17:24:19.142  2567  2567 I Pliegue : [pane1] carga x.com/lucia/status/1008
+10-22 17:24:19.204  2567  2567 I Pliegue : [pane1] cargada x.com/lucia/status/1008 · con sesión
+10-22 17:24:25.149  2567  2567 I Pliegue : [pane1] web de 421 px · sin barras de X · columna de iconos: no está
+10-22 17:24:27.013  2567  2567 I Pliegue : [pane1] TweetDetail: post 1008 con 1 encima y 3 respuestas
+10-22 17:24:35.607  2567  2567 I Pliegue : [pane1] pido la página siguiente: web de 789 px
+10-22 17:24:53.593  2567  2567 I Pliegue : [acciones] el me gusta 1007: abro x.com/i/status/1007
+10-22 17:24:53.625  2567  2567 I Pliegue : [acciones] carga x.com/i/status/1007
+10-22 17:24:53.633  2567  2567 I Pliegue : [acciones] cargada x.com/i/status/1007 · con sesión
+10-22 17:24:58.457  2567  2567 I Pliegue : [acciones] el me gusta 1007: hecho
+10-22 17:24:59.629  2567  2567 I Pliegue : [acciones] web de 413 px · con barras de X · columna de iconos: no está
+10-22 17:25:06.300  2567  2567 I Pliegue : [pane0] pido la página siguiente: web de 781 px
+10-22 17:25:10.250  2567  2567 I Pliegue : [pane0] pido la página siguiente: web de 781 px
+10-22 17:25:11.432  2567  2567 I Pliegue : [pane0] carga x.com/notifications
+10-22 17:25:11.465  2567  2567 I Pliegue : [pane0] cargada x.com/notifications · con sesión
+10-22 17:25:17.347  2567  2567 I Pliegue : [pane0] NotificationsTimeline/All: 4 avisos (carga), 4 en total
+10-22 17:25:17.458  2567  2567 I Pliegue : [pane0] web de 412 px · sin barras de X · columna de iconos: no está
+10-22 17:25:17.515  2567  2567 I Pliegue : [pane0] pido la página siguiente: web de 781 px
+10-22 17:25:21.447  2567  2567 I Pliegue : [pane0] pido la página siguiente: web de 781 px
+10-22 17:25:25.448  2567  2567 I Pliegue : [pane0] pido la página siguiente: web de 781 px
+10-22 17:25:29.855  2567  2567 I Pliegue : [pane0] pido la página siguiente: web de 523 px
+10-22 17:25:33.856  2567  2567 I Pliegue : [pane0] pido la página siguiente: web de 523 px
+10-22 17:25:37.688  2567  2567 I Pliegue : [pane1] carga x.com/lucia
+10-22 17:25:37.695  2567  2567 I Pliegue : [pane1] cargada x.com/lucia · con sesión
+10-22 17:25:37.856  2567  2567 I Pliegue : [pane0] pido la página siguiente: web de 523 px
+10-22 17:25:41.857  2567  2567 I Pliegue : [pane0] pido la página siguiente: web de 523 px
+10-22 17:25:43.719  2567  2567 I Pliegue : [pane1] web de 421 px · sin barras de X · columna de iconos: no está
+10-22 17:25:45.857  2567  2567 I Pliegue : [pane0] pido la página siguiente: web de 523 px
+10-22 17:25:47.696  2567  2567 I Pliegue : [pane1] cuenta @lucia
+10-22 17:25:51.796  2567  2567 I Pliegue : [pane1] UserTweets: 3 posts (carga), 2 en total
+10-22 17:25:51.872  2567  2567 I Pliegue : [pane1] pido la página siguiente: web de 523 px
+10-22 17:25:55.873  2567  2567 I Pliegue : [pane1] pido la página siguiente: web de 523 px
+10-22 17:25:59.873  2567  2567 I Pliegue : [pane1] pido la página siguiente: web de 523 px
+10-22 17:26:05.246  2567  2567 I Pliegue : [pane1] UserMedia: 6 posts (carga), 1 en total
+10-22 17:26:05.313  2567  2567 I Pliegue : [pane1] pido la página siguiente: web de 523 px
+10-22 17:26:09.281  2567  2567 I Pliegue : [pane1] pido la página siguiente: web de 523 px
+10-22 17:26:13.282  2567  2567 I Pliegue : [pane1] pido la página siguiente: web de 523 px
+10-22 17:26:19.586  2567  2567 I Pliegue : [pane1] pido la página siguiente: web de 523 px
+10-22 17:26:22.846  2567  2567 I Pliegue : [pane1] UserTweetsAndReplies: 3 posts (carga), 2 en total
+10-22 17:26:22.897  2567  2567 I Pliegue : [pane1] pido la página siguiente: web de 523 px
+10-22 17:26:26.878  2567  2567 I Pliegue : [pane1] pido la página siguiente: web de 523 px
+10-22 17:26:30.879  2567  2567 I Pliegue : [pane1] pido la página siguiente: web de 523 px
+10-22 17:26:35.441  2567  2567 I Pliegue : [pane1] pido la página siguiente: web de 781 px
+10-22 17:26:39.441  2567  2567 I Pliegue : [pane1] pido la página siguiente: web de 781 px
+10-22 17:26:46.251  5718  5718 I Pliegue : cookies de x.com: auth_token, night_mode, twid
+10-22 17:26:46.263  5718  5718 I Pliegue : red simulada: las webs no salen a internet (solo pruebas)
+10-22 17:26:46.505  5718  5718 I Pliegue : Se presenta como Chrome 124, client hints de Chrome, sin X-Requested-With
+10-22 17:26:46.507  5718  5718 I Pliegue : escucha de X puesto al arrancar cada página
+10-22 17:26:47.359  5718  5718 I Pliegue : [pane0] de la caché: HomeTimeline: 8 posts (carga), 7 en total
+10-22 17:26:47.367  5718  5718 I Pliegue : [acciones] carga about:blank
+10-22 17:26:47.391  5718  5718 I Pliegue : cookies de x.com: auth_token, night_mode, twid
+10-22 17:26:47.437  5718  5718 I Pliegue : [acciones] cargada about:blank · con sesión
+10-22 17:26:47.451  5718  5718 I Pliegue : [pane0] carga x.com/home
+10-22 17:26:47.486  5718  5718 I Pliegue : [pane0] cargada x.com/home · con sesión
+10-22 17:26:53.387  5718  5718 I Pliegue : [acciones] web de 980 px · con barras de X · columna de iconos: no está
+10-22 17:26:53.461  5718  5718 I Pliegue : [pane0] web de 412 px · sin barras de X · columna de iconos: no está
+10-22 17:27:29.337  5718  5718 I Pliegue : [pane0] pido la página siguiente: web de 781 px
+10-22 17:27:33.278  5718  5718 I Pliegue : [pane0] pido la página siguiente: web de 781 px
+10-22 17:27:37.280  5718  5718 I Pliegue : [pane0] pido la página siguiente: web de 781 px
+10-22 17:27:41.283  5718  5718 I Pliegue : [pane0] pido la página siguiente: web de 781 px
+10-22 17:27:45.282  5718  5718 I Pliegue : [pane0] pido la página siguiente: web de 781 px
+10-22 17:27:49.289  5718  5718 I Pliegue : [pane0] pido la página siguiente: web de 781 px
+10-22 17:27:56.259  5718  5718 I Pliegue : [pane0] pido la página siguiente: web de 781 px
+10-22 17:28:21.992  5718  5718 I Pliegue : [acciones] el me gusta 1005: abro x.com/i/status/1005
+10-22 17:28:22.137  5718  5718 I Pliegue : [acciones] carga x.com/i/status/1005
+10-22 17:28:22.156  5718  5718 I Pliegue : [acciones] cargada x.com/i/status/1005 · con sesión
+10-22 17:28:28.149  5718  5718 I Pliegue : [acciones] web de 413 px · con barras de X · columna de iconos: no está
+10-22 17:28:42.218  5718  5718 I Pliegue : [acciones] el me gusta 1005: falló: no encontré el botón
+10-22 17:28:50.233  5718  5718 I Pliegue : [pane0] pido la página siguiente: web de 781 px
+10-22 17:29:06.814  5718  5718 I Pliegue : [pane1-respuestas] carga x.com/lucia/status/1006
+10-22 17:29:06.884  5718  5718 I Pliegue : [pane1-respuestas] cargada x.com/lucia/status/1006 · con sesión
+10-22 17:29:12.864  5718  5718 I Pliegue : [pane1-respuestas] web de 413 px · con barras de X · columna de iconos: no está
+10-22 17:29:14.737  5718  5718 I Pliegue : [pane1-respuestas] TweetDetail: post 1006 con 1 encima y 3 respuestas
+10-22 17:29:14.876  5718  5718 I Pliegue : [pane1-respuestas] pido la página siguiente: web de 916 px
+10-22 17:29:39.281  5718  5718 I Pliegue : [acciones] la respuesta a 1006: abro x.com/intent/post?in_reply_to=1006
+10-22 17:29:39.414  5718  5718 I Pliegue : [acciones] carga x.com/intent/post?in_reply_to=1006
+10-22 17:29:39.495  5718  5718 I Pliegue : [acciones] cargada x.com/intent/post?in_reply_to=1006 · con sesión
+10-22 17:29:45.481  5718  5718 I Pliegue : [acciones] web de 413 px · con barras de X · columna de iconos: no está
+10-22 17:29:49.498  5718  5718 I Pliegue : [acciones] la respuesta a 1006: hecho
+10-22 17:30:05.957  5718  5718 I Pliegue : [pane0] pido la página siguiente: web de 781 px
+10-22 17:30:09.674  5718  5718 I Pliegue : [pane0] pido la página siguiente: web de 504 px
+10-22 17:30:13.528  5718  5718 I Pliegue : [pane0] pido la página siguiente: web de 523 px
+10-22 17:30:17.538  5718  5718 I Pliegue : [pane0] pido la página siguiente: web de 523 px
+10-22 17:30:21.541  5718  5718 I Pliegue : [pane0] pido la página siguiente: web de 523 px
+10-22 17:30:25.613  5718  5718 I Pliegue : [pane0] pido la página siguiente: web de 523 px
+10-22 17:30:29.707  5718  5718 I Pliegue : [pane0] pido la página siguiente: web de 523 px
+10-22 17:31:18.181  5718  5718 I Pliegue : [pane1-respuestas] pido la página siguiente: web de 916 px
+10-22 17:31:26.279  5718  5718 I Pliegue : [pane1-respuestas] TweetDetail: post 1005 con 1 encima y 3 respuestas
+10-22 17:32:16.983  5718  5718 I Pliegue : [pane0] pido la página siguiente: web de 523 px
+10-22 17:32:28.729  5718  5718 I Pliegue : [pane0] pido la página siguiente: web de 781 px
+10-22 17:32:31.750  5718  5718 I Pliegue : [pane1] carga x.com/XDevelopers/status/1
+10-22 17:32:31.761  5718  5718 I Pliegue : [pane1] cargada x.com/XDevelopers/status/1 · con sesión
+10-22 17:32:37.761  5718  5718 I Pliegue : [pane1] web de 412 px · sin barras de X · columna de iconos: no está
+10-22 17:32:45.769  5718  5718 I Pliegue : [pane1] web de fuera
+10-22 17:32:45.876  5718  5718 I Pliegue : [pane1] carga t.co/pliegue
+10-22 17:32:45.881  5718  5718 I Pliegue : [pane1] cargada t.co/pliegue · con sesión
+10-22 17:33:13.966  5718  5718 I Pliegue : [pane1] carga x.com/XDevelopers/status/1
+10-22 17:33:13.978  5718  5718 I Pliegue : [pane1] cargada x.com/XDevelopers/status/1 · con sesión
+10-22 17:33:17.707  5718  5718 I Pliegue : [pane0] pido la página siguiente: web de 504 px
+10-22 17:33:21.385  5718  5718 I Pliegue : [pane0] pido la página siguiente: web de 523 px
+10-22 17:33:25.394  5718  5718 I Pliegue : [pane0] pido la página siguiente: web de 523 px
+10-22 17:33:29.397  5718  5718 I Pliegue : [pane0] pido la página siguiente: web de 523 px
+10-22 17:33:33.398  5718  5718 I Pliegue : [pane0] pido la página siguiente: web de 523 px
+10-22 17:33:37.398  5718  5718 I Pliegue : [pane0] pido la página siguiente: web de 523 px

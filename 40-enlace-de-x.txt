@@ -1,0 +1,7 @@
+View [48,172][101,225] 'Atrás'
+TextView [158,167][1059,229] 'Post'
+WebView [0,267][1080,2318] 'X' [foco]
+TextView [264,1185][817,1232] 'X no ha mandado posts todavía'
+TextView [105,1274][975,1398] 'Puede que X esté pidiendo comprobar que eres humano, o que haya cambiado su formato. Mira la web tal cual o recarga.'
+TextView [288,1461][434,1504] 'Recargar'
+TextView [544,1461][792,1504] 'Ver la web de X'

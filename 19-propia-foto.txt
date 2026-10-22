@@ -1,0 +1,4 @@
+View [48,172][101,225] 'Atrás'
+TextView [158,167][933,229] 'Foto'
+View [970,172][1023,225] 'Abrir en el navegador'
+ImageView [0,267][1080,2316] 'Foto'
