@@ -122,12 +122,27 @@ object XWeb {
      */
     const val VIDEOS = "#videos="
 
-    fun videosUrl(statusId: String, source: String): String = "https://x.com/i/status/$statusId$VIDEOS$source"
+    fun videosUrl(statusId: String, source: String, replies: Boolean = false): String =
+        "https://x.com/i/status/$statusId$VIDEOS$source" + if (replies) REPLIES else ""
 
     fun isVideos(url: String): Boolean = isX(url) && url.contains(VIDEOS)
 
     /** De qué feed salen los vídeos de una dirección de la pantalla de vídeos: "pane0/HomeTimeline". */
-    fun videosSource(url: String): String = url.substringAfter(VIDEOS)
+    fun videosSource(url: String): String = url.substringAfter(VIDEOS).removeSuffix(REPLIES)
+
+    /**
+     * La pantalla de vídeos con las respuestas del vídeo abiertas debajo (el vídeo sube arriba). Va en
+     * la dirección para que atrás las cierre como cualquier otro paso de la mitad.
+     */
+    const val REPLIES = "&respuestas"
+
+    fun showsReplies(url: String): Boolean = isVideos(url) && url.endsWith(REPLIES)
+
+    /** La web escondida que carga la conversación del vídeo de una mitad para pintar sus respuestas. */
+    fun repliesSlot(slot: String): String = "$slot-respuestas"
+
+    /** Webs que no se ven (la de acciones, la de las respuestas de los vídeos): atrás no las toca. */
+    fun isHiddenSlot(slot: String): Boolean = slot.endsWith("-respuestas")
 
     /** Lo que se abre en un visor propio de la app, sin web detrás: una foto, un vídeo o la pantalla de vídeos. */
     fun isViewer(url: String): Boolean = isMedia(url) || isVideo(url) || isVideos(url)

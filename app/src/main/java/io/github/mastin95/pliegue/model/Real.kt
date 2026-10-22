@@ -49,16 +49,15 @@ data class WebPanel(val source: Source, val openUrl: String? = null, val fromLab
  * ¿se abre en la otra mitad (`there`)? Si no, encima en la misma, y atrás vuelve a lo de antes.
  * - Desde un feed, al lado, como siempre.
  * - Plegado, desde algo abierto, encima: la otra mitad no se ve.
- * - Desde los vídeos, al lado: son el reproductor y el vídeo sigue mientras lees o escribes.
+ * - Desde los vídeos, encima, en la misma mitad (Martin, 2026-10-22: las respuestas salen debajo del
+ *   vídeo, que sube; un perfil o el redactor, encima, y atrás vuelve al mismo vídeo).
  * - Con los vídeos al lado, encima: no se pisa el reproductor.
  * - Si no, los posts y cuentas encima (se navega dentro de la mitad) y lo demás al lado, para seguir
  *   viendo el post del que sale.
  */
 fun opensBeside(here: WebPanel, there: WebPanel, folded: Boolean, link: Boolean = false): Boolean = when {
     here.openUrl == null -> true
-    folded -> false
-    here.showsVideos -> true
-    there.showsVideos -> false
+    folded || here.showsVideos || there.showsVideos -> false
     else -> link
 }
 

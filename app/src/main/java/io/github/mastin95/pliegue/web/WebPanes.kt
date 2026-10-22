@@ -571,7 +571,7 @@ class WebPanes(
             override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) {
                 urls[slot] = url
                 progress[slot] = 5
-                if (slot != XActions.SLOT) lastActive = slot
+                if (slot != XActions.SLOT && !XWeb.isHiddenSlot(slot)) lastActive = slot
                 log("[$slot] carga ${short(url)}")
                 if (options[slot]?.debugLogin == true) view.evaluateJavascript(XWeb.loginHookScript(), null)
             }
@@ -605,7 +605,7 @@ class WebPanes(
 
             override fun doUpdateVisitedHistory(view: WebView, url: String, isReload: Boolean) {
                 urls[slot] = url
-                if (slot != XActions.SLOT) lastActive = slot
+                if (slot != XActions.SLOT && !XWeb.isHiddenSlot(slot)) lastActive = slot
                 inject(view, slot)
                 checkLogin()
             }
