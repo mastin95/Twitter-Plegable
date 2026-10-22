@@ -184,7 +184,8 @@ sleep 2
 paso propia-videos-2x
 wait "$largo"
 sleep 1
-adb shell 'input tap 540 1000; input tap 540 1000'
+# (Con 0,1 s entre los dos: Compose no cuenta como segundo toque uno que llega a menos de 40 ms del primero.)
+adb shell 'input tap 540 1000; sleep 0.1; input tap 540 1000'
 adb exec-out screencap -p > "$OUT/propia-videos-corazon.png" 2>/dev/null
 sleep 2
 paso propia-videos-me-gusta
