@@ -227,6 +227,8 @@ class XWebTest {
         assertNull(XWeb.view("https://x.com/compose/post"))
         assertNull(XWeb.view("https://example.com/"))
         assertEquals("https://x.com/intent/post?in_reply_to=5", XWeb.replyUrl("5"))
+        assertEquals("https://x.com/intent/post?in_reply_to=5&text=Qu%C3%A9%20bueno%20%26%20raro", XWeb.replyUrl("5", "Qué bueno & raro"))
+        assertEquals("https://x.com/intent/post?in_reply_to=5", XWeb.withoutText(XWeb.replyUrl("5", "secreto")))
         assertTrue(XWeb.isVideo("https://video.twimg.com/v/1.mp4"))
         assertFalse(XWeb.isVideo("https://pbs.twimg.com/media/a.jpg"))
     }
@@ -249,5 +251,8 @@ class XWebTest {
         assertTrue(js.contains("a[href$=\"/status/' + id + '\"]"))
         assertTrue(js.contains("window.Pliegue.acted(token"))
         assertTrue(js.trimEnd().endsWith("})(\"repost\", \"1008\", 7);"))
+        // Responder: toca el botón de publicar del redactor y espera a que se cierre; sin tocar dos veces.
+        assertTrue(js.contains("[data-testid=\"tweetButton\"]:not([aria-disabled=\"true\"])"))
+        assertTrue(js.contains("P.state.token === token"))
     }
 }

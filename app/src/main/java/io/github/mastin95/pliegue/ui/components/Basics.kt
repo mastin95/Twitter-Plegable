@@ -152,10 +152,12 @@ fun PlainField(
     style: TextStyle,
     modifier: Modifier = Modifier,
     focusRequester: FocusRequester? = null,
+    maxLines: Int = Int.MAX_VALUE,
 ) {
     BasicTextField(
         value = value,
         onValueChange = onChange,
+        maxLines = maxLines,
         textStyle = style.copy(color = X.Text),
         cursorBrush = SolidColor(X.Blue),
         modifier = modifier.then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier),

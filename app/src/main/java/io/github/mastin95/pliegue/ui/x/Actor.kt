@@ -7,7 +7,7 @@ import io.github.mastin95.pliegue.web.WebPanes
 import io.github.mastin95.pliegue.web.XActionKind
 
 /**
- * Me gusta, repost, guardar y seguir desde la interfaz propia: la tarjeta cambia al momento (como en
+ * Me gusta, repost, guardar, seguir y responder desde la interfaz propia: la tarjeta cambia al momento (como en
  * X) y la acción se hace en la web escondida; si X no la acepta, la tarjeta vuelve atrás y se avisa.
  */
 class XActor(private val web: WebPanes, private val vm: AppViewModel) {
@@ -43,6 +43,28 @@ class XActor(private val web: WebPanes, private val vm: AppViewModel) {
                 web.store.updateTweet(t.id) { apply(it, !on) }
                 vm.showToast("X no ha aceptado ${kind.label}: $why.")
             }
+        }
+        return true
+    }
+
+    /**
+     * Publica una respuesta sin salir de la app: la web escondida abre el redactor de X con el texto y
+     * pulsa su botón. Si no llegó a pulsarlo (X no dejó, o cambió su redactor), abre el redactor de X
+     * con el texto puesto para publicarla a mano; si lo pulsó pero X no lo confirmó, no se repite (podría
+     * salir dos veces) y se avisa. `done` dice si salió. False si no hay sesión.
+     */
+    fun reply(slot: String, t: XTweet, text: String, done: (Boolean) -> Unit): Boolean {
+        if (!can()) return false
+        web.actions.run(XActionKind.Reply, t.id, text) { ok, why ->
+            when {
+                ok -> {}
+                why.startsWith("X no lo confirmó") -> vm.showToast("No sé si X ha publicado tu respuesta: mira las respuestas antes de repetirla.")
+                else -> {
+                    vm.showToast("No he podido publicarla desde aquí ($why): te abro el redactor de X con tu texto.")
+                    vm.replyFromNative(slot, t.id, text)
+                }
+            }
+            done(ok)
         }
         return true
     }

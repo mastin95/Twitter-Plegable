@@ -47,7 +47,9 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -60,6 +62,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -72,9 +75,11 @@ import io.github.mastin95.pliegue.AppViewModel
 import io.github.mastin95.pliegue.model.XMediaKind
 import io.github.mastin95.pliegue.model.XTime
 import io.github.mastin95.pliegue.model.XTweet
+import io.github.mastin95.pliegue.model.XUser
 import io.github.mastin95.pliegue.ui.XIcons
 import io.github.mastin95.pliegue.ui.clock
 import io.github.mastin95.pliegue.ui.components.PillButton
+import io.github.mastin95.pliegue.ui.components.PlainField
 import io.github.mastin95.pliegue.ui.components.VerifiedBadge
 import io.github.mastin95.pliegue.ui.count
 import io.github.mastin95.pliegue.ui.theme.X
@@ -86,6 +91,7 @@ import io.github.mastin95.pliegue.web.XParse
 import io.github.mastin95.pliegue.web.XWeb
 import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /**
  * Vídeos en vertical, como los de X al tocar un vídeo: el tocado a pantalla completa y, deslizando
@@ -181,7 +187,14 @@ private fun VideoReplies(vm: AppViewModel, slot: String, t: XTweet, modifier: Mo
     val taps = rememberPostTaps(vm, slot, "$repliesSlot/${XParse.THREAD}")
     val state = vm.feedState("$repliesSlot/${t.id}")
     val now = System.currentTimeMillis()
+    val actor = remember(web, vm) { XActor(web, vm) }
+    val me = web.store.byId(web.userId)
+    // Lo que respondes desde aquí sale el primero mientras X lo publica, hasta que llega de X (al cargar más).
+    val sent = remember(t.id) { mutableStateListOf<SentReply>() }
+    val fromX = thread?.replies.orEmpty().flatMap { it.tweets }.filter { me != null && it.author.handle.equals(me.handle, ignoreCase = true) }.map { it.text.trim() }.toSet()
+    val mine = sent.filter { it.text !in fromX }
     var slow by remember(t.id) { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
     LaunchedEffect(t.id, thread == null) {
         slow = false
         if (thread == null) {
@@ -210,6 +223,7 @@ private fun VideoReplies(vm: AppViewModel, slot: String, t: XTweet, modifier: Mo
         SheetHeader(t.replies, onClose = { vm.closeVideoReplies(slot) })
         LazyColumn(state = state, modifier = Modifier.fillMaxWidth().weight(1f)) {
             item("texto") { CaptionRow(t, now, taps) }
+            items(mine, key = { "mia-${it.key}" }) { MyReplyRow(it, me) }
             when {
                 thread == null -> item("cargando") {
                     Column(
@@ -240,7 +254,13 @@ private fun VideoReplies(vm: AppViewModel, slot: String, t: XTweet, modifier: Mo
                 }
             }
         }
-        ReplyField(web.store.byId(web.userId)?.avatar ?: "") { taps.onReply(t) }
+        ReplyField(me?.avatar ?: "") { text ->
+            val r = SentReply(text)
+            if (actor.reply(slot, t, text) { ok -> if (ok) r.sent = true else sent.remove(r) }) {
+                sent.add(0, r)
+                scope.launch { state.scrollToItem(0) }
+            }
+        }
     }
 }
 
@@ -362,8 +382,14 @@ private fun SmallLink(text: String, onClick: () -> Unit) {
 }
 
 /** Abajo de la hoja, el campo para responder al vídeo (abre el redactor de X en esta mitad). */
+/**
+ * El campo de abajo de la hoja: escribes ahí mismo (sube el teclado y el vídeo sigue arriba) y
+ * "Responder" la publica sin salir; la publica la web escondida en el redactor de X ([XActor.reply]).
+ */
 @Composable
-private fun ReplyField(avatar: String, onReply: () -> Unit) {
+private fun ReplyField(avatar: String, onSend: (String) -> Unit) {
+    var text by rememberSaveable { mutableStateOf("") }
+    val focus = LocalFocusManager.current
     val pill = RoundedCornerShape(20.dp)
     Column {
         HorizontalDivider(color = X.Border, thickness = 0.5.dp)
@@ -376,15 +402,62 @@ private fun ReplyField(avatar: String, onReply: () -> Unit) {
             Box(
                 Modifier
                     .weight(1f)
-                    .height(40.dp)
+                    .heightIn(min = 40.dp)
                     .clip(pill)
                     .background(X.Bg)
                     .border(1.dp, X.Border, pill)
-                    .clickable(onClickLabel = "Responder", role = Role.Button, onClick = onReply)
-                    .padding(horizontal = 16.dp),
+                    .padding(horizontal = 16.dp, vertical = 9.dp),
                 contentAlignment = Alignment.CenterStart,
             ) {
-                Text("Postea tu respuesta", style = XType.secondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                PlainField(text, { text = it }, "Postea tu respuesta", XType.body, Modifier.fillMaxWidth(), maxLines = 4)
+            }
+            if (text.isNotBlank()) {
+                PillButton(
+                    "Responder",
+                    onClick = {
+                        onSend(text.trim())
+                        text = ""
+                        focus.clearFocus()
+                    },
+                    modifier = Modifier.semantics { contentDescription = "Publicar respuesta" },
+                    background = X.Blue,
+                    content = Color.White,
+                    height = 32.dp,
+                )
+            }
+        }
+    }
+}
+
+/** Una respuesta tuya publicada desde la hoja (`key` la distingue de otra con el mismo texto). */
+private class SentReply(val text: String) {
+    val key = System.nanoTime()
+    var sent by mutableStateOf(false)
+}
+
+/** Tu respuesta, la primera y marcada en azul: "Publicando…" mientras X la publica y "Publicada" después. */
+@Composable
+private fun MyReplyRow(r: SentReply, me: XUser?) {
+    Row(
+        Modifier.fillMaxWidth().background(X.Blue.copy(alpha = 0.1f)).padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 10.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        if (me != null && me.avatar.isNotEmpty()) XAvatar(me.avatar, 32.dp) else Box(Modifier.size(32.dp).clip(CircleShape).background(X.Blue))
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(me?.name ?: "Tú", style = XType.small.copy(color = X.Text, fontWeight = FontWeight.Bold), maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                if (me?.verified == true) VerifiedBadge(14.dp)
+                Text(listOfNotNull(me?.handle?.let { "@$it" }, "ahora").joinToString(" · "), style = XType.small, maxLines = 1)
+            }
+            Text(r.text, style = XType.body)
+            Row(Modifier.padding(top = 2.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                if (r.sent) {
+                    Icon(XIcons.Check, contentDescription = null, tint = X.Blue, modifier = Modifier.size(16.dp))
+                    Text("Publicada", style = XType.small.copy(color = X.Blue, fontWeight = FontWeight.Bold))
+                } else {
+                    CircularProgressIndicator(color = X.Blue, strokeWidth = 1.5.dp, modifier = Modifier.size(12.dp))
+                    Text("Publicando…", style = XType.small)
+                }
             }
         }
     }

@@ -214,6 +214,18 @@ paso propia-videos-2
 toca 'Ver respuestas' && sleep 8
 inyectar respuestas TweetDetail /status/1006 '{"focalTweetId":"1006"}'
 paso propia-videos-respuestas
+# Responder desde la hoja: se escribe ahí mismo y "Responder" la publica sin salir; sale la primera,
+# en azul, con "Publicando…" y luego "Publicada". Por dentro, la web escondida de acciones abre el
+# redactor de X con el texto y pulsa su botón; como X no carga aquí, se le monta un redactor falso.
+toca 'Postea tu respuesta' && sleep 3
+adb shell input text 'Que%sbuen%svideo'
+sleep 2
+paso propia-videos-escribiendo
+toca '^Publicar respuesta$' && sleep 4
+paso propia-videos-publicando
+evaluar /intent/post redactor-falso
+sleep 4
+paso propia-videos-publicada
 adb shell input tap 540 600
 sleep 5
 paso propia-videos-vuelta

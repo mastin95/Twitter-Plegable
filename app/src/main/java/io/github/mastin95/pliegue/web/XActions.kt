@@ -16,17 +16,22 @@ enum class XActionKind(val js: String, val label: String, val onProfile: Boolean
     Unbookmark("unbookmark", "quitar el post de Guardados"),
     Follow("follow", "seguir", onProfile = true),
     Unfollow("unfollow", "dejar de seguir", onProfile = true),
+    Reply("reply", "la respuesta a"),
 }
 
 /**
- * Las acciones (me gusta, repost, guardar, seguir) se hacen como las haría uno en la web: una WebView
- * escondida ("acciones", la cuelga ActionsPane) abre el post o el perfil con la sesión de X y un guion
- * toca el botón de X ([XWeb.actScript]). Van de una en una y cada una avisa al acabar con si X la
+ * Las acciones (me gusta, repost, guardar, seguir, responder) se hacen como las haría uno en la web: una
+ * WebView escondida ("acciones", la cuelga ActionsPane) abre el post, el perfil o el redactor de X (con
+ * el texto de la respuesta ya puesto) con la sesión de X y un guion toca el botón de X ([XWeb.actScript]). Van de una en una y cada una avisa al acabar con si X la
  * aceptó; la app ya cambió la tarjeta al tocar y la deshace si no. No se inventa ninguna petición a X.
  */
 class XActions(private val web: WebPanes) {
-    class Pending(val kind: XActionKind, val target: String, val done: (ok: Boolean, why: String) -> Unit) {
-        val url: String get() = if (kind.onProfile) "https://x.com/$target" else "https://x.com/i/status/$target"
+    class Pending(val kind: XActionKind, val target: String, val text: String, val done: (ok: Boolean, why: String) -> Unit) {
+        val url: String get() = when {
+            kind == XActionKind.Reply -> XWeb.replyUrl(target, text)
+            kind.onProfile -> "https://x.com/$target"
+            else -> "https://x.com/i/status/$target"
+        }
         val label: String get() = kind.label + " " + (if (kind.onProfile) "@$target" else target)
     }
 
@@ -43,8 +48,8 @@ class XActions(private val web: WebPanes) {
     var pending by mutableStateOf(0)
         private set
 
-    fun run(kind: XActionKind, target: String, done: (ok: Boolean, why: String) -> Unit) {
-        queue.addLast(Pending(kind, target, done))
+    fun run(kind: XActionKind, target: String, text: String = "", done: (ok: Boolean, why: String) -> Unit) {
+        queue.addLast(Pending(kind, target, text, done))
         pending = queue.size + (if (current != null) 1 else 0)
         next()
     }
@@ -63,7 +68,8 @@ class XActions(private val web: WebPanes) {
         pending = queue.size + 1
         url = a.url
         web.load(SLOT, a.url)
-        web.note("[$SLOT] ${a.label}: abro ${a.url.removePrefix("https://")}")
+        // El texto de una respuesta no va al registro (que se copia para mandarlo).
+        web.note("[$SLOT] ${a.label}: abro ${XWeb.withoutText(a.url).removePrefix("https://")}")
         main.postDelayed({ finish(t, false, "la web no respondió") }, 40_000)
     }
 

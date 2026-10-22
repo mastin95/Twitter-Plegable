@@ -296,8 +296,12 @@ object XWeb {
         return if (parts.isEmpty()) COMPOSE else "https://x.com/intent/post?" + parts.joinToString("&")
     }
 
-    /** El redactor de X como respuesta a un post. */
-    fun replyUrl(tweetId: String) = "https://x.com/intent/post?in_reply_to=$tweetId"
+    /** El redactor de X como respuesta a un post, con el texto ya escrito si se da. */
+    fun replyUrl(tweetId: String, text: String = "") =
+        "https://x.com/intent/post?in_reply_to=$tweetId" + if (text.isNotBlank()) "&text=${enc(text)}" else ""
+
+    /** Para el registro: la dirección sin el texto que se va a publicar. */
+    fun withoutText(url: String): String = url.replace(Regex("[?&]text=[^&]*"), "")
 
     /** El redactor de X (nuevo post, cita o respuesta). */
     fun isCompose(url: String): Boolean = isX(url) && path(url).let { it == "/compose/post" || it == "/intent/post" }
@@ -437,6 +441,10 @@ object XWeb {
      * que corresponde a la acción, lo toca, y cuando X cambia el botón al contrario (me gusta → ya no me
      * gusta) avisa con `Pliegue.acted(token, true, …)`. Si en 20 s no encuentra el botón o X no cambia,
      * avisa con false y el motivo. Repostear y dejar de seguir piden una confirmación: la toca también.
+     * Responder: en el redactor de X (abierto con el texto ya puesto) toca su botón de publicar, y está
+     * hecho cuando el redactor se cierra; si no se cierra, "X no lo confirmó" (puede que se publicara).
+     * Si la página vuelve a cargar con la misma acción en marcha, sigue donde iba: no toca dos veces (y
+     * si tras tocar publicar X lleva a otra página, la respuesta salió).
      * Los botones se reconocen por los `data-testid` de la web de X; en el perfil se salta los de las
      * sugerencias ("A quién seguir") y los de los posts.
      */
@@ -452,7 +460,8 @@ object XWeb {
             repost:     {steps: [['art', '[data-testid="retweet"]'], ['doc', '[data-testid="retweetConfirm"]']], done: ['art', '[data-testid="unretweet"]']},
             unrepost:   {steps: [['art', '[data-testid="unretweet"]'], ['doc', '[data-testid="unretweetConfirm"]']], done: ['art', '[data-testid="retweet"]']},
             follow:     {steps: [['head', '[data-testid${'$'}="-follow"]']], done: ['head', '[data-testid${'$'}="-unfollow"]']},
-            unfollow:   {steps: [['head', '[data-testid${'$'}="-unfollow"]'], ['doc', '[data-testid="confirmationSheetConfirm"]']], done: ['head', '[data-testid${'$'}="-follow"]']}
+            unfollow:   {steps: [['head', '[data-testid${'$'}="-unfollow"]'], ['doc', '[data-testid="confirmationSheetConfirm"]']], done: ['head', '[data-testid${'$'}="-follow"]']},
+            reply:      {steps: [['doc', '[data-testid="tweetButton"]:not([aria-disabled="true"]):not([disabled])']], gone: '[data-testid="tweetButton"]'}
           }[kind];
           function tell(ok, why){
             if (P.timer) { clearInterval(P.timer); P.timer = null; }
@@ -472,13 +481,23 @@ object XWeb {
             for (var i = 0; i < all.length; i++) if (!all[i].closest('article') && !all[i].closest('[data-testid="UserCell"]')) return all[i];
             return null;
           }
-          var step = 0, clickedAt = 0, t0 = Date.now();
+          var s = P.state && P.state.token === token ? P.state : (P.state = {token: token, step: 0, clickedAt: 0, t0: Date.now()});
+          // Si ya tocó y la página se cargó de nuevo entera (se pierde P), lo sabe por la sesión de la pestaña.
+          var mark = ''; try { mark = sessionStorage.getItem('pliegueAct') || ''; } catch(e){}
+          if (s.step === 0 && mark.split(':')[0] === String(token)) { s.step = plan.steps.length; s.clickedAt = Number(mark.split(':')[1]) || Date.now(); }
           function tick(){
             try {
-              if (step === 0 && find(plan.done)) { tell(true, 'ya estaba'); return; }
-              if (clickedAt && step >= plan.steps.length && Date.now() - clickedAt > 1200 && find(plan.done)) { tell(true, ''); return; }
-              if (step < plan.steps.length) { var el = find(plan.steps[step]); if (el) { el.click(); clickedAt = Date.now(); step++; } }
-              if (Date.now() - t0 > 20000) tell(false, step === 0 ? 'no encontré el botón' : 'X no lo confirmó');
+              if (plan.gone) {
+                if (s.clickedAt && Date.now() - s.clickedAt > 1200 && !document.querySelector(plan.gone)) { tell(true, ''); return; }
+              } else {
+                if (s.step === 0 && find(plan.done)) { tell(true, 'ya estaba'); return; }
+                if (s.clickedAt && s.step >= plan.steps.length && Date.now() - s.clickedAt > 1200 && find(plan.done)) { tell(true, ''); return; }
+              }
+              if (s.step < plan.steps.length) {
+                var el = find(plan.steps[s.step]);
+                if (el) { el.click(); s.clickedAt = Date.now(); s.step++; try { sessionStorage.setItem('pliegueAct', token + ':' + s.clickedAt); } catch(e){} }
+              }
+              if (Date.now() - s.t0 > 20000) tell(false, s.step === 0 ? 'no encontré el botón' : 'X no lo confirmó');
             } catch(e) { tell(false, String(e)); }
           }
           P.timer = setInterval(tick, 400);
