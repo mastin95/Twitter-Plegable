@@ -176,7 +176,7 @@ paso propia-videos
 # Controles de los vídeos (Martin, 2026-10-22): mantenido va a 2× (sale "2×" arriba), doble toque es me
 # gusta con el corazón grande (la captura -corazon se hace al momento, antes de que se vaya), el altavoz
 # quita el sonido (y sigue quitado en los vídeos siguientes, se ve abierto) y la barra de abajo salta:
-# con el vídeo parado se arrastra hasta el 80 % y el tiempo pasa a 0:04 de 0:06.
+# con el vídeo parado se arrastra hasta el 85 % y el tiempo pasa a 0:05 de 0:06.
 # (Se espera a ese toque por su número: un "wait" a secas esperaría también al tee de la salida y no acabaría.)
 adb shell input swipe 540 1000 540 1000 7000 &
 largo=$!
@@ -195,7 +195,8 @@ sleep 2
 volcar /tmp/ui.xml
 if barra=$(python3 "$UI" find /tmp/ui.xml '^Barra del vídeo$'); then
   echo "barra en $barra"
-  adb shell input swipe 60 "${barra#* }" 860 "${barra#* }" 600
+  # Desde x=200: desde el borde, Android lo toma por el gesto de atrás y cierra los vídeos.
+  adb shell input swipe 200 "${barra#* }" 900 "${barra#* }" 600
 else
   echo "no encuentro la barra del vídeo"
 fi

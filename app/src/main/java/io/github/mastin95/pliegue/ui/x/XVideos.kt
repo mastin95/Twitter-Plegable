@@ -462,12 +462,12 @@ private fun VideoPage(
         }
         if (fast) {
             Row(
-                Modifier.align(Alignment.TopCenter).padding(top = 16.dp).clip(RoundedCornerShape(50)).background(Color.Black.copy(alpha = 0.55f)).padding(horizontal = 12.dp, vertical = 6.dp),
+                Modifier.align(Alignment.TopCenter).padding(top = 16.dp).clip(RoundedCornerShape(50)).background(Color.Black.copy(alpha = 0.6f)).padding(horizontal = 14.dp, vertical = 7.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                Icon(XIcons.Fast, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
-                Text("2×", style = XType.small.copy(color = Color.White, fontWeight = FontWeight.Bold))
+                Icon(XIcons.Fast, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                Text("2×", style = XType.body.copy(color = Color.White, fontWeight = FontWeight.Bold))
             }
         }
         if (overlay) {
