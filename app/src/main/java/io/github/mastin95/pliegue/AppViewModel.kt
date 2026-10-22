@@ -29,6 +29,7 @@ import io.github.mastin95.pliegue.model.moved
 import io.github.mastin95.pliegue.model.myFeedPosts
 import io.github.mastin95.pliegue.model.suggestions
 import io.github.mastin95.pliegue.ui.nowLabel
+import io.github.mastin95.pliegue.ui.x.Autoplay
 import io.github.mastin95.pliegue.web.Prefs
 import io.github.mastin95.pliegue.model.opensBeside
 import io.github.mastin95.pliegue.web.XWeb
@@ -76,6 +77,15 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun updateVideoMuted(on: Boolean) {
         videoMuted = on
         prefs.videoMuted = on
+    }
+
+    /** Vídeos y GIF que se mueven solos (sin sonido) en los feeds de la interfaz propia. */
+    var autoplay by mutableStateOf(Autoplay.of(prefs.autoplay))
+        private set
+
+    fun updateAutoplay(a: Autoplay) {
+        autoplay = a
+        prefs.autoplay = a.key
     }
 
     /** Modo cine: un vídeo horizontal en las dos mitades del móvil abierto, desde `startAt` (ms). */

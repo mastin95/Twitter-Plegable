@@ -53,6 +53,11 @@ class Prefs(context: Context) {
         get() = sp.getBoolean("videoMuted", false)
         set(v) = sp.edit().putBoolean("videoMuted", v).apply()
 
+    /** Vídeos que se mueven solos en los feeds: "siempre", "wifi" (por defecto) o "nunca". */
+    var autoplay: String
+        get() = sp.getString("autoplay", "wifi") ?: "wifi"
+        set(v) = sp.edit().putString("autoplay", v).apply()
+
     var dropHintSeen: Boolean
         get() = sp.getBoolean("dropHintSeen", false)
         set(v) = sp.edit().putBoolean("dropHintSeen", v).apply()

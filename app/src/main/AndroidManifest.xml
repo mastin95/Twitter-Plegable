@@ -3,6 +3,8 @@
 
     <!-- X real se abre dentro de la app, con la sesión del navegador. -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Para que los vídeos se muevan solos "solo con wifi": saber si la red es de datos. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <application
         android:allowBackup="true"

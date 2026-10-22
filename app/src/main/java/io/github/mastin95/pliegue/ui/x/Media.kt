@@ -162,7 +162,9 @@ class VideoProgress {
  * `play` lo arranca y lo para desde fuera (la pantalla de vídeos para el que no está a la vista);
  * `loop` y `controls` cambian lo que toca por defecto según sea vídeo o GIF. `muted` quita el sonido
  * (y entonces no para la música de otra app), `speed` lo acelera, `progress` recibe por dónde va y
- * `startAt` es el milisegundo por el que empieza.
+ * `startAt` es el milisegundo por el que empieza. `preview` es el de una tarjeta del feed que se mueve
+ * solo: sin fondo negro (se sigue viendo la miniatura hasta el primer fotograma), recortado como ella
+ * y sin aviso si falla (se queda la miniatura).
  */
 @androidx.annotation.OptIn(UnstableApi::class)
 @Composable
@@ -176,6 +178,7 @@ fun VideoPlayer(
     speed: Float = 1f,
     progress: VideoProgress? = null,
     startAt: Long = 0L,
+    preview: Boolean = false,
 ) {
     val context = LocalContext.current
     val web = LocalWebPanes.current
@@ -238,15 +241,18 @@ fun VideoPlayer(
         lifecycle.addObserver(observer)
         onDispose { lifecycle.removeObserver(observer) }
     }
-    Box(modifier.background(Color.Black), contentAlignment = Alignment.Center) {
+    Box(modifier.background(if (preview) Color.Transparent else Color.Black), contentAlignment = Alignment.Center) {
         AndroidView(
             factory = { ctx ->
                 (LayoutInflater.from(ctx).inflate(R.layout.reproductor, null) as PlayerView).apply {
                     useController = controls
                     controllerShowTimeoutMs = 2500
                     setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING)
-                    resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
-                    setBackgroundColor(android.graphics.Color.BLACK)
+                    resizeMode = if (preview) AspectRatioFrameLayout.RESIZE_MODE_ZOOM else AspectRatioFrameLayout.RESIZE_MODE_FIT
+                    val back = if (preview) android.graphics.Color.TRANSPARENT else android.graphics.Color.BLACK
+                    setBackgroundColor(back)
+                    setShutterBackgroundColor(back)
+                    if (preview) setShowBuffering(PlayerView.SHOW_BUFFERING_NEVER)
                 }
             },
             modifier = Modifier.fillMaxSize(),
@@ -256,7 +262,7 @@ fun VideoPlayer(
                 it.player = player
             },
         )
-        error?.let { MediaProblem(if (gif) "No se pudo reproducir el GIF ($it)." else "No se pudo reproducir el vídeo ($it).", src) }
+        if (!preview) error?.let { MediaProblem(if (gif) "No se pudo reproducir el GIF ($it)." else "No se pudo reproducir el vídeo ($it).", src) }
     }
 }
 

@@ -33,6 +33,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -105,6 +106,8 @@ fun XFeedScreen(vm: AppViewModel, slot: String, view: XView, taps: PostTaps, sel
     // Si X pidiera las notificaciones sin decir la pestaña, valen igual.
     val feed = store.feed(slot, name) ?: if (view == XView.Notifications) store.feed(slot, "NotificationsTimeline") else null
     val state = vm.feedState("$slot/$name")
+    // En modo cine el feed queda tapado: su vídeo se para.
+    val autoplay = rememberAutoplayAllowed(vm.autoplay) && vm.cinema == null
     val now = System.currentTimeMillis()
     var refreshing by remember { mutableStateOf(false) }
     LaunchedEffect(feed?.updatedAt) { refreshing = false }
@@ -159,6 +162,7 @@ fun XFeedScreen(vm: AppViewModel, slot: String, view: XView, taps: PostTaps, sel
                     feed,
                     state,
                     onEnd = { web.loadMore(slot) },
+                    autoplay = autoplay,
                     header = {
                         if (view is XView.Profile) item("perfil") { ProfileHeader(profileOf(view, feed, store.user(view.handle)), onFollow) }
                         feed.pinned?.let { p -> item("pinned") { XPostCard(p, now, taps, selected = p.id == selectedId) } }
@@ -250,6 +254,7 @@ fun XFeedList(
     feed: XFeed,
     state: LazyListState,
     onEnd: () -> Unit,
+    autoplay: Boolean = false,
     header: LazyListScope.() -> Unit = {},
     item: @Composable (XEntry) -> Unit,
 ) {
@@ -269,13 +274,17 @@ fun XFeedList(
             delay(4000)
         }
     }
-    LazyColumn(state = state, modifier = Modifier.fillMaxSize()) {
-        header()
-        items(feed.entries, key = { it.id }) { item(it) }
-        item("fin") {
-            Box(Modifier.fillMaxWidth().height(if (feed.exhausted) 120.dp else 96.dp), contentAlignment = Alignment.TopCenter) {
-                if (!feed.exhausted) CircularProgressIndicator(color = X.Blue, strokeWidth = 2.dp, modifier = Modifier.padding(top = 24.dp).size(24.dp))
-                else Text("No hay más", style = XType.small, modifier = Modifier.padding(top = 24.dp))
+    // Con los vídeos moviéndose solos, uno a la vez: el de más arriba de los que se ven a medias.
+    val auto = remember { FeedAutoplay() }
+    CompositionLocalProvider(LocalFeedAutoplay provides auto.takeIf { autoplay }) {
+        LazyColumn(state = state, modifier = Modifier.fillMaxSize()) {
+            header()
+            items(feed.entries, key = { it.id }) { item(it) }
+            item("fin") {
+                Box(Modifier.fillMaxWidth().height(if (feed.exhausted) 120.dp else 96.dp), contentAlignment = Alignment.TopCenter) {
+                    if (!feed.exhausted) CircularProgressIndicator(color = X.Blue, strokeWidth = 2.dp, modifier = Modifier.padding(top = 24.dp).size(24.dp))
+                    else Text("No hay más", style = XType.small, modifier = Modifier.padding(top = 24.dp))
+                }
             }
         }
     }
