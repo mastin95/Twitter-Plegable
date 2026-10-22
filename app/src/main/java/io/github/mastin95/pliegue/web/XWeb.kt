@@ -301,7 +301,8 @@ object XWeb {
         "https://x.com/intent/post?in_reply_to=$tweetId" + if (text.isNotBlank()) "&text=${enc(text)}" else ""
 
     /** Para el registro: la dirección sin el texto que se va a publicar. */
-    fun withoutText(url: String): String = url.replace(Regex("[?&]text=[^&]*"), "")
+    fun withoutText(url: String): String =
+        url.replace(Regex("([?&])text=[^&]*&?")) { if (it.value.endsWith("&")) it.groupValues[1] else "" }
 
     /** El redactor de X (nuevo post, cita o respuesta). */
     fun isCompose(url: String): Boolean = isX(url) && path(url).let { it == "/compose/post" || it == "/intent/post" }

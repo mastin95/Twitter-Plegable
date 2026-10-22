@@ -220,7 +220,8 @@ private fun VideoReplies(vm: AppViewModel, slot: String, t: XTweet, modifier: Mo
                 WebPane(repliesSlot, t.url, Modifier.fillMaxSize(), REPLIES_PANE)
             }
         }
-        SheetHeader(t.replies, onClose = { vm.closeVideoReplies(slot) })
+        // Las tuyas ya publicadas cuentan en el número, hasta que X lo mande actualizado.
+        SheetHeader(t.replies + mine.count { it.sent }, onClose = { vm.closeVideoReplies(slot) })
         LazyColumn(state = state, modifier = Modifier.fillMaxWidth().weight(1f)) {
             item("texto") { CaptionRow(t, now, taps) }
             items(mine, key = { "mia-${it.key}" }) { MyReplyRow(it, me) }

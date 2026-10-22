@@ -229,6 +229,8 @@ class XWebTest {
         assertEquals("https://x.com/intent/post?in_reply_to=5", XWeb.replyUrl("5"))
         assertEquals("https://x.com/intent/post?in_reply_to=5&text=Qu%C3%A9%20bueno%20%26%20raro", XWeb.replyUrl("5", "Qué bueno & raro"))
         assertEquals("https://x.com/intent/post?in_reply_to=5", XWeb.withoutText(XWeb.replyUrl("5", "secreto")))
+        assertEquals("https://x.com/intent/post?url=u", XWeb.withoutText("https://x.com/intent/post?text=hola&url=u"))
+        assertEquals("https://x.com/home", XWeb.withoutText("https://x.com/home"))
         assertTrue(XWeb.isVideo("https://video.twimg.com/v/1.mp4"))
         assertFalse(XWeb.isVideo("https://pbs.twimg.com/media/a.jpg"))
     }

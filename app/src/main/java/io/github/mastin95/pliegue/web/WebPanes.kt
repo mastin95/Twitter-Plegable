@@ -319,7 +319,8 @@ class WebPanes(
         while (log.size > 200) log.removeAt(log.lastIndex)
     }
 
-    private fun short(url: String) = url.removePrefix("https://").take(160)
+    // Sin el texto de un redactor (una respuesta o algo compartido): el registro se copia para mandarlo.
+    private fun short(url: String) = XWeb.withoutText(url).removePrefix("https://").take(160)
 
     fun evaluate(slot: String, js: String) {
         slots[slot]?.evaluateJavascript(js, null)
