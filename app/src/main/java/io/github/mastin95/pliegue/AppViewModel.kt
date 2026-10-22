@@ -23,6 +23,7 @@ import io.github.mastin95.pliegue.model.PostMark
 import io.github.mastin95.pliegue.model.SampleData
 import io.github.mastin95.pliegue.model.Source
 import io.github.mastin95.pliegue.model.WebPanel
+import io.github.mastin95.pliegue.model.XTweet
 import io.github.mastin95.pliegue.model.markFor
 import io.github.mastin95.pliegue.model.moved
 import io.github.mastin95.pliegue.model.myFeedPosts
@@ -75,6 +76,29 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun updateVideoMuted(on: Boolean) {
         videoMuted = on
         prefs.videoMuted = on
+    }
+
+    /** Modo cine: un vídeo horizontal en las dos mitades del móvil abierto, desde `startAt` (ms). */
+    class Cinema(val tweet: XTweet, val src: String, val startAt: Long)
+
+    var cinema by mutableStateOf<Cinema?>(null)
+        private set
+
+    /** Dónde se quedó el vídeo al salir del modo cine (post y ms), para seguir ahí en su mitad. */
+    var cinemaEnd by mutableStateOf<Pair<String, Long>?>(null)
+        private set
+
+    fun openCinema(t: XTweet, src: String, at: Long) {
+        cinema = Cinema(t, src, at)
+    }
+
+    fun closeCinema(at: Long) {
+        cinemaEnd = cinema?.let { it.tweet.id to at }
+        cinema = null
+    }
+
+    fun cinemaResumed() {
+        cinemaEnd = null
     }
 
     /** Pestaña de Inicio de cada ranura en la interfaz propia: 0 "Para ti", 1 "Siguiendo". */

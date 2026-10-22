@@ -67,6 +67,7 @@ import io.github.mastin95.pliegue.ui.components.endBorder
 import io.github.mastin95.pliegue.ui.components.startBorder
 import io.github.mastin95.pliegue.ui.components.NavIcon
 import io.github.mastin95.pliegue.ui.components.topBorder
+import io.github.mastin95.pliegue.ui.x.CinemaScreen
 import io.github.mastin95.pliegue.ui.x.LocalTabsEndInset
 import io.github.mastin95.pliegue.ui.x.MediaOrWeb
 import io.github.mastin95.pliegue.ui.x.NativeOrWeb
@@ -84,10 +85,14 @@ fun RealApp(screen: ScreenInfo, vm: AppViewModel) {
     val web = LocalWebPanes.current
     LaunchedEffect(screen.posture) { vm.updatePosture(screen.posture) }
     BackHandler(enabled = web.inFullscreen) { web.exitFullscreen() }
-    when (screen.posture) {
-        Posture.Plegado -> RealFolded(vm)
-        Posture.Abierto -> RealOpen(vm, screen)
-        Posture.Sobremesa -> RealTabletop(vm, screen)
+    Box(Modifier.fillMaxSize()) {
+        when (screen.posture) {
+            Posture.Plegado -> RealFolded(vm)
+            Posture.Abierto -> RealOpen(vm, screen)
+            Posture.Sobremesa -> RealTabletop(vm, screen)
+        }
+        // El modo cine, encima de las dos mitades.
+        vm.cinema?.let { CinemaScreen(vm, it) }
     }
 }
 

@@ -106,6 +106,9 @@ video_muestra() {
 if video_muestra; then echo "vídeo de muestra en la carpeta de la app"; else echo "sin vídeo de muestra (el reproductor dará error en las capturas)"; fi
 # Sin los avisos de "no responde" del sistema (el Android virtual va lento y el del lanzador tapa la app).
 adb shell settings put global hide_error_dialogs 1
+# Sin el aviso de Android "Viewing full screen" la primera vez que una app esconde las barras (modo cine):
+# en el móvil sale una vez y ya; aquí taparía las capturas y se comería los toques.
+adb shell settings put secure immersive_mode_confirmations confirmed
 adb shell am start -W -n "$PKG/.MainActivity" --ez depurar_web true --ez red_simulada true
 sleep 8
 sin_avisos
@@ -238,6 +241,19 @@ sed 's/1006/1005/g' "$EJ/respuestas.json" > "$EJ/respuestas-1005.json"
 abrir
 busca_y_toca '^Vídeo$' 500 1400 500 && sleep 10
 paso propia-videos-abierto
+# Modo cine: el vídeo horizontal pasa a ocupar las dos mitades (sin barras del sistema) desde el segundo
+# en que iba. Los controles se esconden solos a los 3 s (la captura -controles es de antes); un toque
+# los enseña y atrás lo devuelve a su mitad.
+toca '^Ver en las dos mitades$' 1104 && sleep 1
+adb exec-out screencap -p > "$OUT/propia-cine-controles.png" 2>/dev/null
+sleep 4
+paso propia-cine
+adb shell input tap 1104 900
+sleep 1
+paso propia-cine-tocado
+adb shell input keyevent 4
+sleep 4
+paso propia-cine-vuelta
 toca 'Ver respuestas' 1104 && sleep 8
 inyectar respuestas-1005 TweetDetail /status/1005 '{"focalTweetId":"1005"}'
 paso propia-videos-respuestas-abierto
