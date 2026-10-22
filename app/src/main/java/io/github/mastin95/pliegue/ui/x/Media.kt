@@ -1,6 +1,7 @@
 package io.github.mastin95.pliegue.ui.x
 
 import android.content.Context
+import android.view.LayoutInflater
 import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -48,6 +49,7 @@ import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import coil.compose.AsyncImage
 import io.github.mastin95.pliegue.AppViewModel
+import io.github.mastin95.pliegue.R
 import io.github.mastin95.pliegue.ui.components.PillButton
 import io.github.mastin95.pliegue.ui.theme.X
 import io.github.mastin95.pliegue.ui.theme.XType
@@ -184,7 +186,7 @@ fun VideoPlayer(url: String, modifier: Modifier = Modifier, play: Boolean = true
     Box(modifier.background(Color.Black), contentAlignment = Alignment.Center) {
         AndroidView(
             factory = { ctx ->
-                PlayerView(ctx).apply {
+                (LayoutInflater.from(ctx).inflate(R.layout.reproductor, null) as PlayerView).apply {
                     useController = controls
                     controllerShowTimeoutMs = 2500
                     setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING)

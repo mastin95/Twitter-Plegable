@@ -284,7 +284,8 @@ fun RealOpen(vm: AppViewModel, screen: ScreenInfo) {
                 OpenToolbar(vm, compact = compact)
             }
         }
-        if (expanded == null) {
+        // Con los vídeos en la mitad derecha, el botón de redactar taparía sus acciones (compartir, guardar).
+        if (expanded == null && !vm.webPanels[1].showsVideos) {
             Fab(
                 onClick = { vm.composeWeb(0) },
                 modifier = Modifier
