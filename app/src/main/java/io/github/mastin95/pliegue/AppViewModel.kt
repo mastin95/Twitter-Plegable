@@ -93,19 +93,23 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         homeTabs["n:$slot"] = tab
     }
 
-    /** Responder desde la interfaz propia: el redactor de X, con la respuesta preparada, al lado o encima. */
-    fun replyFromNative(slot: String, tweetId: String) {
+    /**
+     * Responder desde la interfaz propia: el redactor de X, con la respuesta preparada (y `text` ya
+     * escrito, si lo hay), al lado o encima.
+     */
+    fun replyFromNative(slot: String, tweetId: String, text: String = "") {
+        val url = XWeb.replyUrl(tweetId, text)
         when {
             slot == "pane0" || slot == "pane1" -> {
                 val from = if (slot == "pane0") 0 else 1
                 // Al lado, salvo plegado desde algo abierto o desde los vídeos o con ellos al lado: entonces encima (ver opensBeside).
-                if (beside(from, link = true)) composeWeb(1 - from, replyTo = tweetId) else pushWebPost(from, XWeb.replyUrl(tweetId))
+                if (beside(from, link = true)) composeWeb(1 - from, replyTo = tweetId, text = text) else pushWebPost(from, url)
             }
             slot.startsWith("col:") -> {
                 val side = slot.removePrefix("col:").substringBefore(':').toIntOrNull() ?: 0
-                webColumnPost = (1 - side) to XWeb.replyUrl(tweetId)
+                webColumnPost = (1 - side) to url
             }
-            else -> composeWeb(0, replyTo = tweetId)
+            else -> composeWeb(0, replyTo = tweetId, text = text)
         }
     }
 
@@ -342,8 +346,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /** El redactor de X en una mitad; con `quoting`, el enlace del post fuente ya va en el texto; con `replyTo`, es una respuesta. */
-    fun composeWeb(panel: Int = 0, quoting: String? = null, replyTo: String? = null) {
-        val url = if (replyTo != null) XWeb.replyUrl(replyTo) else XWeb.composeUrl(url = quoting)
+    fun composeWeb(panel: Int = 0, quoting: String? = null, replyTo: String? = null, text: String = "") {
+        val url = if (replyTo != null) XWeb.replyUrl(replyTo, text) else XWeb.composeUrl(url = quoting)
         // Encima de lo que hubiera abierto en esa mitad: al cerrar el redactor se vuelve a ello.
         webPanels = webPanels.toMutableList().also { it[panel] = it[panel].push(url).copy(fromLabel = "Redactar") }
     }
