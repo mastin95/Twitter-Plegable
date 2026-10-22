@@ -106,6 +106,9 @@ video_muestra() {
 if video_muestra; then echo "vídeo de muestra en la carpeta de la app"; else echo "sin vídeo de muestra (el reproductor dará error en las capturas)"; fi
 # Sin los avisos de "no responde" del sistema (el Android virtual va lento y el del lanzador tapa la app).
 adb shell settings put global hide_error_dialogs 1
+# Sin el aviso de Android "Viewing full screen" la primera vez que una app esconde las barras (modo cine):
+# en el móvil sale una vez y ya; aquí taparía las capturas y se comería los toques.
+adb shell settings put secure immersive_mode_confirmations confirmed
 adb shell am start -W -n "$PKG/.MainActivity" --ez depurar_web true --ez red_simulada true
 sleep 8
 sin_avisos
