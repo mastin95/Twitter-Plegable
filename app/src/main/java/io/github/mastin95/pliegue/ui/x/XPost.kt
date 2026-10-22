@@ -21,7 +21,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
@@ -30,7 +34,9 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
@@ -51,6 +57,7 @@ import io.github.mastin95.pliegue.model.XMedia
 import io.github.mastin95.pliegue.model.XMediaKind
 import io.github.mastin95.pliegue.model.XTime
 import io.github.mastin95.pliegue.model.XTweet
+import io.github.mastin95.pliegue.ui.clock
 import io.github.mastin95.pliegue.ui.XIcons
 import io.github.mastin95.pliegue.ui.components.VerifiedBadge
 import io.github.mastin95.pliegue.ui.components.bottomBorder
@@ -134,13 +141,46 @@ private fun sized(url: String, name: String): String = if (url.contains("pbs.twi
 
 @Composable
 private fun MediaBox(m: XMedia, modifier: Modifier, name: String, onOpen: () -> Unit) {
+    // En un feed con los vídeos moviéndose solos, este dice cuánto se ve y se mueve si le toca.
+    val auto = LocalFeedAutoplay.current?.takeIf { m.kind != XMediaKind.Photo && m.video != null }
+    val me = remember { Any() }
+    if (auto != null) DisposableEffect(auto) { onDispose { auto.gone(me) } }
+    val playing = auto != null && auto.current === me
+    val progress = remember { VideoProgress() }
     Box(
         modifier
             .background(X.Card)
+            .then(
+                if (auto == null) Modifier
+                else Modifier.onGloballyPositioned { c ->
+                    val h = c.size.height
+                    if (h > 0) c.boundsInWindow().let { b -> auto.report(me, b.height / h, b.top) }
+                },
+            )
             .clickable(onClickLabel = if (m.kind == XMediaKind.Photo) "Ver la foto" else "Ver el vídeo", onClick = onOpen),
     ) {
         AsyncImage(model = sized(m.url, name), contentDescription = m.alt.ifEmpty { if (m.kind == XMediaKind.Photo) "Imagen" else "Vídeo" }, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
-        if (m.kind != XMediaKind.Photo) {
+        if (playing && m.video != null) {
+            // Sin sonido y en bucle, como en X; tocarlo abre los vídeos en vertical, con sonido.
+            VideoPlayer(m.video, Modifier.fillMaxSize(), loop = true, controls = false, muted = true, progress = progress, preview = true)
+            val left = (progress.duration - progress.position).takeIf { progress.duration > 0 }
+            val label = if (m.kind == XMediaKind.Gif) "GIF" else left?.let(::clock) ?: duration(m.durationMs)
+            if (label.isNotEmpty()) TimeLabel(label, Modifier.align(Alignment.BottomStart))
+            if (m.kind != XMediaKind.Gif) {
+                Box(
+                    Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(8.dp)
+                        .size(26.dp)
+                        .clip(CircleShape)
+                        .background(Color.Black.copy(alpha = 0.7f))
+                        .semantics { contentDescription = "Vídeo sin sonido" },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(XIcons.SoundOff, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                }
+            }
+        } else if (m.kind != XMediaKind.Photo) {
             Box(
                 Modifier
                     .align(Alignment.Center)
@@ -152,20 +192,23 @@ private fun MediaBox(m: XMedia, modifier: Modifier, name: String, onOpen: () -> 
                 Icon(XIcons.Play, contentDescription = null, tint = Color.White, modifier = Modifier.size(28.dp))
             }
             val label = if (m.kind == XMediaKind.Gif) "GIF" else duration(m.durationMs)
-            if (label.isNotEmpty()) {
-                Text(
-                    label,
-                    style = XType.small.copy(color = Color.White, fontWeight = FontWeight.Bold),
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .padding(8.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(Color.Black.copy(alpha = 0.7f))
-                        .padding(horizontal = 6.dp, vertical = 2.dp),
-                )
-            }
+            if (label.isNotEmpty()) TimeLabel(label, Modifier.align(Alignment.BottomStart))
         }
     }
+}
+
+/** La etiqueta de abajo a la izquierda de un vídeo: lo que dura (o lo que le queda) o "GIF". */
+@Composable
+private fun TimeLabel(label: String, modifier: Modifier) {
+    Text(
+        label,
+        style = XType.small.copy(color = Color.White, fontWeight = FontWeight.Bold),
+        modifier = modifier
+            .padding(8.dp)
+            .clip(RoundedCornerShape(4.dp))
+            .background(Color.Black.copy(alpha = 0.7f))
+            .padding(horizontal = 6.dp, vertical = 2.dp),
+    )
 }
 
 private fun duration(ms: Long): String {

@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -33,6 +34,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.semantics.Role
+import io.github.mastin95.pliegue.ui.x.Autoplay
 import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -311,6 +314,11 @@ fun SettingsDialog(vm: AppViewModel) {
                     SwitchRow("Interfaz propia de Pliegue", vm.nativeUi) { vm.updateNativeUi(it) }
                 }
                 item {
+                    Section("Reproducción automática de vídeos")
+                    Text("En los feeds de la interfaz propia, el vídeo o GIF que estás viendo se mueve solo, sin sonido. Al tocarlo se abre con sonido.", style = XType.small)
+                    Autoplay.entries.forEach { a -> ChoiceRow(a.label, vm.autoplay == a) { vm.updateAutoplay(a) } }
+                }
+                item {
                     Section("Limpieza del feed")
                     Text("Vale para todas las webs de X dentro de Pliegue.", style = XType.small)
                     val c = vm.cleanup
@@ -379,6 +387,21 @@ private fun SwitchRow(label: String, on: Boolean, onChange: (Boolean) -> Unit) {
     Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(label, style = XType.body, modifier = Modifier.weight(1f).padding(end = 12.dp))
         Switch(checked = on, onCheckedChange = onChange, colors = SwitchDefaults.colors(checkedTrackColor = X.Blue, checkedThumbColor = Color.White))
+    }
+}
+
+/** Una opción de una lista donde se elige una, con la marca azul de X en la elegida. */
+@Composable
+private fun ChoiceRow(label: String, selected: Boolean, onSelect: () -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .selectable(selected = selected, role = Role.RadioButton, onClick = onSelect)
+            .padding(vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, style = XType.body, modifier = Modifier.weight(1f).padding(end = 12.dp))
+        if (selected) Icon(XIcons.Check, contentDescription = null, tint = X.Blue, modifier = Modifier.size(20.dp))
     }
 }
 
