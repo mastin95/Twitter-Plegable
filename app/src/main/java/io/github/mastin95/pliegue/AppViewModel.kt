@@ -127,6 +127,15 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         homeTabs["n:$slot"] = tab
     }
 
+    /** Pestaña del perfil abierto en cada ranura: 0 Posts, 1 Respuestas, 2 Multimedia. Otro perfil empieza en Posts. */
+    private val profileTabs = mutableStateMapOf<String, Pair<String, Int>>()
+
+    fun profileTab(slot: String, handle: String?): Int = profileTabs[slot]?.takeIf { it.first == handle.orEmpty().lowercase() }?.second ?: 0
+
+    fun setProfileTab(slot: String, handle: String?, tab: Int) {
+        profileTabs[slot] = handle.orEmpty().lowercase() to tab
+    }
+
     /**
      * Responder desde la interfaz propia: el redactor de X, con la respuesta preparada (y `text` ya
      * escrito, si lo hay), al lado o encima.

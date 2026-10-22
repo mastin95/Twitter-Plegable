@@ -7,6 +7,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -63,6 +64,7 @@ import coil.compose.AsyncImage
 import io.github.mastin95.pliegue.AppViewModel
 import io.github.mastin95.pliegue.model.XEntry
 import io.github.mastin95.pliegue.model.XFeed
+import io.github.mastin95.pliegue.model.XMedia
 import io.github.mastin95.pliegue.model.XTweet
 import io.github.mastin95.pliegue.model.XUser
 import io.github.mastin95.pliegue.model.XView
@@ -82,12 +84,15 @@ import kotlinx.coroutines.launch
 /** Las pestañas de Notificaciones de X y el timeline_type con el que pide cada una. */
 val NOTIF_TABS = listOf("Todas" to "All", "Verificadas" to "Verified", "Menciones" to "Mentions")
 
+/** Las pestañas de un perfil y la consulta de X que llena cada una. */
+val PROFILE_TABS = listOf("Posts" to "UserTweets", "Respuestas" to "UserTweetsAndReplies", "Multimedia" to "UserMedia")
+
 fun feedName(view: XView, tab: Int): String = when (view) {
     XView.Home -> if (tab == 1) "HomeLatestTimeline" else "HomeTimeline"
     is XView.Search -> "SearchTimeline"
     XView.Bookmarks -> "Bookmarks"
     XView.Notifications -> "NotificationsTimeline/" + NOTIF_TABS.getOrElse(tab) { NOTIF_TABS[0] }.second
-    is XView.Profile -> "UserTweets"
+    is XView.Profile -> PROFILE_TABS.getOrElse(tab) { PROFILE_TABS[0] }.second
     is XView.Thread -> XParse.THREAD
 }
 
@@ -95,13 +100,17 @@ fun feedName(view: XView, tab: Int): String = when (view) {
  * Un feed de X pintado por la app con lo que la web escondida se descarga. Al llegar al final se
  * pide más; tirando hacia abajo se recarga la web. Si X no manda nada, se ofrece volver a la web.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun XFeedScreen(vm: AppViewModel, slot: String, view: XView, taps: PostTaps, selectedId: String? = null, header: @Composable () -> Unit = {}, onFollow: (XUser) -> Unit = {}) {
     val web = LocalWebPanes.current
     val store = web.store
-    val tabbed = view == XView.Home || view == XView.Notifications
-    val tab = if (view == XView.Notifications) vm.notifTab(slot) else vm.homeTab(slot)
+    val tabbed = view == XView.Home || view == XView.Notifications || view is XView.Profile
+    val tab = when (view) {
+        XView.Notifications -> vm.notifTab(slot)
+        is XView.Profile -> vm.profileTab(slot, view.handle)
+        else -> vm.homeTab(slot)
+    }
     val name = feedName(view, tab)
     // Si X pidiera las notificaciones sin decir la pestaña, valen igual.
     val feed = store.feed(slot, name) ?: if (view == XView.Notifications) store.feed(slot, "NotificationsTimeline") else null
@@ -117,11 +126,12 @@ fun XFeedScreen(vm: AppViewModel, slot: String, view: XView, taps: PostTaps, sel
             refreshing = false
         }
     }
-    // Inicio en "Siguiendo" o Notificaciones en "Menciones": la web tiene que estar en esa pestaña para cargar ese feed.
+    // Inicio en "Siguiendo", Notificaciones en "Menciones" o un perfil en "Multimedia": la web tiene que estar en
+    // esa pestaña para cargar ese feed.
     if (tabbed) {
         LaunchedEffect(slot, tab, web.urls[slot]) {
             delay(1200)
-            web.homeTab(slot, tab)
+            if (view is XView.Profile) web.profileTab(slot, tab) else web.homeTab(slot, tab)
         }
     }
     // Inicio: de vez en cuando se mira si la web de X avisa de posts nuevos (y se pulsa su aviso).
@@ -155,17 +165,35 @@ fun XFeedScreen(vm: AppViewModel, slot: String, view: XView, taps: PostTaps, sel
             },
             modifier = Modifier.weight(1f).fillMaxWidth(),
         ) {
+            // Un perfil en Respuestas o Multimedia sigue enseñando su cabecera y sus pestañas mientras X manda esa lista.
+            val profileTab = view is XView.Profile && tab > 0
+            val mediaGrid: (@Composable (List<Pair<XTweet, XMedia>>) -> Unit)? =
+                if (view is XView.Profile && tab == 2) { { cells -> MediaGridRow(cells, taps.onMedia) } } else null
             when {
-                feed == null || feed.pages == 0 -> Waiting(vm, slot)
-                feed.entries.isEmpty() && feed.pinned == null -> Empty(view)
+                (feed == null || feed.pages == 0) && !profileTab -> Waiting(vm, slot)
+                feed != null && feed.entries.isEmpty() && feed.pinned == null && view !is XView.Profile -> Empty(view)
                 else -> XFeedList(
-                    feed,
+                    feed ?: XFeed(),
                     state,
                     onEnd = { web.loadMore(slot) },
                     autoplay = autoplay,
+                    grid = mediaGrid,
                     header = {
-                        if (view is XView.Profile) item("perfil") { ProfileHeader(profileOf(view, feed, store.user(view.handle)), onFollow) }
-                        feed.pinned?.let { p -> item("pinned") { XPostCard(p, now, taps, selected = p.id == selectedId) } }
+                        if (view is XView.Profile) {
+                            item("perfil") { ProfileHeader(profileOf(view, feed ?: XFeed(), store.user(view.handle)), onFollow) }
+                            stickyHeader("pestañas") {
+                                Box(Modifier.fillMaxWidth().background(X.Bg)) {
+                                    XTabs(PROFILE_TABS.map { it.first }, tab) { i ->
+                                        vm.setProfileTab(slot, view.handle, i)
+                                        web.profileTab(slot, i)
+                                    }
+                                }
+                            }
+                            if (feed != null && feed.pages > 0 && feed.entries.isEmpty() && (tab > 0 || feed.pinned == null)) {
+                                item("vacío") { EmptyTab(view, tab) }
+                            }
+                        }
+                        if (tab == 0 || view !is XView.Profile) feed?.pinned?.let { p -> item("pinned") { XPostCard(p, now, taps, selected = p.id == selectedId) } }
                     },
                 ) { entry ->
                     val note = entry.note
@@ -255,6 +283,7 @@ fun XFeedList(
     state: LazyListState,
     onEnd: () -> Unit,
     autoplay: Boolean = false,
+    grid: (@Composable (List<Pair<XTweet, XMedia>>) -> Unit)? = null,
     header: LazyListScope.() -> Unit = {},
     item: @Composable (XEntry) -> Unit,
 ) {
@@ -274,13 +303,19 @@ fun XFeedList(
             delay(4000)
         }
     }
+    // La cuadrícula de Multimedia: la primera foto o vídeo de cada post, de tres en tres.
+    val rows = remember(feed.entries, grid != null) {
+        if (grid == null) emptyList() else feed.tweets.mapNotNull { t -> t.media.firstOrNull()?.let { t to it } }.chunked(3)
+    }
     // Con los vídeos moviéndose solos, uno a la vez: el de más arriba de los que se ven a medias.
     val auto = remember { FeedAutoplay() }
     CompositionLocalProvider(LocalFeedAutoplay provides auto.takeIf { autoplay }) {
         LazyColumn(state = state, modifier = Modifier.fillMaxSize()) {
             header()
-            items(feed.entries, key = { it.id }) { item(it) }
-            item("fin") {
+            if (grid != null) items(rows, key = { "fila-" + it[0].first.id }) { grid(it) }
+            else items(feed.entries, key = { it.id }) { item(it) }
+            // Una lista que llegó vacía no lleva rueda ni "No hay más": lo dice su cabecera.
+            if (feed.pages == 0 || feed.entries.isNotEmpty()) item("fin") {
                 Box(Modifier.fillMaxWidth().height(if (feed.exhausted) 120.dp else 96.dp), contentAlignment = Alignment.TopCenter) {
                     if (!feed.exhausted) CircularProgressIndicator(color = X.Blue, strokeWidth = 2.dp, modifier = Modifier.padding(top = 24.dp).size(24.dp))
                     else Text("No hay más", style = XType.small, modifier = Modifier.padding(top = 24.dp))
@@ -400,6 +435,27 @@ fun Waiting(vm: AppViewModel, slot: String) {
                 }
             }
         }
+    }
+}
+
+/** Una pestaña de un perfil que X mandó vacía, con las frases de X. */
+@Composable
+private fun EmptyTab(view: XView.Profile, tab: Int) {
+    val who = view.handle?.let { "@$it" } ?: "Esta cuenta"
+    Column(Modifier.fillMaxWidth().padding(horizontal = 32.dp, vertical = 40.dp)) {
+        Text(
+            when (tab) {
+                1 -> "$who no ha respondido a nadie"
+                2 -> "$who no ha publicado fotos ni vídeos"
+                else -> "$who no ha posteado nada"
+            },
+            style = XType.title,
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            if (tab == 2) "Cuando lo haga, sus fotos y vídeos aparecerán aquí." else "Cuando lo haga, aparecerá aquí.",
+            style = XType.secondary,
+        )
     }
 }
 

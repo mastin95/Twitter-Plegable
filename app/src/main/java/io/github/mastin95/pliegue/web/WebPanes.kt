@@ -272,6 +272,11 @@ class WebPanes(
         }
     }
 
+    /** Pestaña de un perfil en la web (0 Posts, 1 Respuestas, 2 Multimedia), para que cargue esa lista. */
+    fun profileTab(slot: String, index: Int) {
+        slots[slot]?.evaluateJavascript("window.__pliegue&&window.__pliegue.ptab&&window.__pliegue.ptab($index)", null)
+    }
+
     /** Pestaña de Inicio de la web (0 "Para ti", 1 "Siguiendo"), para que cargue ese feed. */
     fun homeTab(slot: String, index: Int) {
         slots[slot]?.evaluateJavascript("window.__pliegue&&window.__pliegue.tab&&window.__pliegue.tab($index)", null)
