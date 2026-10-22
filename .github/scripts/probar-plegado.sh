@@ -178,11 +178,11 @@ sleep 8
 paso propia-videos-2
 # Respuestas desde los vídeos, plegado: en la misma pantalla, el vídeo sube y debajo salen sus respuestas
 # (las carga una web escondida que abre el post; aquí se le inyecta una conversación de ejemplo del GIF).
-# Atrás las cierra y el vídeo (el segundo) vuelve a ocupar todo.
+# Tocar el vídeo las cierra (sin pararlo) y el vídeo (el segundo) vuelve a ocupar todo.
 toca 'Ver respuestas' && sleep 8
 inyectar respuestas TweetDetail /status/1006 '{"focalTweetId":"1006"}'
 paso propia-videos-respuestas
-adb shell input keyevent 4
+adb shell input tap 540 600
 sleep 5
 paso propia-videos-vuelta
 adb shell input keyevent 4

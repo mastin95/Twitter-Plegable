@@ -38,6 +38,7 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -124,6 +125,7 @@ fun XVideosScreen(vm: AppViewModel, slot: String, url: String, modifier: Modifie
                                 play = pager.settledPage == page,
                                 overlay = repliesFor == null,
                                 onReplies = { vm.openVideoReplies(slot, XWeb.videosUrl(it.id, source, replies = true)) },
+                                onCloseReplies = { vm.closeVideoReplies(slot) },
                             )
                         }
                     }
@@ -374,15 +376,18 @@ private fun ReplyField(avatar: String, onReply: () -> Unit) {
  * derecha. Sin `overlay` (con las respuestas abiertas debajo), solo el vídeo.
  */
 @Composable
-private fun VideoPage(t: XTweet, taps: PostTaps, play: Boolean, overlay: Boolean, onReplies: (XTweet) -> Unit) {
+private fun VideoPage(t: XTweet, taps: PostTaps, play: Boolean, overlay: Boolean, onReplies: (XTweet) -> Unit, onCloseReplies: () -> Unit) {
     val m = t.video ?: return
     val src = m.video ?: return
     var paused by remember(t.id) { mutableStateOf(false) }
+    val closeReplies by rememberUpdatedState(onCloseReplies)
     Box(
         Modifier
             .fillMaxSize()
             .background(Color.Black)
-            .pointerInput(t.id) { detectTapGestures(onTap = { paused = !paused }) },
+            // Un toque para o sigue el vídeo; con las respuestas abiertas (sin `overlay`) las cierra y el
+            // vídeo sigue como iba (Martin, 2026-10-22).
+            .pointerInput(t.id, overlay) { detectTapGestures(onTap = { if (overlay) paused = !paused else closeReplies() }) },
     ) {
         VideoPlayer(src + (if (m.kind == XMediaKind.Gif) XWeb.GIF else XWeb.VIDEO), Modifier.fillMaxSize(), play = play && !paused, loop = true, controls = false)
         if (paused) {
