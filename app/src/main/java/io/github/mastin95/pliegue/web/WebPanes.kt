@@ -264,6 +264,14 @@ class WebPanes(
         slots[slot]?.evaluateJavascript("window.__pliegue&&window.__pliegue.more?window.__pliegue.more():'sin puente'") { v -> log("[$slot] pido la página siguiente: web de ${v ?: "?"} px") }
     }
 
+    /** Inicio en la interfaz propia: si la web escondida avisa de posts nuevos, se pulsa su aviso para que X los mande. */
+    fun fresh(slot: String) {
+        slots[slot]?.evaluateJavascript("window.__pliegue&&window.__pliegue.fresh?window.__pliegue.fresh():''") { v ->
+            val what = runCatching { org.json.JSONTokener(v).nextValue() as? String }.getOrNull().orEmpty()
+            if (what.isNotEmpty()) log("[$slot] X avisa de posts nuevos (\"$what\"): lo pulso")
+        }
+    }
+
     /** Pestaña de Inicio de la web (0 "Para ti", 1 "Siguiendo"), para que cargue ese feed. */
     fun homeTab(slot: String, index: Int) {
         slots[slot]?.evaluateJavascript("window.__pliegue&&window.__pliegue.tab&&window.__pliegue.tab($index)", null)

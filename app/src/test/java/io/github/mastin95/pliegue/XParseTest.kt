@@ -138,6 +138,10 @@ class XParseTest {
         assertEquals("tweet-1010", arriba.entries.first().id)
         assertEquals("CURSOR-TOP-2", arriba.cursorTop)
         assertEquals("CURSOR-BOTTOM-1", arriba.cursorBottom)
+        // Posts nuevos de tres cuentas mientras se lee más abajo: van delante, para la píldora "Posts nuevos".
+        val nuevos = XFeed().merge(XParse.timeline(fixture("home"))!!, null, now).merge(XParse.timeline(fixture("home-nuevos"))!!, "CURSOR-TOP-1", now + 4)
+        assertEquals(listOf("1040", "1041", "1042"), nuevos.tweets.take(3).map { it.id })
+        assertEquals(listOf("nerea_a", "lucia", "dgarcia"), nuevos.tweets.take(3).map { it.author.handle })
         // Sin cursor, se empieza de cero.
         assertEquals(2, feed.merge(XParse.timeline(fixture("home2"))!!, null, now + 4).entries.size)
     }
