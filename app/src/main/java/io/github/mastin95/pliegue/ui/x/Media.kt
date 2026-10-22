@@ -161,7 +161,8 @@ class VideoProgress {
  * Vídeos y GIF de X con reproductor propio (ExoPlayer): los GIF van en bucle, sin sonido ni controles.
  * `play` lo arranca y lo para desde fuera (la pantalla de vídeos para el que no está a la vista);
  * `loop` y `controls` cambian lo que toca por defecto según sea vídeo o GIF. `muted` quita el sonido
- * (y entonces no para la música de otra app), `speed` lo acelera y `progress` recibe por dónde va.
+ * (y entonces no para la música de otra app), `speed` lo acelera, `progress` recibe por dónde va y
+ * `startAt` es el milisegundo por el que empieza.
  */
 @androidx.annotation.OptIn(UnstableApi::class)
 @Composable
@@ -174,6 +175,7 @@ fun VideoPlayer(
     muted: Boolean = false,
     speed: Float = 1f,
     progress: VideoProgress? = null,
+    startAt: Long = 0L,
 ) {
     val context = LocalContext.current
     val web = LocalWebPanes.current
@@ -186,7 +188,7 @@ fun VideoPlayer(
             setAudioAttributes(AudioAttributes.DEFAULT, !gif && !muted)
             if (gif || muted) volume = 0f
             if (loop) repeatMode = Player.REPEAT_MODE_ONE
-            setMediaItem(MediaItem.fromUri(src))
+            setMediaItem(MediaItem.fromUri(src), startAt)
             prepare()
             playWhenReady = play
         }

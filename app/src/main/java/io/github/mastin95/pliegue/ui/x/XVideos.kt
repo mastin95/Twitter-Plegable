@@ -1,5 +1,7 @@
 package io.github.mastin95.pliegue.ui.x
 
+import android.app.Activity
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateDpAsState
@@ -38,6 +40,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -63,6 +66,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -71,7 +75,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import io.github.mastin95.pliegue.AppViewModel
+import io.github.mastin95.pliegue.Posture
 import io.github.mastin95.pliegue.model.XMediaKind
 import io.github.mastin95.pliegue.model.XTime
 import io.github.mastin95.pliegue.model.XTweet
@@ -130,6 +138,8 @@ fun XVideosScreen(vm: AppViewModel, slot: String, url: String, modifier: Modifie
                     videos.getOrNull(pager.settledPage)?.let { vm.moveWithin(slot, XWeb.videosUrl(it.id, source, withReplies)) }
                 }
                 val repliesFor = if (withReplies) videos.firstOrNull { it.id == XWeb.statusId(url) } else null
+                // El modo cine, solo con el móvil abierto y en una de sus dos mitades.
+                val cinema = vm.posture == Posture.Abierto && (slot == "pane0" || slot == "pane1")
                 // Con las respuestas abiertas el vídeo sube y se queda arriba, a su proporción (sin pasar de algo
                 // menos de la mitad de la pantalla), y la hoja de respuestas sale de abajo y se monta un poco
                 // sobre él con sus esquinas redondeadas, como una sola pantalla.
@@ -145,12 +155,16 @@ fun XVideosScreen(vm: AppViewModel, slot: String, url: String, modifier: Modifie
                             VideoPage(
                                 videos[page],
                                 taps,
-                                play = pager.settledPage == page,
+                                // Mientras está en modo cine, el de su mitad espera parado.
+                                play = pager.settledPage == page && vm.cinema == null,
                                 overlay = repliesFor == null,
                                 muted = vm.videoMuted,
                                 onMute = vm::updateVideoMuted,
                                 onReplies = { vm.openVideoReplies(slot, XWeb.videosUrl(it.id, source, replies = true)) },
                                 onCloseReplies = { vm.closeVideoReplies(slot) },
+                                onCinema = if (cinema) vm::openCinema else null,
+                                resumeAt = vm.cinemaEnd?.takeIf { it.first == videos[page].id }?.second,
+                                onResumed = vm::cinemaResumed,
                             )
                         }
                     }
@@ -480,13 +494,24 @@ private fun VideoPage(
     onMute: (Boolean) -> Unit,
     onReplies: (XTweet) -> Unit,
     onCloseReplies: () -> Unit,
+    onCinema: ((XTweet, String, Long) -> Unit)? = null,
+    resumeAt: Long? = null,
+    onResumed: () -> Unit = {},
 ) {
     val m = t.video ?: return
     val src = m.video ?: return
     val gif = m.kind == XMediaKind.Gif
+    val full = src + (if (gif) XWeb.GIF else XWeb.VIDEO)
     var paused by remember(t.id) { mutableStateOf(false) }
     var fast by remember(t.id) { mutableStateOf(false) }
     val progress = remember(t.id) { VideoProgress() }
+    // Al volver del modo cine sigue en el segundo en que se dejó allí.
+    LaunchedEffect(resumeAt) {
+        if (resumeAt != null) {
+            progress.seekTo(resumeAt)
+            onResumed()
+        }
+    }
     val hearts = remember(t.id) { mutableStateListOf<Pair<Int, Offset>>() }
     var nextHeart by remember(t.id) { mutableIntStateOf(0) }
     val closeReplies by rememberUpdatedState(onCloseReplies)
@@ -519,7 +544,7 @@ private fun VideoPage(
             },
     ) {
         VideoPlayer(
-            src + (if (gif) XWeb.GIF else XWeb.VIDEO),
+            full,
             Modifier.fillMaxSize(),
             play = play && !paused,
             loop = true,
@@ -545,13 +570,10 @@ private fun VideoPage(
             }
         }
         if (overlay) {
-            if (!gif) {
-                IconButton(
-                    onClick = { onMute(!muted) },
-                    modifier = Modifier.align(Alignment.TopEnd).padding(top = 8.dp, end = 8.dp).size(40.dp).clip(CircleShape).background(Color.Black.copy(alpha = 0.45f)),
-                ) {
-                    Icon(if (muted) XIcons.SoundOff else XIcons.Sound, contentDescription = if (muted) "Poner el sonido" else "Quitar el sonido", tint = Color.White, modifier = Modifier.size(22.dp))
-                }
+            Row(Modifier.align(Alignment.TopEnd).padding(top = 8.dp, end = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                // Un vídeo horizontal, con el móvil abierto, se puede ver en las dos mitades (modo cine).
+                if (onCinema != null && m.width > m.height) RoundIcon(XIcons.Expand, "Ver en las dos mitades") { onCinema(t, full, progress.position) }
+                if (!gif) RoundIcon(if (muted) XIcons.SoundOff else XIcons.Sound, if (muted) "Poner el sonido" else "Quitar el sonido") { onMute(!muted) }
             }
             // Un degradado abajo para leer sobre el vídeo.
             Box(Modifier.fillMaxWidth().height(260.dp).align(Alignment.BottomCenter).background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.75f)))))
@@ -597,7 +619,7 @@ private fun VideoPage(
  * Se toca o se arrastra para ir a otro punto; mientras se arrastra crece y el tiempo sigue al dedo.
  */
 @Composable
-private fun VideoBar(progress: VideoProgress, modifier: Modifier = Modifier) {
+private fun VideoBar(progress: VideoProgress, modifier: Modifier = Modifier, onTouch: () -> Unit = {}) {
     val duration = progress.duration
     var drag by remember { mutableStateOf<Float?>(null) }
     if (duration <= 0L) return
@@ -610,10 +632,18 @@ private fun VideoBar(progress: VideoProgress, modifier: Modifier = Modifier) {
                 .fillMaxWidth()
                 .height(22.dp)
                 .semantics { contentDescription = "Barra del vídeo" }
-                .pointerInput(duration) { detectTapGestures(onTap = { o -> seek((o.x / size.width).coerceIn(0f, 1f)) }) }
+                .pointerInput(duration) {
+                    detectTapGestures(onTap = { o ->
+                        onTouch()
+                        seek((o.x / size.width).coerceIn(0f, 1f))
+                    })
+                }
                 .pointerInput(duration) {
                     detectHorizontalDragGestures(
-                        onDragStart = { o -> drag = (o.x / size.width).coerceIn(0f, 1f) },
+                        onDragStart = { o ->
+                            onTouch()
+                            drag = (o.x / size.width).coerceIn(0f, 1f)
+                        },
                         onDragEnd = {
                             drag?.let(seek)
                             drag = null
@@ -671,6 +701,92 @@ private fun HeartBurst(at: Offset, onDone: () -> Unit) {
                 alpha = if (p < 0.55f) 1f else 1f - (p - 0.55f) / 0.45f
             },
     )
+}
+
+/** Un botón redondo y oscuro sobre el vídeo (sonido, modo cine). */
+@Composable
+private fun RoundIcon(icon: ImageVector, label: String, onClick: () -> Unit) {
+    IconButton(onClick = onClick, modifier = Modifier.size(40.dp).clip(CircleShape).background(Color.Black.copy(alpha = 0.45f))) {
+        Icon(icon, contentDescription = label, tint = Color.White, modifier = Modifier.size(22.dp))
+    }
+}
+
+/**
+ * Modo cine: con el móvil abierto, un vídeo horizontal ocupa las dos mitades enteras, sin las barras
+ * del sistema, desde el segundo en que iba. Atrás o "Volver a media pantalla" lo devuelven a su mitad
+ * en el mismo segundo (y al plegar el móvil, también). Un toque enseña los controles, que se esconden
+ * solos a los 3 s; con ellos a la vista, un toque lo para o lo sigue.
+ */
+@Composable
+fun CinemaScreen(vm: AppViewModel, c: AppViewModel.Cinema) {
+    val progress = remember(c) { VideoProgress() }
+    var paused by remember(c) { mutableStateOf(false) }
+    var controls by remember(c) { mutableStateOf(true) }
+    var touched by remember(c) { mutableIntStateOf(0) }
+    val exit = { vm.closeCinema(progress.position.takeIf { it > 0 } ?: c.startAt) }
+    BackHandler(onBack = exit)
+    LaunchedEffect(vm.posture) { if (vm.posture != Posture.Abierto) exit() }
+    LaunchedEffect(controls, paused, touched) {
+        if (controls && !paused) {
+            delay(3_000)
+            controls = false
+        }
+    }
+    val view = LocalView.current
+    DisposableEffect(view) {
+        val bars = (view.context as? Activity)?.window?.let { WindowCompat.getInsetsController(it, view) }
+        bars?.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        bars?.hide(WindowInsetsCompat.Type.systemBars())
+        onDispose { bars?.show(WindowInsetsCompat.Type.systemBars()) }
+    }
+    val t = c.tweet
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+            .pointerInput(c) {
+                detectTapGestures(onTap = {
+                    if (controls) paused = !paused else controls = true
+                    touched++
+                })
+            },
+    ) {
+        VideoPlayer(c.src, Modifier.fillMaxSize(), play = !paused, loop = true, controls = false, muted = vm.videoMuted, progress = progress, startAt = c.startAt)
+        if (paused) {
+            Icon(XIcons.Play, contentDescription = "Reproducir", tint = Color.White.copy(alpha = 0.9f), modifier = Modifier.size(72.dp).align(Alignment.Center))
+        }
+        if (controls || paused) {
+            Box(Modifier.fillMaxWidth().height(120.dp).align(Alignment.TopCenter).background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.6f), Color.Transparent))))
+            Box(Modifier.fillMaxWidth().height(160.dp).align(Alignment.BottomCenter).background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f)))))
+            PillButton(
+                "Volver a media pantalla",
+                onClick = exit,
+                modifier = Modifier.align(Alignment.TopStart).padding(16.dp),
+                background = Color.Black.copy(alpha = 0.55f),
+                content = Color.White,
+                border = Color.White.copy(alpha = 0.3f),
+                height = 36.dp,
+                icon = XIcons.Collapse,
+            )
+            if (t.video?.kind != XMediaKind.Gif) {
+                Box(Modifier.align(Alignment.TopEnd).padding(16.dp)) {
+                    RoundIcon(if (vm.videoMuted) XIcons.SoundOff else XIcons.Sound, if (vm.videoMuted) "Poner el sonido" else "Quitar el sonido") {
+                        vm.updateVideoMuted(!vm.videoMuted)
+                        touched++
+                    }
+                }
+            }
+            Column(Modifier.fillMaxWidth().align(Alignment.BottomStart).padding(horizontal = 24.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    XAvatar(t.author.avatar, 32.dp)
+                    Text(t.author.name, style = XType.name.copy(color = Color.White), maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                    if (t.author.verified) VerifiedBadge(16.dp)
+                    Text("@${t.author.handle}", style = XType.small.copy(color = Color.White.copy(alpha = 0.8f)), maxLines = 1)
+                }
+                VideoBar(progress, Modifier.fillMaxWidth(), onTouch = { touched++ })
+            }
+        }
+    }
 }
 
 @Composable

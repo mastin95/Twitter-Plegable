@@ -238,6 +238,19 @@ sed 's/1006/1005/g' "$EJ/respuestas.json" > "$EJ/respuestas-1005.json"
 abrir
 busca_y_toca '^Vídeo$' 500 1400 500 && sleep 10
 paso propia-videos-abierto
+# Modo cine: el vídeo horizontal pasa a ocupar las dos mitades (sin barras del sistema) desde el segundo
+# en que iba. Los controles se esconden solos a los 3 s (la captura -controles es de antes); un toque
+# los enseña y atrás lo devuelve a su mitad.
+toca '^Ver en las dos mitades$' 1104 && sleep 1
+adb exec-out screencap -p > "$OUT/propia-cine-controles.png" 2>/dev/null
+sleep 4
+paso propia-cine
+adb shell input tap 1104 900
+sleep 1
+paso propia-cine-tocado
+adb shell input keyevent 4
+sleep 4
+paso propia-cine-vuelta
 toca 'Ver respuestas' 1104 && sleep 8
 inyectar respuestas-1005 TweetDetail /status/1005 '{"focalTweetId":"1005"}'
 paso propia-videos-respuestas-abierto
