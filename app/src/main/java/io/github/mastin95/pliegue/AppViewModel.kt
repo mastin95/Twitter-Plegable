@@ -89,7 +89,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         when {
             slot == "pane0" || slot == "pane1" -> {
                 val from = if (slot == "pane0") 0 else 1
-                // Al lado, salvo plegado desde algo abierto o con los vídeos al lado: entonces encima (ver opensBeside).
+                // Al lado, salvo plegado desde algo abierto o desde los vídeos o con ellos al lado: entonces encima (ver opensBeside).
                 if (beside(from, link = true)) composeWeb(1 - from, replyTo = tweetId) else pushWebPost(from, XWeb.replyUrl(tweetId))
             }
             slot.startsWith("col:") -> {
@@ -275,6 +275,29 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     /** Atrás en una mitad: lo que había antes en ella; con `all` (el botón de la fuente), o si no había nada, su fuente. */
     fun closeWebPost(panel: Int, all: Boolean = false) {
         webPanels = webPanels.toMutableList().also { it[panel] = if (all) it[panel].closed() else it[panel].back() }
+    }
+
+    /**
+     * Las respuestas del vídeo que se ve, en la misma pantalla: el vídeo sube y debajo salen sus
+     * respuestas. Es un paso más de la mitad, así que atrás las cierra y deja el vídeo como estaba.
+     */
+    fun openVideoReplies(slot: String, url: String) {
+        when (slot) {
+            "pane0" -> pushWebPost(0, url)
+            "pane1" -> pushWebPost(1, url)
+            "colpost" -> webColumnPost = webColumnPost?.copy(second = url)
+        }
+    }
+
+    /** Cierra las respuestas de la pantalla de vídeos (la equis de su cabecera): el vídeo vuelve a ocupar todo. */
+    fun closeVideoReplies(slot: String) {
+        when (slot) {
+            "pane0", "pane1" -> {
+                val panel = if (slot == "pane0") 0 else 1
+                if (webPanels[panel].openUrl?.let(XWeb::showsReplies) == true) closeWebPost(panel)
+            }
+            "colpost" -> webColumnPost = webColumnPost?.let { it.copy(second = it.second.removeSuffix(XWeb.REPLIES)) }
+        }
     }
 
     /** La pantalla de vídeos cambia de vídeo: la dirección abierta sigue al que se ve (al volver de un post se sigue por él), sin tocar el historial. */

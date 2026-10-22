@@ -176,23 +176,35 @@ paso propia-videos
 desliza 500 1500 300
 sleep 8
 paso propia-videos-2
-# Comentarios desde los vídeos, plegado: el post se abre encima y atrás vuelve al mismo vídeo (el segundo).
+# Respuestas desde los vídeos, plegado: en la misma pantalla, el vídeo sube y debajo salen sus respuestas
+# (las carga una web escondida que abre el post; aquí se le inyecta una conversación de ejemplo del GIF).
+# Atrás las cierra y el vídeo (el segundo) vuelve a ocupar todo.
 toca 'Ver respuestas' && sleep 8
-paso propia-videos-post
+inyectar respuestas TweetDetail /status/1006 '{"focalTweetId":"1006"}'
+paso propia-videos-respuestas
 adb shell input keyevent 4
 sleep 5
 paso propia-videos-vuelta
 adb shell input keyevent 4
 sleep 3
-# Abierto: la mitad de los vídeos es el reproductor y el post se abre al lado, con el vídeo siguiendo.
+# Abierto: los vídeos en la mitad derecha y sus respuestas también ahí, debajo del vídeo; la izquierda no
+# cambia. Una respuesta tocada se abre encima en esa misma mitad; atrás vuelve al vídeo con sus
+# respuestas y la equis las cierra. La conversación de ejemplo, ahora del primer vídeo (1005).
+sed 's/1006/1005/g' "$EJ/respuestas.json" > "$EJ/respuestas-1005.json"
 abrir
 busca_y_toca '^Vídeo$' 500 1400 500 && sleep 10
 paso propia-videos-abierto
-toca 'Usaríais un plegable' 1104 && sleep 8
-paso propia-videos-al-lado
-plegar
+toca 'Ver respuestas' 1104 && sleep 8
+inyectar respuestas-1005 TweetDetail /status/1005 '{"focalTweetId":"1005"}'
+paso propia-videos-respuestas-abierto
+toca 'Me ha pasado igual' 1104 && sleep 6
+paso propia-videos-respuesta-encima
 adb shell input keyevent 4
-sleep 3
+sleep 5
+paso propia-videos-respuestas-vuelta
+toca 'Cerrar respuestas' 1104 && sleep 4
+paso propia-videos-sin-respuestas
+plegar
 adb shell input keyevent 4
 sleep 3
 

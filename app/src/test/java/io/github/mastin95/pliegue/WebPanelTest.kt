@@ -40,15 +40,32 @@ class WebPanelTest {
         // Plegado, desde algo abierto, encima (también desde los vídeos).
         assertFalse(opensBeside(open, feed, folded = true, link = true))
         assertFalse(opensBeside(reel, feed, folded = true))
-        // Desde los vídeos con el móvil abierto, al lado: el vídeo sigue.
-        assertTrue(opensBeside(reel, feed, folded = false))
-        assertTrue(opensBeside(reel, open, folded = false, link = true))
+        // Desde los vídeos con el móvil abierto, también en la misma mitad (las respuestas van debajo del vídeo).
+        assertFalse(opensBeside(reel, feed, folded = false))
+        assertFalse(opensBeside(reel, open, folded = false, link = true))
         // Con los vídeos al lado, encima: no se pisa el reproductor (ni para responder ni para una foto).
         assertFalse(opensBeside(open, reel, folded = false))
         assertFalse(opensBeside(open, reel, folded = false, link = true))
         // Si no, posts y cuentas encima; respuestas, fotos y enlaces al lado.
         assertFalse(opensBeside(open, feed, folded = false))
         assertTrue(opensBeside(open, feed, folded = false, link = true))
+    }
+
+    @Test
+    fun `las respuestas de un vídeo son un paso más de la mitad y atrás las cierra`() {
+        val withReplies = XWeb.videosUrl("1", "pane0/HomeTimeline", replies = true)
+        assertTrue(XWeb.isVideos(withReplies))
+        assertTrue(XWeb.showsReplies(withReplies))
+        assertFalse(XWeb.showsReplies(videos))
+        assertEquals("pane0/HomeTimeline", XWeb.videosSource(withReplies))
+        assertEquals("1", XWeb.statusId(withReplies))
+        val p = WebPanel(Source.Inicio).push(videos).push(withReplies).push(XWeb.replyUrl("1"))
+        assertEquals(withReplies, p.back().openUrl)
+        assertEquals(videos, p.back().back().openUrl)
+        assertTrue(p.back().showsVideos)
+        // La web escondida de las respuestas no es una mitad: atrás no la toca.
+        assertTrue(XWeb.isHiddenSlot(XWeb.repliesSlot("pane1")))
+        assertFalse(XWeb.isHiddenSlot("pane1"))
     }
 
     @Test
