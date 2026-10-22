@@ -174,6 +174,7 @@ class XParseTest {
         val page = XParse.thread(fixture("respuestas"), "1006")!!
         assertEquals("1006", page.focal!!.id)
         assertEquals(listOf("1021", "1022", "1023"), page.replies.flatMap { it.tweets }.map { it.id })
+        assertEquals("Me ha pasado igual esta mañana", page.replies[0].tweets[0].text)
     }
 
     @Test
