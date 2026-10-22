@@ -130,6 +130,17 @@ paso plegado-tercera-vez
 # Interfaz propia: Inicio con posts de ejemplo, plegado y abierto; un post tocado se abre al otro lado.
 inyectar home HomeTimeline /home
 paso propia-plegado
+# Posts nuevos (Martin, 2026-10-22): leyendo más abajo en Inicio, X avisa de que hay posts nuevos. Aquí X no
+# avisa, así que en su web se monta una píldora falsa como la suya; la app la pulsa sola (mira cada 20 s) y
+# llegan tres posts por arriba (home-nuevos.json). La lista no salta y sale la píldora azul con tres caras;
+# al tocarla se sube hasta ellos y la píldora se va.
+desliza 500 1500 700
+{ printf 'window.__nuevos = '; cat "$EJ/home-nuevos.json"; printf ';\n'; cat .github/scripts/aviso-falso.js; } > /tmp/aviso-falso.js
+devtools && python3 .github/scripts/cdp.py evaluar 9222 /home /tmp/aviso-falso.js
+sleep 25
+paso propia-posts-nuevos
+toca '^Ver posts nuevos$' && sleep 3
+paso propia-posts-nuevos-arriba
 abrir
 inyectar home2 HomeTimeline /home '{"cursor":"CURSOR-BOTTOM-1"}'
 paso propia-abierto

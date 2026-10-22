@@ -525,6 +525,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     /** El scroll de un feed de la interfaz propia (ranura y consulta), para no perderlo al plegar. */
     fun feedState(key: String): LazyListState = listStates.getOrPut("x:$key") { LazyListState() }
 
+    /** Por feed ("ranura/consulta"), el post más alto que se ha llegado a ver: lo que X pone encima es nuevo. */
+    val seenTop = mutableStateMapOf<String, String>()
+
     fun post(id: String): Post? = myPosts.firstOrNull { it.id == id } ?: SampleData.posts[id]
 
     fun feedPosts(feed: FeedId): List<Post> {

@@ -584,6 +584,20 @@ object XWeb {
             if (tabs[i].getAttribute('aria-selected') !== 'true') tabs[i].click();
             return true;
           };
+          // Posts nuevos en Inicio: cuando X avisa (su píldora azul, o "Ver N posts" encima de la lista) la app
+          // pulsa el aviso, como haría quien lee, para que X los mande; la interfaz propia los pone arriba.
+          P.fresh = function(){
+            if (location.pathname !== '/home') return '';
+            var b = document.querySelector('[role="button"][aria-label*="period key" i],[role="button"][aria-label*="New posts" i],[role="button"][aria-label*="posts nuevos" i],[role="button"][aria-label*="nuevos posts" i],[role="button"][aria-label*="tecla" i][aria-label*="punto" i]');
+            if (!b) {
+              var bs = document.querySelectorAll('[data-testid="cellInnerDiv"] [role="button"]');
+              for (var i = 0; i < bs.length && !b; i++) if (/^(Show|Mostrar|Ver) [0-9.,]+ (posts?|tweets?)$/i.test((bs[i].innerText || '').trim())) b = bs[i];
+            }
+            if (!b) return '';
+            var t = (b.getAttribute('aria-label') || b.innerText || '').trim().slice(0, 80);
+            b.click();
+            return t || 'aviso';
+          };
           window.__pliegue = P;
           P.style = function(){
             // Al empezar a cargar puede no haber documento todavía: entonces se pone al terminar de leerlo.

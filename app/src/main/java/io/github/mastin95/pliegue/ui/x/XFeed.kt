@@ -1,5 +1,10 @@
 package io.github.mastin95.pliegue.ui.x
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -34,19 +39,25 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import coil.compose.AsyncImage
 import io.github.mastin95.pliegue.AppViewModel
 import io.github.mastin95.pliegue.model.XEntry
@@ -64,6 +75,7 @@ import io.github.mastin95.pliegue.ui.theme.XType
 import io.github.mastin95.pliegue.ui.web.LocalWebPanes
 import io.github.mastin95.pliegue.web.XParse
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /** Qué consulta de X llena cada vista. */
 /** Las pestañas de Notificaciones de X y el timeline_type con el que pide cada una. */
@@ -109,6 +121,15 @@ fun XFeedScreen(vm: AppViewModel, slot: String, view: XView, taps: PostTaps, sel
             web.homeTab(slot, tab)
         }
     }
+    // Inicio: de vez en cuando se mira si la web de X avisa de posts nuevos (y se pulsa su aviso).
+    if (view == XView.Home) {
+        LaunchedEffect(slot) {
+            while (true) {
+                delay(20_000)
+                web.fresh(slot)
+            }
+        }
+    }
     Column(Modifier.fillMaxSize().background(X.Bg)) {
         header()
         if (view == XView.Home) {
@@ -147,6 +168,7 @@ fun XFeedScreen(vm: AppViewModel, slot: String, view: XView, taps: PostTaps, sel
                     if (note != null) NotificationRow(note, entry.tweets.firstOrNull(), taps) else XEntryCards(entry.tweets, now, taps, selectedId)
                 }
             }
+            if (view == XView.Home && feed != null) NewPostsPill(vm, "$slot/$name", feed, state, Modifier.align(Alignment.TopCenter).padding(top = 12.dp))
         }
     }
 }
@@ -157,6 +179,69 @@ private fun profileOf(view: XView.Profile, feed: XFeed, known: XUser?): XUser? {
     val handle = view.handle?.lowercase()
     val authors = (listOfNotNull(feed.pinned) + feed.tweets).map { it.repostedBy ?: it.author }
     return authors.firstOrNull { handle == null || it.handle.lowercase() == handle } ?: authors.firstOrNull()
+}
+
+/**
+ * La píldora azul de X con las caras de quien ha posteado: sale cuando X pone posts nuevos encima en
+ * Inicio mientras lees más abajo. La lista no salta (sigue en el post que leías); al tocarla se sube.
+ * Cuenta lo que hay encima del post más alto que has llegado a ver, así que se va al subir hasta ellos.
+ */
+@Composable
+private fun NewPostsPill(vm: AppViewModel, key: String, feed: XFeed, state: LazyListState, modifier: Modifier) {
+    val entries = feed.entries
+    val index = remember(entries) { entries.withIndex().associate { (i, e) -> e.id to i } }
+    LaunchedEffect(state, index, key) {
+        snapshotFlow { state.layoutInfo.visibleItemsInfo.mapNotNull { info -> (info.key as? String)?.let { index[it] } }.minOrNull() }
+            .collect { top ->
+                if (entries.isEmpty()) return@collect
+                val seen = vm.seenTop[key]?.let { index[it] }
+                // Un feed recién cargado (o recargado entero) se da por visto desde arriba.
+                val next = if (seen == null) 0 else minOf(seen, top ?: seen)
+                if (next != seen) vm.seenTop[key] = entries[next].id
+            }
+    }
+    val above = vm.seenTop[key]?.let { index[it] } ?: 0
+    val faces = remember(entries, above) {
+        entries.take(above).mapNotNull { e -> e.tweets.firstOrNull()?.let { it.repostedBy ?: it.author } }.distinctBy { it.handle.lowercase() }.take(3)
+    }
+    // Al irse, la píldora se desvanece con las caras que tenía.
+    val last = remember { arrayOf(faces) }
+    if (faces.isNotEmpty()) last[0] = faces
+    val shown = last[0]
+    val scope = rememberCoroutineScope()
+    AnimatedVisibility(
+        visible = above > 0,
+        enter = fadeIn() + slideInVertically { -it },
+        exit = fadeOut() + slideOutVertically { -it },
+        modifier = modifier,
+    ) {
+        Row(
+            Modifier
+                .shadow(6.dp, CircleShape)
+                .clip(CircleShape)
+                .background(X.Blue)
+                .clickable(onClickLabel = "Ver posts nuevos", role = Role.Button) { scope.launch { state.animateScrollToItem(0) } }
+                .semantics(mergeDescendants = true) { contentDescription = "Ver posts nuevos" }
+                .height(40.dp)
+                .padding(start = 12.dp, end = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(XIcons.Up, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(8.dp))
+            if (shown.isNotEmpty()) {
+                // Las caras montadas una sobre otra, la primera encima, con un aro azul que las separa.
+                Box(Modifier.width((26 + 18 * (shown.size - 1)).dp).height(26.dp)) {
+                    shown.forEachIndexed { i, u ->
+                        Box(Modifier.offset(x = (18 * i).dp).zIndex((shown.size - i).toFloat()).size(26.dp).clip(CircleShape).background(X.Blue), contentAlignment = Alignment.Center) {
+                            XAvatar(u.avatar, 22.dp)
+                        }
+                    }
+                }
+                Spacer(Modifier.width(8.dp))
+            }
+            Text(if (shown.size == 1) "posteó" else "postearon", style = XType.body.copy(fontWeight = FontWeight.Bold), color = Color.White)
+        }
+    }
 }
 
 /** Lista de posts con carga de la página siguiente al acercarse al final. */
