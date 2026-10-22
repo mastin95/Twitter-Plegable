@@ -1,10 +1,14 @@
 package io.github.mastin95.pliegue.ui.x
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -12,10 +16,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
@@ -24,6 +30,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
@@ -36,6 +43,8 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -44,13 +53,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.mastin95.pliegue.AppViewModel
@@ -58,6 +73,7 @@ import io.github.mastin95.pliegue.model.XMediaKind
 import io.github.mastin95.pliegue.model.XTime
 import io.github.mastin95.pliegue.model.XTweet
 import io.github.mastin95.pliegue.ui.XIcons
+import io.github.mastin95.pliegue.ui.clock
 import io.github.mastin95.pliegue.ui.components.PillButton
 import io.github.mastin95.pliegue.ui.components.VerifiedBadge
 import io.github.mastin95.pliegue.ui.count
@@ -68,6 +84,7 @@ import io.github.mastin95.pliegue.ui.web.WebPane
 import io.github.mastin95.pliegue.web.PaneOptions
 import io.github.mastin95.pliegue.web.XParse
 import io.github.mastin95.pliegue.web.XWeb
+import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 
 /**
@@ -124,6 +141,8 @@ fun XVideosScreen(vm: AppViewModel, slot: String, url: String, modifier: Modifie
                                 taps,
                                 play = pager.settledPage == page,
                                 overlay = repliesFor == null,
+                                muted = vm.videoMuted,
+                                onMute = vm::updateVideoMuted,
                                 onReplies = { vm.openVideoReplies(slot, XWeb.videosUrl(it.id, source, replies = true)) },
                                 onCloseReplies = { vm.closeVideoReplies(slot) },
                             )
@@ -373,60 +392,211 @@ private fun ReplyField(avatar: String, onReply: () -> Unit) {
 
 /**
  * Un vídeo a toda pantalla con quién lo publicó, su texto y las acciones de X en una columna a la
- * derecha. Sin `overlay` (con las respuestas abiertas debajo), solo el vídeo.
+ * derecha. Sin `overlay` (con las respuestas abiertas debajo), solo el vídeo. Como en X: un toque lo
+ * para y lo sigue, doble toque es me gusta (con el corazón grande), mantenido va a 2× y abajo hay una
+ * barra para ver por dónde va y saltar. El altavoz quita o pone el sonido para todos los vídeos.
  */
 @Composable
-private fun VideoPage(t: XTweet, taps: PostTaps, play: Boolean, overlay: Boolean, onReplies: (XTweet) -> Unit, onCloseReplies: () -> Unit) {
+private fun VideoPage(
+    t: XTweet,
+    taps: PostTaps,
+    play: Boolean,
+    overlay: Boolean,
+    muted: Boolean,
+    onMute: (Boolean) -> Unit,
+    onReplies: (XTweet) -> Unit,
+    onCloseReplies: () -> Unit,
+) {
     val m = t.video ?: return
     val src = m.video ?: return
+    val gif = m.kind == XMediaKind.Gif
     var paused by remember(t.id) { mutableStateOf(false) }
+    var fast by remember(t.id) { mutableStateOf(false) }
+    val progress = remember(t.id) { VideoProgress() }
+    val hearts = remember(t.id) { mutableStateListOf<Pair<Int, Offset>>() }
+    var nextHeart by remember(t.id) { mutableIntStateOf(0) }
     val closeReplies by rememberUpdatedState(onCloseReplies)
+    val current by rememberUpdatedState(t)
+    val like by rememberUpdatedState(taps.onLike)
     Box(
         Modifier
             .fillMaxSize()
             .background(Color.Black)
-            // Un toque para o sigue el vídeo; con las respuestas abiertas (sin `overlay`) las cierra y el
-            // vídeo sigue como iba (Martin, 2026-10-22).
-            .pointerInput(t.id, overlay) { detectTapGestures(onTap = { if (overlay) paused = !paused else closeReplies() }) },
+            .pointerInput(t.id, overlay) {
+                if (!overlay) {
+                    // Con las respuestas abiertas, un toque las cierra y el vídeo sigue como iba (Martin, 2026-10-22).
+                    detectTapGestures(onTap = { closeReplies() })
+                } else {
+                    detectTapGestures(
+                        onTap = { paused = !paused },
+                        // Doble toque: me gusta (si ya lo tenía, solo sale el corazón; no lo quita, como en X).
+                        onDoubleTap = { at ->
+                            hearts += nextHeart to at
+                            nextHeart++
+                            if (!current.liked) like(current)
+                        },
+                        onLongPress = { fast = true },
+                        onPress = {
+                            tryAwaitRelease()
+                            fast = false
+                        },
+                    )
+                }
+            },
     ) {
-        VideoPlayer(src + (if (m.kind == XMediaKind.Gif) XWeb.GIF else XWeb.VIDEO), Modifier.fillMaxSize(), play = play && !paused, loop = true, controls = false)
+        VideoPlayer(
+            src + (if (gif) XWeb.GIF else XWeb.VIDEO),
+            Modifier.fillMaxSize(),
+            play = play && !paused,
+            loop = true,
+            controls = false,
+            muted = muted,
+            speed = if (fast) 2f else 1f,
+            progress = progress,
+        )
         if (paused) {
             Icon(XIcons.Play, contentDescription = "Reproducir", tint = Color.White.copy(alpha = 0.9f), modifier = Modifier.size(72.dp).align(Alignment.Center))
         }
+        hearts.forEach { (id, at) ->
+            key(id) { HeartBurst(at) { hearts.removeAll { it.first == id } } }
+        }
+        if (fast) {
+            Row(
+                Modifier.align(Alignment.TopCenter).padding(top = 16.dp).clip(RoundedCornerShape(50)).background(Color.Black.copy(alpha = 0.55f)).padding(horizontal = 12.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Icon(XIcons.Fast, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                Text("2×", style = XType.small.copy(color = Color.White, fontWeight = FontWeight.Bold))
+            }
+        }
         if (overlay) {
+            if (!gif) {
+                IconButton(
+                    onClick = { onMute(!muted) },
+                    modifier = Modifier.align(Alignment.TopEnd).padding(top = 8.dp, end = 8.dp).size(40.dp).clip(CircleShape).background(Color.Black.copy(alpha = 0.45f)),
+                ) {
+                    Icon(if (muted) XIcons.SoundOff else XIcons.Sound, contentDescription = if (muted) "Poner el sonido" else "Quitar el sonido", tint = Color.White, modifier = Modifier.size(22.dp))
+                }
+            }
             // Un degradado abajo para leer sobre el vídeo.
             Box(Modifier.fillMaxWidth().height(260.dp).align(Alignment.BottomCenter).background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.75f)))))
-            Row(Modifier.fillMaxWidth().align(Alignment.BottomStart).padding(start = 12.dp, end = 4.dp, bottom = 12.dp), verticalAlignment = Alignment.Bottom) {
-                Column(Modifier.weight(1f).padding(end = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(
-                        Modifier.clip(RoundedCornerShape(8.dp)).clickable(onClickLabel = "Ver perfil") { taps.onUser(t.author.handle) },
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        XAvatar(t.author.avatar, 36.dp)
-                        Column {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Text(t.author.name, style = XType.name.copy(color = Color.White), maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
-                                if (t.author.verified) VerifiedBadge(16.dp)
+            Column(Modifier.fillMaxWidth().align(Alignment.BottomStart)) {
+                Row(Modifier.fillMaxWidth().padding(start = 12.dp, end = 4.dp, bottom = if (gif) 12.dp else 0.dp), verticalAlignment = Alignment.Bottom) {
+                    Column(Modifier.weight(1f).padding(end = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(
+                            Modifier.clip(RoundedCornerShape(8.dp)).clickable(onClickLabel = "Ver perfil") { taps.onUser(t.author.handle) },
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            XAvatar(t.author.avatar, 36.dp)
+                            Column {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Text(t.author.name, style = XType.name.copy(color = Color.White), maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                                    if (t.author.verified) VerifiedBadge(16.dp)
+                                }
+                                Text("@${t.author.handle}", style = XType.small.copy(color = Color.White.copy(alpha = 0.8f)), maxLines = 1)
                             }
-                            Text("@${t.author.handle}", style = XType.small.copy(color = Color.White.copy(alpha = 0.8f)), maxLines = 1)
+                        }
+                        if (t.text.isNotEmpty()) {
+                            XText(t.text, t.links, XType.body.copy(color = Color.White), onLink = taps.onLink, maxLines = 3, modifier = Modifier.clickable(onClickLabel = "Ver el post") { taps.onOpen(t) })
                         }
                     }
-                    if (t.text.isNotEmpty()) {
-                        XText(t.text, t.links, XType.body.copy(color = Color.White), onLink = taps.onLink, maxLines = 3, modifier = Modifier.clickable(onClickLabel = "Ver el post") { taps.onOpen(t) })
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        // El globo abre las respuestas aquí mismo, debajo del vídeo; desde ellas se responde.
+                        SideAction(XIcons.Reply, "Ver respuestas", t.replies, false, X.Blue) { onReplies(t) }
+                        SideAction(XIcons.Repost, if (t.reposted) "Deshacer repost" else "Repostear", t.reposts + t.quotes, t.reposted, X.Green) { taps.onRepost(t) }
+                        SideAction(if (t.liked) XIcons.LikeFilled else XIcons.Like, if (t.liked) "Ya no me gusta" else "Me gusta", t.likes, t.liked, X.Pink) { taps.onLike(t) }
+                        SideAction(if (t.bookmarked) XIcons.BookmarkFilled else XIcons.Bookmark, "Guardar", t.bookmarks, t.bookmarked, X.Blue) { taps.onBookmark(t) }
+                        SideAction(XIcons.Share, "Compartir post", 0, false, X.Blue) { taps.onShare(t) }
                     }
                 }
-                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    // El globo abre las respuestas aquí mismo, debajo del vídeo; desde ellas se responde.
-                    SideAction(XIcons.Reply, "Ver respuestas", t.replies, false, X.Blue) { onReplies(t) }
-                    SideAction(XIcons.Repost, if (t.reposted) "Deshacer repost" else "Repostear", t.reposts + t.quotes, t.reposted, X.Green) { taps.onRepost(t) }
-                    SideAction(if (t.liked) XIcons.LikeFilled else XIcons.Like, if (t.liked) "Ya no me gusta" else "Me gusta", t.likes, t.liked, X.Pink) { taps.onLike(t) }
-                    SideAction(if (t.bookmarked) XIcons.BookmarkFilled else XIcons.Bookmark, "Guardar", t.bookmarks, t.bookmarked, X.Blue) { taps.onBookmark(t) }
-                    SideAction(XIcons.Share, "Compartir post", 0, false, X.Blue) { taps.onShare(t) }
-                }
+                // Los GIF son de pocos segundos y en bucle: sin barra.
+                if (!gif) VideoBar(progress, Modifier.fillMaxWidth().padding(horizontal = 12.dp).padding(bottom = 6.dp))
             }
         }
     }
+}
+
+/**
+ * La barra de abajo de un vídeo: lo que va (en blanco) y lo que queda, con el tiempo a cada lado.
+ * Se toca o se arrastra para ir a otro punto; mientras se arrastra crece y el tiempo sigue al dedo.
+ */
+@Composable
+private fun VideoBar(progress: VideoProgress, modifier: Modifier = Modifier) {
+    val duration = progress.duration
+    var drag by remember { mutableStateOf<Float?>(null) }
+    if (duration <= 0L) return
+    val shown = drag ?: (progress.position.toFloat() / duration).coerceIn(0f, 1f)
+    val active = drag != null
+    val seek = { f: Float -> progress.seekTo((f * duration).toLong()) }
+    Column(modifier) {
+        Canvas(
+            Modifier
+                .fillMaxWidth()
+                .height(22.dp)
+                .semantics { contentDescription = "Barra del vídeo" }
+                .pointerInput(duration) { detectTapGestures(onTap = { o -> seek((o.x / size.width).coerceIn(0f, 1f)) }) }
+                .pointerInput(duration) {
+                    detectHorizontalDragGestures(
+                        onDragStart = { o -> drag = (o.x / size.width).coerceIn(0f, 1f) },
+                        onDragEnd = {
+                            drag?.let(seek)
+                            drag = null
+                        },
+                        onDragCancel = { drag = null },
+                    ) { change, _ ->
+                        change.consume()
+                        drag = (change.position.x / size.width).coerceIn(0f, 1f)
+                    }
+                },
+        ) {
+            val y = size.height / 2
+            val stroke = (if (active) 4.dp else 2.5.dp).toPx()
+            val x = size.width * shown
+            drawLine(Color.White.copy(alpha = 0.3f), Offset(0f, y), Offset(size.width, y), strokeWidth = stroke, cap = StrokeCap.Round)
+            drawLine(Color.White, Offset(0f, y), Offset(x, y), strokeWidth = stroke, cap = StrokeCap.Round)
+            drawCircle(Color.White, radius = (if (active) 8.dp else 5.dp).toPx(), center = Offset(x, y))
+        }
+        Row(Modifier.fillMaxWidth()) {
+            val style = XType.small.copy(color = Color.White.copy(alpha = if (active) 1f else 0.75f), fontSize = 12.sp)
+            Text(clock((shown * duration).toLong()), style = style)
+            Spacer(Modifier.weight(1f))
+            Text(clock(duration), style = style)
+        }
+    }
+}
+
+/** El corazón grande del doble toque: sale donde se tocó, crece un poco, sube y se va. */
+@Composable
+private fun HeartBurst(at: Offset, onDone: () -> Unit) {
+    val anim = remember { Animatable(0f) }
+    val tilt = remember { (-18..18).random().toFloat() }
+    LaunchedEffect(Unit) {
+        anim.animateTo(1f, tween(900, easing = LinearEasing))
+        onDone()
+    }
+    val p = anim.value
+    val size = 96.dp
+    Icon(
+        XIcons.LikeFilled,
+        contentDescription = null,
+        tint = X.Pink,
+        modifier = Modifier
+            .offset { IntOffset((at.x - size.toPx() / 2).roundToInt(), (at.y - size.toPx() / 2 - p * 80.dp.toPx()).roundToInt()) }
+            .size(size)
+            .graphicsLayer {
+                val scale = when {
+                    p < 0.15f -> 0.4f + p / 0.15f * 0.9f
+                    p < 0.3f -> 1.3f - (p - 0.15f) / 0.15f * 0.3f
+                    else -> 1f
+                }
+                scaleX = scale
+                scaleY = scale
+                rotationZ = tilt
+                alpha = if (p < 0.55f) 1f else 1f - (p - 0.55f) / 0.45f
+            },
+    )
 }
 
 @Composable

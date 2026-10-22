@@ -68,6 +68,15 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         showToast(if (on) "Interfaz de Pliegue activada." else "Se enseña la web de X tal cual.")
     }
 
+    /** Vídeos sin sonido en la pantalla de vídeos; se queda así para los siguientes y al volver a abrir la app. */
+    var videoMuted by mutableStateOf(prefs.videoMuted)
+        private set
+
+    fun updateVideoMuted(on: Boolean) {
+        videoMuted = on
+        prefs.videoMuted = on
+    }
+
     /** Pestaña de Inicio de cada ranura en la interfaz propia: 0 "Para ti", 1 "Siguiendo". */
     private val homeTabs = mutableStateMapOf<String, Int>()
 

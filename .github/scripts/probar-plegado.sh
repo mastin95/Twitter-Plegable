@@ -173,6 +173,34 @@ adb shell input keyevent 4
 sleep 3
 busca_y_toca '^Vídeo$' 500 1400 500 && sleep 12
 paso propia-videos
+# Controles de los vídeos (Martin, 2026-10-22): mantenido va a 2× (sale "2×" arriba), doble toque es me
+# gusta con el corazón grande (la captura -corazon se hace al momento, antes de que se vaya), el altavoz
+# quita el sonido (y sigue quitado en los vídeos siguientes, se ve abierto) y la barra de abajo salta:
+# con el vídeo parado se arrastra hasta el 80 % y el tiempo pasa a 0:04 de 0:06.
+adb shell input swipe 540 1000 540 1000 7000 &
+sleep 2
+paso propia-videos-2x
+wait
+sleep 1
+adb shell 'input tap 540 1000; input tap 540 1000'
+adb exec-out screencap -p > "$OUT/propia-videos-corazon.png" 2>/dev/null
+sleep 2
+paso propia-videos-me-gusta
+toca '^Quitar el sonido$' && sleep 2
+paso propia-videos-sin-sonido
+adb shell input tap 540 1000
+sleep 2
+volcar /tmp/ui.xml
+if barra=$(python3 "$UI" find /tmp/ui.xml '^Barra del vídeo$'); then
+  echo "barra en $barra"
+  adb shell input swipe 60 "${barra#* }" 860 "${barra#* }" 600
+else
+  echo "no encuentro la barra del vídeo"
+fi
+sleep 2
+paso propia-videos-barra
+adb shell input tap 540 1000
+sleep 1
 desliza 500 1500 300
 sleep 8
 paso propia-videos-2

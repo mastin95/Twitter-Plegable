@@ -51,6 +51,9 @@ object XIcons {
     val Logout = stroke("logout", "M10 4H5v16h5M14 8l4 4-4 4M18 12H9")
     val Grid = stroke("grid", "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z")
     val Play = fill("play", "M8 5v14l11-7z")
+    val Sound = stroke("sound", "M4 9.5h3.5L12 5.5v13l-4.5-4H4zM15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11")
+    val SoundOff = stroke("sound_off", "M4 9.5h3.5L12 5.5v13l-4.5-4H4zM15.5 9.5l5 5M20.5 9.5l-5 5")
+    val Fast = fill("fast", "M3 6.5l8.5 5.5L3 17.5zM12 6.5l8.5 5.5-8.5 5.5z")
     val Book = stroke("book", "M12 6c-2-1.5-5-1.5-8-1v14c3-.5 6-.5 8 1 2-1.5 5-1.5 8-1V5c-3-.5-6-.5-8 1zM12 6v14")
 }
 

@@ -14,6 +14,15 @@ fun count(n: Int): String = when {
 private fun oneDecimal(v: Double): String =
     String.format(Locale.ROOT, "%.1f", v).removeSuffix(".0").replace('.', ',')
 
+/** Tiempo de un vídeo como en la barra de X: "0:17", "12:05", "1:02:33". */
+fun clock(ms: Long): String {
+    val s = (ms / 1000).coerceAtLeast(0)
+    val h = s / 3600
+    val m = (s % 3600) / 60
+    val sec = s % 60
+    return if (h > 0) String.format(Locale.ROOT, "%d:%02d:%02d", h, m, sec) else String.format(Locale.ROOT, "%d:%02d", m, sec)
+}
+
 fun initials(name: String): String {
     val parts = name.replace(".", "").split(" ").filter { it.isNotBlank() }
     return ((parts.getOrNull(0)?.take(1) ?: "") + (parts.getOrNull(1)?.take(1) ?: "")).uppercase()

@@ -15,6 +15,14 @@ class FormatTest {
     }
 
     @Test
+    fun tiempoDeUnVideoComoEnLaBarraDeX() {
+        assertEquals("0:00", clock(0))
+        assertEquals("0:17", clock(17_400))
+        assertEquals("12:05", clock(725_000))
+        assertEquals("1:02:33", clock(3_753_000))
+    }
+
+    @Test
     fun inicialesDelNombre() {
         assertEquals("LR", initials("Lucía R."))
         assertEquals("CF", initials("Cocina Fácil"))

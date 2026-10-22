@@ -19,6 +19,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -58,6 +59,7 @@ import io.github.mastin95.pliegue.ui.web.WebPane
 import io.github.mastin95.pliegue.web.PaneOptions
 import io.github.mastin95.pliegue.web.XWeb
 import java.io.File
+import kotlinx.coroutines.delay
 
 /**
  * Lo que se abre en una mitad al tocar algo que no es una página de X: una foto de X en el visor
@@ -133,13 +135,46 @@ fun PhotoViewer(url: String, modifier: Modifier = Modifier) {
 }
 
 /**
+ * Por dónde va un vídeo y cuánto dura (en milisegundos), para la barra propia de la pantalla de
+ * vídeos; `seekTo` lo lleva a otro punto. Lo rellena el [VideoPlayer] al que se le pasa.
+ */
+class VideoProgress {
+    var position by mutableLongStateOf(0L)
+        private set
+    var duration by mutableLongStateOf(0L)
+        private set
+    internal var player: Player? = null
+
+    internal fun read(p: Player) {
+        position = p.currentPosition.coerceAtLeast(0L)
+        duration = p.duration.takeIf { it > 0 } ?: 0L
+    }
+
+    fun seekTo(ms: Long) {
+        val p = player ?: return
+        p.seekTo(ms)
+        read(p)
+    }
+}
+
+/**
  * Vídeos y GIF de X con reproductor propio (ExoPlayer): los GIF van en bucle, sin sonido ni controles.
  * `play` lo arranca y lo para desde fuera (la pantalla de vídeos para el que no está a la vista);
- * `loop` y `controls` cambian lo que toca por defecto según sea vídeo o GIF.
+ * `loop` y `controls` cambian lo que toca por defecto según sea vídeo o GIF. `muted` quita el sonido
+ * (y entonces no para la música de otra app), `speed` lo acelera y `progress` recibe por dónde va.
  */
 @androidx.annotation.OptIn(UnstableApi::class)
 @Composable
-fun VideoPlayer(url: String, modifier: Modifier = Modifier, play: Boolean = true, loop: Boolean = XWeb.isGif(url), controls: Boolean = !XWeb.isGif(url)) {
+fun VideoPlayer(
+    url: String,
+    modifier: Modifier = Modifier,
+    play: Boolean = true,
+    loop: Boolean = XWeb.isGif(url),
+    controls: Boolean = !XWeb.isGif(url),
+    muted: Boolean = false,
+    speed: Float = 1f,
+    progress: VideoProgress? = null,
+) {
     val context = LocalContext.current
     val web = LocalWebPanes.current
     val gif = XWeb.isGif(url)
@@ -147,9 +182,9 @@ fun VideoPlayer(url: String, modifier: Modifier = Modifier, play: Boolean = true
     var error by remember(src) { mutableStateOf<String?>(null) }
     val player = remember(src) {
         ExoPlayer.Builder(context).build().apply {
-            // Con sonido se pide el foco de audio (para la música); un GIF ni suena ni lo pide.
-            setAudioAttributes(AudioAttributes.DEFAULT, !gif)
-            if (gif) volume = 0f
+            // Con sonido se pide el foco de audio (para la música); un GIF o un vídeo sin sonido ni suena ni lo pide.
+            setAudioAttributes(AudioAttributes.DEFAULT, !gif && !muted)
+            if (gif || muted) volume = 0f
             if (loop) repeatMode = Player.REPEAT_MODE_ONE
             setMediaItem(MediaItem.fromUri(src))
             prepare()
@@ -157,6 +192,24 @@ fun VideoPlayer(url: String, modifier: Modifier = Modifier, play: Boolean = true
         }
     }
     LaunchedEffect(player, play) { player.playWhenReady = play }
+    LaunchedEffect(player, muted) {
+        val silent = gif || muted
+        player.volume = if (silent) 0f else 1f
+        player.setAudioAttributes(AudioAttributes.DEFAULT, !silent)
+    }
+    LaunchedEffect(player, speed) { player.setPlaybackSpeed(speed) }
+    if (progress != null) {
+        DisposableEffect(player, progress) {
+            progress.player = player
+            onDispose { if (progress.player === player) progress.player = null }
+        }
+        LaunchedEffect(player, progress) {
+            while (true) {
+                progress.read(player)
+                delay(200)
+            }
+        }
+    }
     DisposableEffect(player) {
         val listener = object : Player.Listener {
             override fun onPlayerError(e: PlaybackException) {
