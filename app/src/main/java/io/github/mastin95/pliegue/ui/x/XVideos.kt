@@ -209,7 +209,7 @@ private fun VideoReplies(vm: AppViewModel, slot: String, t: XTweet, modifier: Mo
                 else -> {
                     // Cada respuesta con las que la siguen en su hilo, un poco metidas.
                     items(thread.replies, key = { it.id }) { e ->
-                        Column { e.tweets.forEachIndexed { i, r -> ReplyRow(r, now, taps, nested = i > 0) } }
+                        Column { e.tweets.forEachIndexed { i, r -> ReplyRow(r, now, taps, nested = i > 0, last = i == e.tweets.lastIndex) } }
                     }
                     item("fin") {
                         Box(Modifier.fillMaxWidth().height(56.dp), contentAlignment = Alignment.Center) {
@@ -290,11 +290,11 @@ private fun ReplyAuthor(t: XTweet, now: Long) {
 
 /**
  * Una respuesta en una fila compacta: foto pequeña, nombre y hace cuánto, el texto, sus fotos en
- * pequeño y debajo "Responder" (y "Ver N respuestas" si tiene); el me gusta, a la derecha. Tocarla
- * abre su conversación encima. `nested`: sigue a la de arriba en su hilo, un poco metida.
+ * pequeño y debajo "Responder" (y "Ver N respuestas" si tiene y es la `last` de su hilo); el me gusta,
+ * a la derecha. Tocarla abre su conversación encima. `nested`: sigue a la de arriba en su hilo, un poco metida.
  */
 @Composable
-private fun ReplyRow(t: XTweet, now: Long, taps: PostTaps, nested: Boolean) {
+private fun ReplyRow(t: XTweet, now: Long, taps: PostTaps, nested: Boolean, last: Boolean) {
     Row(
         Modifier
             .fillMaxWidth()
@@ -312,7 +312,8 @@ private fun ReplyRow(t: XTweet, now: Long, taps: PostTaps, nested: Boolean) {
             t.quoted?.let { XQuoted(it, now, taps, Modifier.padding(top = 6.dp)) }
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 SmallLink("Responder") { taps.onReply(t) }
-                if (t.replies > 0) SmallLink(if (t.replies == 1) "Ver 1 respuesta" else "Ver ${count(t.replies)} respuestas") { taps.onOpen(t) }
+                // "Ver N respuestas" solo en la última de su hilo: las anteriores ya tienen debajo la que las sigue.
+                if (last && t.replies > 0) SmallLink(if (t.replies == 1) "Ver 1 respuesta" else "Ver ${count(t.replies)} respuestas") { taps.onOpen(t) }
             }
         }
         val label = if (t.liked) "Ya no me gusta" else "Me gusta"
